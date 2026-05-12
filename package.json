@@ -1,0 +1,33 @@
+{
+  "name": "dont-drop-the-soap",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "next build",
+    "start": "cross-env NODE_ENV=production tsx server.ts",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/qrcode.react": "^1.0.5",
+    "@types/sql.js": "^1.4.11",
+    "cross-env": "^7.0.3",
+    "next": "^15.3.2",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "eslint": "^9.26.0",
+    "eslint-config-next": "^15.3.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
