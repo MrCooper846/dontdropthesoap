@@ -11,6 +11,10 @@ type LeaderboardEntry = {
   score: number;
 };
 
+function formatNoodlePacks(score: number) {
+  return `${score} noodle packs${score < 0 ? " - in noodle debt" : ""}`;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [nickname, setNicknameState] = useState("");
@@ -43,7 +47,7 @@ export default function HomePage() {
     <main className="screen stack">
       <section>
         <h1 className="brand">Don&apos;t Drop The Soap</h1>
-        <p className="subtitle">A tiny party game about trust, betrayal, and making your friends yell at a phone.</p>
+        <p className="subtitle">A tiny party game about trust, betrayal, and ruining friendships over instant noodles.</p>
       </section>
 
       <section className="panel stack">
@@ -57,24 +61,25 @@ export default function HomePage() {
       <section className="panel">
         <h2>Rules</h2>
         <p className="subtitle">
-          Each round, you are paired with someone. Secretly choose Cooperate or Defect. If you both cooperate, you both gain.
-          If one defects while the other cooperates, the defector gets a big reward. If both defect, you both get scraps.
+          Welcome to the noodle economy. Everyone starts with 50 noodle packs, which is basically generational wealth in here.
+          Each round, both players put 2 packs on the line: C/C gets 3 back each, C/D gives the cooperator 0 and the defector 5,
+          and D/D gets 1 back each. Noodle totals can go negative, because bad decisions deserve accounting.
         </p>
       </section>
 
       <section className="panel stack">
         <div className="row">
-          <h2>Global Scores</h2>
-          <span className="pill">Tonight&apos;s damage</span>
+          <h2>Global Noodle Rankings</h2>
+          <span className="pill">Commissary crimes</span>
         </div>
         {leaderboard.length === 0 ? (
-          <p className="muted">No scores yet. Be the first problem.</p>
+          <p className="muted">No noodle stashes yet. Be the first financial incident.</p>
         ) : (
           <ol className="list">
             {leaderboard.map((entry, index) => (
               <li className="listItem" key={entry.playerId}>
                 <strong>{index + 1}. {entry.nickname}</strong>
-                <span className="pill">{entry.score}</span>
+                <span className="pill">{formatNoodlePacks(entry.score)}</span>
               </li>
             ))}
           </ol>

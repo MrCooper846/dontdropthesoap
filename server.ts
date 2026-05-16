@@ -1,8 +1,8 @@
 import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
-import { ROUND_DURATION_MS, allMovesSubmitted, autoCooperateMissingMoves, buildAwards, findPlayer, generateLobbyCode, makeLobby, makePlayer, resetLobbyForReplay, revealRound, startRound } from "./lib/game";
-import { recordFinishedGame } from "./lib/leaderboard";
+import { BETWEEN_ROUNDS_DURATION_MS, ROUND_DURATION_MS, STARTING_NOODLE_PACKS, allMovesSubmitted, autoCooperateMissingMoves, buildAwards, connectedPlayersReady, findPlayer, generateLobbyCode, makeLobby, makePlayer, resetLobbyForReplay, revealRound, startRound, uniqueConnectedPlayers } from "./lib/game";
+import { ensurePlayerBalance, recordFinishedGame, recordPlayerBalances } from "./lib/leaderboard";
 import type { Lobby, Move } from "./lib/types";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -21,6 +21,7 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     socket.on("player:hello", ({ playerId, nickname }: { playerId: string; nickname: string }) => {
       socketPlayers.set(socket.id, playerId);
+      if (nickname?.trim()) void ensurePlayerBalance(playerId, nickname.trim());
       const lobby = findLobbyByPlayer(playerId);
       if (lobby) {
         const player = findPlayer(lobby, playerId);
@@ -39,6 +40,7 @@ app.prepare().then(() => {
     });
 
     socket.on("player:setNickname", ({ playerId, nickname }: { playerId: string; nickname: string }) => {
+      if (nickname.trim()) void ensurePlayerBalance(playerId, nickname.trim());
       const lobby = findLobbyByPlayer(playerId);
       const player = lobby ? findPlayer(lobby, playerId) : null;
       if (lobby && player && nickname.trim()) {
@@ -47,22 +49,30 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("lobby:create", ({ playerId, nickname, totalRounds, maxPlayers }: { playerId: string; nickname: string; totalRounds: number; maxPlayers: number }) => {
+    socket.on("lobby:create", async ({ playerId, nickname, totalRounds, maxPlayers }: { playerId: string; nickname: string; totalRounds: number; maxPlayers: number }) => {
       if (!nickname?.trim()) return socket.emit("error", "Choose a nickname first.");
       const existing = findLobbyByPlayer(playerId);
       if (existing) removePlayer(existing, playerId);
 
       const code = generateLobbyCode(new Set(lobbies.keys()));
-      const host = makePlayer(playerId, socket.id, nickname.trim(), true);
+      const host = makePlayer(playerId, socket.id, nickname.trim(), true, STARTING_NOODLE_PACKS, false);
       const lobby = makeLobby(code, host, clamp(totalRounds, 3, 10), clamp(maxPlayers, 2, 12));
       lobbies.set(code, lobby);
       socket.join(code);
       socket.emit("lobby:created", { code });
       emitLobby(io, lobby);
       emitOpenLobbies(io);
+
+      const balance = await ensurePlayerBalance(playerId, nickname.trim());
+      if (lobby.status === "waiting") {
+        host.score = balance;
+        host.gameStartScore = balance;
+        host.balanceReady = true;
+        emitLobby(io, lobby);
+      }
     });
 
-    socket.on("lobby:join", ({ playerId, nickname, code }: { playerId: string; nickname: string; code: string }) => {
+    socket.on("lobby:join", async ({ playerId, nickname, code }: { playerId: string; nickname: string; code: string }) => {
       if (!nickname?.trim()) return socket.emit("error", "Choose a nickname first.");
       const lobby = lobbies.get(code.toUpperCase().trim());
       if (!lobby) return socket.emit("error", "Lobby not found.");
@@ -74,7 +84,18 @@ app.prepare().then(() => {
         existingPlayer.nickname = nickname.trim();
         socket.join(lobby.code);
         socket.emit("lobby:joined", { code: lobby.code });
-        return emitLobby(io, lobby);
+        emitLobby(io, lobby);
+
+        if (!existingPlayer.balanceReady && lobby.status === "waiting") {
+          const balance = await ensurePlayerBalance(playerId, nickname.trim());
+          if (lobby.status === "waiting") {
+            existingPlayer.score = balance;
+            existingPlayer.gameStartScore = balance;
+            existingPlayer.balanceReady = true;
+            emitLobby(io, lobby);
+          }
+        }
+        return;
       }
 
       if (lobby.status !== "waiting") return socket.emit("error", "That game already started.");
@@ -83,11 +104,20 @@ app.prepare().then(() => {
       const previous = findLobbyByPlayer(playerId);
       if (previous && previous.code !== lobby.code) removePlayer(previous, playerId);
 
-      lobby.players.push(makePlayer(playerId, socket.id, nickname.trim(), false));
+      const player = makePlayer(playerId, socket.id, nickname.trim(), false, STARTING_NOODLE_PACKS, false);
+      lobby.players.push(player);
       socket.join(lobby.code);
       socket.emit("lobby:joined", { code: lobby.code });
       emitLobby(io, lobby);
       emitOpenLobbies(io);
+
+      const balance = await ensurePlayerBalance(playerId, nickname.trim());
+      if (lobby.status === "waiting") {
+        player.score = balance;
+        player.gameStartScore = balance;
+        player.balanceReady = true;
+        emitLobby(io, lobby);
+      }
     });
 
     socket.on("lobby:leave", ({ playerId, code }: { playerId: string; code: string }) => {
@@ -110,7 +140,8 @@ app.prepare().then(() => {
       if (!lobby) return;
       if (lobby.hostPlayerId !== playerId) return socket.emit("error", "Only the host can start.");
       if (lobby.status !== "waiting") return socket.emit("error", "Game already started.");
-      if (lobby.players.length < 2) return socket.emit("error", "You need at least 2 players.");
+      if (connectedPlayerCount(lobby) < 2) return socket.emit("error", "You need at least 2 connected players.");
+      if (!connectedPlayersReady(lobby.players)) return socket.emit("error", "Hold up. The noodle accountant is still counting balances.");
       startRound(lobby);
       scheduleRoundTimer(io, lobby);
       io.to(lobby.code).emit("game:roundStarted", lobby);
@@ -135,6 +166,7 @@ app.prepare().then(() => {
       if (!lobby) return;
       if (lobby.hostPlayerId !== playerId) return socket.emit("error", "Only the host can advance.");
       if (lobby.status !== "between_rounds") return;
+      clearRoundTimer(lobby.code);
       startRound(lobby);
       scheduleRoundTimer(io, lobby);
       io.to(lobby.code).emit("game:roundStarted", lobby);
@@ -190,6 +222,10 @@ function getOpenLobbies() {
     }));
 }
 
+function connectedPlayerCount(lobby: Lobby) {
+  return uniqueConnectedPlayers(lobby.players).length;
+}
+
 function scheduleRoundTimer(io: Server, lobby: Lobby) {
   clearRoundTimer(lobby.code);
   roundTimers.set(lobby.code, setTimeout(() => {
@@ -198,6 +234,18 @@ function scheduleRoundTimer(io: Server, lobby: Lobby) {
     autoCooperateMissingMoves(currentLobby);
     revealAndEmit(io, currentLobby);
   }, ROUND_DURATION_MS));
+}
+
+function scheduleBetweenRoundTimer(io: Server, lobby: Lobby) {
+  clearRoundTimer(lobby.code);
+  roundTimers.set(lobby.code, setTimeout(() => {
+    const currentLobby = lobbies.get(lobby.code);
+    if (!currentLobby || currentLobby.status !== "between_rounds") return;
+    startRound(currentLobby);
+    scheduleRoundTimer(io, currentLobby);
+    io.to(currentLobby.code).emit("game:roundStarted", currentLobby);
+    emitLobby(io, currentLobby);
+  }, BETWEEN_ROUNDS_DURATION_MS));
 }
 
 function clearRoundTimer(code: string) {
@@ -209,6 +257,8 @@ function clearRoundTimer(code: string) {
 function revealAndEmit(io: Server, lobby: Lobby) {
   clearRoundTimer(lobby.code);
   revealRound(lobby);
+  void recordPlayerBalances(lobby);
+  if (lobby.status === "between_rounds") scheduleBetweenRoundTimer(io, lobby);
   io.to(lobby.code).emit("game:roundRevealed", lobby);
   if ((lobby as Lobby).status === "finished") {
     void recordFinishedGame(lobby);

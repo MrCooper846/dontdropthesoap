@@ -21,6 +21,8 @@ export type Player = {
   isHost: boolean;
   connected: boolean;
   score: number;
+  gameStartScore: number;
+  balanceReady: boolean;
   stats: PlayerStats;
 };
 
