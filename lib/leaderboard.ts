@@ -149,6 +149,7 @@ export function recordFinishedGame(lobby: Lobby) {
 }
 
 export async function getGlobalLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
+  await writeQueue.catch(() => undefined);
   const db = await getDb();
   const statement = db.prepare(`
     SELECT

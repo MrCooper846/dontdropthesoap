@@ -19,6 +19,7 @@ export default function HomePage() {
   const router = useRouter();
   const [nickname, setNicknameState] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardError, setLeaderboardError] = useState("");
 
   useEffect(() => {
     const stored = getNickname();
@@ -28,10 +29,39 @@ export default function HomePage() {
   }, [router]);
 
   useEffect(() => {
-    fetch("/api/leaderboard")
-      .then((response) => response.json())
-      .then((data: { leaderboard?: LeaderboardEntry[] }) => setLeaderboard(data.leaderboard ?? []))
-      .catch(() => setLeaderboard([]));
+    let cancelled = false;
+
+    function loadLeaderboard() {
+      fetch("/api/leaderboard", { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) throw new Error("Leaderboard request failed");
+          return response.json();
+        })
+        .then((data: { leaderboard?: LeaderboardEntry[] }) => {
+          if (cancelled) return;
+          setLeaderboard(data.leaderboard ?? []);
+          setLeaderboardError("");
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLeaderboard([]);
+          setLeaderboardError("Could not load noodle rankings. The commissary ledger is sulking.");
+        });
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") loadLeaderboard();
+    }
+
+    loadLeaderboard();
+    window.addEventListener("focus", loadLeaderboard);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", loadLeaderboard);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, []);
 
   function requireNickname(path: string) {
@@ -72,7 +102,9 @@ export default function HomePage() {
           <h2>Global Noodle Rankings</h2>
           <span className="pill">Commissary crimes</span>
         </div>
-        {leaderboard.length === 0 ? (
+        {leaderboardError ? (
+          <p className="muted">{leaderboardError}</p>
+        ) : leaderboard.length === 0 ? (
           <p className="muted">No noodle stashes yet. Be the first financial incident.</p>
         ) : (
           <ol className="list">
