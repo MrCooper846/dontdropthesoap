@@ -1,3 +1,6 @@
+import { challengeHttp } from "./yards/challenges";
+import { yardHttp } from "./yards/http";
+import { yard } from "./yards/world";
 import { syncObservation } from "./matches/observations";
 import { botHttp, ownedBotHttp } from "./bots/http";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -117,13 +120,18 @@ export async function api(
     );
     if (method !== "GET") assertCsrf(req, principal);
     if (await ownedBotHttp(req, res, path, method, onRevoke)) return true;
+    if (await yardHttp(req, res, path, method)) return true;
+    if (await challengeHttp(req, res, path, method)) return true;
     if (path === "/session" && method === "GET") {
       json(res, 200, {
         ownerId: principal.ownerId,
         name: principal.name,
         controllerEpoch: principal.epoch,
         csrfToken: csrf(principal),
-        features: { externalBots: config.FEATURE_EXTERNAL_BOTS },
+        features: {
+          externalBots: config.FEATURE_EXTERNAL_BOTS,
+          yard: config.FEATURE_YARD,
+        },
       });
       return true;
     }
@@ -140,7 +148,9 @@ export async function api(
       return true;
     }
     if (path === "/controller/acquire" && method === "POST") {
-      json(res, 200, { controllerEpoch: await controller(req) });
+      const epoch = await controller(req);
+      yard.setController(principal.ownerId, epoch);
+      json(res, 200, { controllerEpoch: epoch });
       return true;
     }
     if (path === "/command-keys" && method === "POST") {

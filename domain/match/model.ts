@@ -20,6 +20,7 @@ export type Seat = {
   botId: string | null;
   botVersionId: string | null;
   name: string;
+  ownerName?: string | null;
   kind: "human" | "external" | "visual" | "system";
   ready: boolean;
   abandoned: boolean;

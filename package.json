@@ -6,7 +6,7 @@
     "dev": "tsx server.ts",
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"examples/**/*.ts\" server.ts",
+    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.tsx\" components/YardMatchPanel.tsx \"examples/**/*.ts\" server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "playwright test",
@@ -15,10 +15,11 @@
     "db:migrate": "tsx server/persistence/migrate.ts",
     "dev:legacy": "cross-env SOAP_LEGACY=true tsx legacy-server.ts",
     "test:alpha": "playwright test -c playwright.alpha.config.ts",
-    "test:integration": "DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
+    "test:integration": "FEATURE_YARD=false DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
     "test:recovery": "tsx tests/runtime/recovery.ts",
     "test:setup": "tsx scripts/init-test-dbs.ts",
-    "legacy:archive": "tsx scripts/archive-legacy.ts"
+    "legacy:archive": "tsx scripts/archive-legacy.ts",
+    "test:yard": "playwright test -c playwright.yard.config.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

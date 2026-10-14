@@ -1,10 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-type Session = { csrfToken: string; controllerEpoch: number; name: string };
+type Session = {
+  features?: { yard: boolean };
+  csrfToken: string;
+  controllerEpoch: number;
+  name: string;
+};
 type Bot = {
   id: string;
   name: string;
+  features?: { yard: boolean };
   kind: string;
   online: boolean;
   revision: number;
@@ -81,7 +87,10 @@ export default function Bots() {
           Bring your own machinery. The noodles judge everyone equally.
         </p>
       </header>
-      <Link className="button" href="/play">
+      <Link
+        className="button"
+        href={session?.features?.yard ? "/yard" : "/play"}
+      >
         Back to tables
       </Link>
       {error && (

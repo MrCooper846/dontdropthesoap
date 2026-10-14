@@ -26,7 +26,10 @@ export function createMatch(
     id,
     hostOwnerId,
     mode,
-    settings: { ...settings },
+    settings: {
+      ...settings,
+      ...(mode === "challenge" || mode === "league" ? { maxSeats: 2 } : {}),
+    },
     circleId,
     rulesetVersion: 1,
     phase: "waiting",
@@ -45,7 +48,10 @@ export function createMatch(
 }
 export function addSeat(m: Match, seat: Seat) {
   if (m.phase !== "waiting") throw new RuleError("WRONG_PHASE");
-  if (m.seats.length >= m.settings.maxSeats)
+  if (
+    m.seats.length >= m.settings.maxSeats ||
+    ((m.mode === "challenge" || m.mode === "league") && m.seats.length >= 2)
+  )
     throw new RuleError("CAPACITY_FULL");
   if (
     m.seats.some(
@@ -73,6 +79,7 @@ export function makeSeat(
     id,
     ownerId,
     name,
+    ownerName: kind === "human" ? name : null,
     kind,
     botId,
     botVersionId,
@@ -89,7 +96,10 @@ function clearReadiness(m: Match) {
 export function configure(m: Match, settings: Settings) {
   if (m.phase !== "waiting") throw new RuleError("WRONG_PHASE");
   if (settings.maxSeats < m.seats.length) throw new RuleError("CAPACITY_FULL");
-  m.settings = { ...settings };
+  m.settings = {
+    ...settings,
+    ...(m.mode === "challenge" || m.mode === "league" ? { maxSeats: 2 } : {}),
+  };
   clearReadiness(m);
   m.version++;
 }
@@ -299,6 +309,7 @@ export function project(
       ownerId: s.ownerId,
       botId: s.botId,
       name: s.name,
+      ownerName: s.ownerName ?? (s.kind === "human" ? s.name : null),
       kind: s.kind,
       ready: s.ready,
       abandoned: s.abandoned,

@@ -18,7 +18,7 @@ export async function entrant(db: PoolClient, p: Principal, botId?: string) {
   const b = q.rows[0];
   if (b.kind !== "external") throw new RuleError("FORBIDDEN");
   if (!isBotOnline(botId)) throw new RuleError("BOT_OFFLINE");
-  return makeSeat(
+  const seat = makeSeat(
     randomUUID(),
     p.ownerId,
     b.name,
@@ -26,6 +26,8 @@ export async function entrant(db: PoolClient, p: Principal, botId?: string) {
     b.id,
     b.version_id,
   );
+  seat.ownerName = p.name;
+  return seat;
 }
 export async function seatCaps(db: PoolClient, p: Principal, botId?: string) {
   const q = await db.query(

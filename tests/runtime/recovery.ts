@@ -7,6 +7,7 @@ let service: ChildProcess | undefined;
 const env = {
   ...process.env,
   PORT: "3102",
+  FEATURE_YARD: "false",
   PUBLIC_ORIGIN: origin,
   DATABASE_URL:
     "postgresql://soap:soap_local_only@localhost:55432/soap_recovery",

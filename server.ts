@@ -1,3 +1,4 @@
+import { attachYard, startYard } from "./server/yards/socket";
 import { RuleError } from "./domain/match/model";
 import { syncObservation } from "./server/matches/observations";
 import { actor } from "./server/auth/actors";
@@ -34,7 +35,13 @@ async function main() {
   await app.prepare();
   const http = createServer((req, res) => {
     if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
-      res.writeHead(302, { Location: "/play" });
+      res.writeHead(302, { Location: config.FEATURE_YARD ? "/yard" : "/play" });
+      res.end();
+      return;
+    }
+    if (config.FEATURE_YARD && /^\/play(?:\?|$)/.test(req.url ?? "")) {
+      const query = new URL(req.url!, config.PUBLIC_ORIGIN).search;
+      res.writeHead(302, { Location: "/yard" + query });
       res.end();
       return;
     }
@@ -91,6 +98,7 @@ async function main() {
     }
   });
   game.on("connection", (socket) => {
+    attachYard(socket, game);
     socket.on("state.sync", (input: unknown, ack: (data: unknown) => void) => {
       void (async () => {
         rateLimit("socket:" + socket.data.principal.id);
@@ -104,7 +112,7 @@ async function main() {
         const sync = await syncObservation(socket.request, matchId, after);
         const snapshot = sync.snapshot;
         for (const room of socket.rooms)
-          if (room !== socket.id) await socket.leave(room);
+          if (room !== socket.id && room !== "yard") await socket.leave(room);
         await socket.join(matchId);
         if (typeof ack === "function")
           ack({
@@ -141,6 +149,7 @@ async function main() {
       });
     });
   });
+  const stopYard = startYard(game);
   let ticking = false;
   const timer = setInterval(() => {
     if (ticking || !ready) return;
@@ -197,6 +206,7 @@ async function main() {
     stopping = true;
     ready = false;
     clearInterval(timer);
+    stopYard();
     io.emit("service.restarting");
     await new Promise<void>((resolve) => io.close(() => resolve()));
     await releaseWriter();

@@ -1,3 +1,5 @@
+import { config } from "../config";
+import { requireNear } from "../yards/world";
 import { assertScope } from "../bots/identity";
 import { actor, lockActor } from "../auth/actors";
 import { entrant, seatCaps, botsReady } from "../bots/participation";
@@ -150,12 +152,14 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
       key: z.string().uuid(),
       mode: z.enum(["human", "mixed", "challenge"]).default("human"),
       settings: settingsSchema.optional(),
+      circleId: z.string().max(64).optional(),
       botId: z.string().uuid().optional(),
       controllerEpoch: z.number().int(),
     })
     .strict()
     .parse(input);
   return transaction(async (db) => {
+    await db.query("SELECT pg_advisory_xact_lock(724102)");
     const p = await authenticate(req, db);
     if (data.controllerEpoch !== p.epoch)
       throw new RuleError("CONTROLLER_STALE");
@@ -177,6 +181,36 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
     );
     if (!key.rowCount) throw new RuleError("KEY_EXPIRED");
     await assertController(db, p, data.controllerEpoch);
+    if (config.FEATURE_YARD && !data.circleId)
+      throw new RuleError("FORBIDDEN", "Create matches through a yard circle");
+    if (data.circleId) {
+      requireNear(p.ownerId, data.circleId);
+      const c = await db.query(
+        "SELECT id,mode FROM circles WHERE id=$1 FOR UPDATE",
+        [data.circleId],
+      );
+      if (!c.rowCount) throw new RuleError("NOT_FOUND");
+      if (
+        Number(
+          (
+            await db.query(
+              "SELECT count(*) FROM matches WHERE circle_id IS NOT NULL AND phase NOT IN ('finished','cancelled','aborted')",
+            )
+          ).rows[0].count,
+        ) >= config.MAX_ACTIVE_MATCHES
+      )
+        throw new RuleError("CAPACITY_FULL", "All configured tables are busy");
+      if (data.mode !== c.rows[0].mode) throw new RuleError("INVALID_PAYLOAD");
+      if (
+        (
+          await db.query(
+            "SELECT id FROM matches WHERE circle_id=$1 AND phase NOT IN ('finished','cancelled','aborted')",
+            [data.circleId],
+          )
+        ).rowCount
+      )
+        throw new RuleError("CAPACITY_FULL", "This circle already has a match");
+    }
     await seatCaps(db, p, data.botId);
     const id = randomUUID(),
       m = createMatch(
@@ -186,6 +220,7 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
         data.settings ?? defaults,
         await dbTime(db),
         randomBytes(4).readUInt32LE(),
+        data.circleId ?? null,
       );
     addSeat(m, await entrant(db, p, data.botId));
     await saveMatch(db, m);
@@ -212,6 +247,7 @@ export async function joinMatch(
     .strict()
     .parse(input);
   return transaction(async (db) => {
+    await db.query("SELECT pg_advisory_xact_lock(724102)");
     const p = await authenticate(req, db);
     await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
       p.id,
@@ -233,6 +269,8 @@ export async function joinMatch(
       [data.key, p.id],
     );
     if (!key.rowCount) throw new RuleError("KEY_EXPIRED");
+    if (config.FEATURE_YARD && !m.circleId) throw new RuleError("FORBIDDEN");
+    if (m.circleId) requireNear(p.ownerId, m.circleId);
     if (
       m.seats.some(
         (s) => s.ownerId === p.ownerId && (s.botId ?? undefined) !== data.botId,

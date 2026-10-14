@@ -216,7 +216,7 @@ Update this section during development. These initial statuses mean no implement
 | 0 Foundation | IMPLEMENTED_PENDING_VALIDATION | Baseline/domain tests, real browsers, renderer/editor lifecycle and emulated touch | Voice authorization spike and real devices |
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
-| 3 Yard | NOT_STARTED | — | Complete social/mixed loop |
+| 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
 | 4 Voice | NOT_STARTED | — | Enforced routing and devices |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
@@ -274,6 +274,31 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - External bots are enabled by default for the working alpha, with FEATURE_EXTERNAL_BOTS able to disable their routes, sockets and admission. No core bot acceptance uses mocks.
 - Verified implementation SHA: 24ce3b0. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/5 (base codex/playable-alpha). No merge/deployment occurred.
 - Next ready stage after this gate: authoritative yard movement, four circles, challenges, spectating, nearby text and block/report. Voice/device gates stay pending.
+
+### Stage 3 checkpoint — authoritative yard domain
+
+- Active branch: codex/playable-yard, based on 48da6f7. Last committed implementation SHA: bb251fe. Stage 2 remains reviewable in PR #5; no pending merge blocks this work.
+- Implemented shared/yard/map.ts and domain/yard/yard.ts: a 960×640 map with four named circles, spawn/bounds/rectangular obstacles, shared collision geometry, normalized axis movement, fixed 50 ms simulation steps, 250 ms stale-input stop, capacity, processed-input acknowledgements, socket/controller fencing, anchored human seating, circle-distance admission and bounded nearby-recipient selection.
+- Tests reject absolute-position teleport payloads and extreme axes/sequence jumps; prove diagonal speed, bounds/collision sliding, stale/duplicate inputs, controller/socket replacement, seating, capacity, authoritative interaction distance, blocked/distant recipient exclusion and public-state projection.
+- Checks: npm test (44 total passing, including eight new yard tests), npm run typecheck and npm run lint pass.
+- This domain is not yet mounted by the live server or rendered as the game yard. It is not a completed yard feature.
+- Next concrete action: add the server yard coordinator and typed socket bridge; mount a Phaser scene with original cartoon primitives, prediction/interpolation and desktop/mobile controls; integrate four circles with durable matches, owned-bot admission, spectators/challenges and nearby text/block/report.
+- Local PostgreSQL remains running; no game-service or external bot test process remains live. Final physical-device/voice/playtest gates remain pending.
+
+### Stage 3 checkpoint — playable social yard
+
+- Mounted an original cartoon Phaser courtyard with four circles, shared collision geometry, local prediction/reconciliation, 100 ms remote interpolation, following camera, WASD/arrows, pointer/touch joystick, resize handling and accessible circle controls.
+- Live authority runs 20 Hz movement and 10 Hz snapshots, with strict axis/sequence envelopes, stale-input stops, socket/epoch fencing and monotonic controller metadata. Disconnect retains position briefly; restart retains durable identity/matches and respawns yard presence.
+- Circle rows/configuration persist in PostgreSQL. Admission enforces authoritative distance, circle/owner/bot capacity, current ownership and the configured active-match cap. Match subscriptions preserve yard membership. Humans are seated; owners watching bots can walk independently. Bot rows identify the owner.
+- Added expiring direct challenges with atomic two-seat admission and fixed opponents, including owned-bot entrants. Added escaped nearby text with frozen recipient sets/30-second bounded history, symmetric routing-layer blocks and durable reports.
+- Real yard evidence: two browsers walk/join/play/return; remote join and forged teleport fields reject; a full circle stays at its cap; old controllers cannot move; a direct challenge completes and an expired invite rejects; a real external bot competes while its owner walks and an unrelated spectator sees no hidden choices; text markup remains literal, distant/blocked users do not receive it, later movement does not unlock history, and the report row is verified in PostgreSQL.
+- Chromium touch evidence: joystick changes authoritative position, portrait/landscape resize works, browser reload retains alias identity and creates one game canvas. Actual iOS/Android device evidence remains a final validation gate.
+- Desktop/mobile acceptance screenshots are saved under ignored test-results and copied to the shared Windows workspace as yard-desktop.png and yard-mobile.png. Visual inspection found and fixed a squeezed chat input and narrow sidebar header layout.
+- Test failures resolved: exact dropdown labels included option text, so acceptance now uses the appropriate partial label selector; textarea/list names use exact matching. These were selector failures, not invented feature passes.
+- Yard is enabled by default and / redirects to /yard. Core regression configurations explicitly disable the yard and preserve their independent fixture paths. New migrations 003/004 apply to fresh and existing local test databases.
+- Final post-polish checks passed: 45 domain/config/protocol tests, seven PostgreSQL regressions, six complete real yard scenarios, production build, typecheck and formatting. The six standalone match/bot scenarios and physical human/bot crash/reconnect harness also passed on this stage before the final display/cap/report additions. Actual-device/audio/playtest/load gates remain separate; no such evidence is claimed.
+- Next ready stage after final check/commit: proximity-voice provider enforcement spike and adapter. The visual builder and league can proceed independently of real-device/playtest dependencies.
+- Verified implementation SHA: 70bd744. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/6 (base codex/external-bot-api). No public deployment or merge occurred.
 
 ## Resume procedure
 
