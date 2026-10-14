@@ -359,3 +359,5 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Physical-device audio and 4–8-person playtest evidence remains unavailable. Those gates cannot be satisfied with synthetic tracks or browser emulation. Continue visual-builder/league work while retaining pending validation.
 
 - Final source verification: expanded voice lint coverage, typecheck and 50 unit/native checks pass; seven PostgreSQL regressions pass. Production build passed; npm audit reports zero advisories. Voice is IMPLEMENTED_PENDING_VALIDATION, not VERIFIED, because physical-device audio and the human playtest remain open. Media join/restriction latency under load remains part of release validation. Next independent stage: visual bots.
+
+- Reviewed implementation checkpoint: 29e0157. Draft PR #7: https://github.com/MrCooper846/dontdropthesoap/pull/7 (base codex/playable-yard). No merge or deployment occurred. Next concrete work: canonical visual program validation/interpreter, bounded worker execution, immutable publication and the Blockly create/test/publish/watch/edit flow.
