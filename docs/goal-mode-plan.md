@@ -436,3 +436,5 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Next independent work: stage 7 release readiness, including fresh install/package reproducibility, backup restore/rollback, moderation/operator controls, database-outage policy, load/soak and final integrated regressions. Physical mobile/audio and a 4–8-person playtest remain external dependencies; continue independent work.
 
 - Final stage-6 source check: 74 unit checks, typecheck, formatting and the production build all pass with the league enabled by default. No merge or deployment was performed.
+
+- Stage-6 implementation is committed/pushed as b663dfa, with the earlier service/UI checkpoints aba40ea and 3561d13. Review: draft PR #9, https://github.com/MrCooper846/dontdropthesoap/pull/9, stacked on PR #8. No merge or deployment.
