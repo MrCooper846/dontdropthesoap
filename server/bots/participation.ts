@@ -9,20 +9,28 @@ import { pool } from "../persistence/db";
 import { botPrincipal, assertScope, isBotOnline } from "./identity";
 export async function entrant(db: PoolClient, p: Principal, botId?: string) {
   if (!botId) return makeSeat(randomUUID(), p.ownerId, p.name);
-  if (!config.FEATURE_EXTERNAL_BOTS) throw new RuleError("NOT_FOUND");
+  if (!config.FEATURE_EXTERNAL_BOTS && !config.FEATURE_VISUAL_BOTS)
+    throw new RuleError("NOT_FOUND");
   const q = await db.query(
     "SELECT b.id,b.name,b.kind,v.id AS version_id FROM bots b JOIN LATERAL (SELECT id FROM bot_versions WHERE bot_id=b.id ORDER BY revision DESC LIMIT 1) v ON true WHERE b.id=$1 AND b.owner_id=$2 AND b.archived_at IS NULL FOR SHARE OF b",
     [botId, p.ownerId],
   );
   if (!q.rowCount) throw new RuleError("NOT_FOUND");
   const b = q.rows[0];
-  if (b.kind !== "external") throw new RuleError("FORBIDDEN");
-  if (!isBotOnline(botId)) throw new RuleError("BOT_OFFLINE");
+  if (
+    (b.kind === "external" && !config.FEATURE_EXTERNAL_BOTS) ||
+    (b.kind === "visual" && !config.FEATURE_VISUAL_BOTS)
+  )
+    throw new RuleError("NOT_FOUND");
+  if (!["external", "visual"].includes(b.kind))
+    throw new RuleError("FORBIDDEN");
+  if (b.kind === "external" && !isBotOnline(botId))
+    throw new RuleError("BOT_OFFLINE");
   const seat = makeSeat(
     randomUUID(),
     p.ownerId,
     b.name,
-    "external",
+    b.kind,
     b.id,
     b.version_id,
   );
@@ -45,10 +53,15 @@ export async function seatCaps(db: PoolClient, p: Principal, botId?: string) {
     );
 }
 export function botsReady(m: Match) {
-  return m.seats.every(
-    (s) => s.kind !== "external" || (!!s.botId && isBotOnline(s.botId)),
+  return m.seats.every((s) =>
+    s.kind === "visual"
+      ? config.FEATURE_VISUAL_BOTS
+      : s.kind === "external"
+        ? config.FEATURE_EXTERNAL_BOTS && !!s.botId && isBotOnline(s.botId)
+        : true,
   );
 }
+
 export async function assignments(req: IncomingMessage) {
   const p = await botPrincipal(req);
   assertScope(p, "observations:read");

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 type Session = {
-  features?: { yard: boolean };
+  features?: { yard: boolean; externalBots?: boolean; visualBots?: boolean };
   csrfToken: string;
   controllerEpoch: number;
   name: string;
@@ -10,7 +10,7 @@ type Session = {
 type Bot = {
   id: string;
   name: string;
-  features?: { yard: boolean };
+  features?: { yard: boolean; externalBots?: boolean; visualBots?: boolean };
   kind: string;
   online: boolean;
   revision: number;
@@ -102,35 +102,42 @@ export default function Bots() {
         <p>Enter a guest alias on the tables page first.</p>
       ) : (
         <>
-          <section className="panel stack">
-            <h2>Register an external bot</h2>
-            <label className="label">
-              Bot name
-              <input
-                className="input"
-                value={name}
-                maxLength={32}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <button
-              className="button primary"
-              disabled={busy || !name.trim()}
-              onClick={() =>
-                void run(async (epoch) => {
-                  await resource("/bots", { name }, epoch);
-                  setName("");
-                })
-              }
-            >
-              Register bot
-            </button>
-            <p className="muted">
-              You run the bot on your own machine. It receives official
-              observations and submits Cooperate or Betray. Its runtime and
-              model costs are yours.
-            </p>
-          </section>
+          {session.features?.visualBots && (
+            <Link className="button primary" href="/bots/build">
+              Build a visual bot
+            </Link>
+          )}
+          {session.features?.externalBots !== false && (
+            <section className="panel stack">
+              <h2>Register an external bot</h2>
+              <label className="label">
+                Bot name
+                <input
+                  className="input"
+                  value={name}
+                  maxLength={32}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <button
+                className="button primary"
+                disabled={busy || !name.trim()}
+                onClick={() =>
+                  void run(async (epoch) => {
+                    await resource("/bots", { name }, epoch);
+                    setName("");
+                  })
+                }
+              >
+                Register bot
+              </button>
+              <p className="muted">
+                You run the bot on your own machine. It receives official
+                observations and submits Cooperate or Betray. Its runtime and
+                model costs are yours.
+              </p>
+            </section>
+          )}
           {secret && (
             <section className="panel stack">
               <h2>Save this credential</h2>
@@ -163,82 +170,98 @@ export default function Bots() {
                   {bot.online ? "Online" : "Offline"}
                 </span>
               </div>
-              <p>External · revision {bot.revision}</p>
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void run(async (epoch) => {
-                    const result = await resource(
-                      "/bots/" + bot.id + "/credentials",
-                      {},
-                      epoch,
-                    );
-                    setSecret(result.secret ?? "");
-                    if (result.secretUnavailable)
-                      throw new Error(
-                        "Credential already issued. Revoke it and issue another if you lost the response.",
-                      );
-                  })
-                }
-              >
-                Issue credential
-              </button>
-              <button
-                className="button"
-                onClick={() =>
-                  void api("/bots/" + bot.id + "/credentials")
-                    .then((r) =>
-                      setCredentials((old) => ({
-                        ...old,
-                        [bot.id]: r.credentials,
-                      })),
-                    )
-                    .catch((e) => setError(e.message))
-                }
-              >
-                Manage credentials
-              </button>
-              {credentials[bot.id]?.map((c) => (
-                <div className="row" key={c.id}>
-                  <span>
-                    {c.id.slice(0, 8)} ·{" "}
-                    {c.revoked_at
-                      ? "revoked"
-                      : "expires " +
-                        new Date(c.expires_at).toLocaleDateString()}
-                  </span>
-                  {!c.revoked_at && (
-                    <button
-                      className="button small"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(async (epoch) => {
-                          await api(
-                            "/bots/" + bot.id + "/credentials/" + c.id,
-                            { controllerEpoch: epoch },
-                            "DELETE",
+              <p>
+                {bot.kind === "visual" ? "Visual" : "External"} · revision{" "}
+                {bot.revision}
+              </p>
+              {bot.kind === "visual" ? (
+                <>
+                  <Link className="button" href={"/bots/build?bot=" + bot.id}>
+                    Edit strategy
+                  </Link>
+                  <Link className="button" href={"/yard?bot=" + bot.id}>
+                    Enter bot in the yard
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async (epoch) => {
+                        const result = await resource(
+                          "/bots/" + bot.id + "/credentials",
+                          {},
+                          epoch,
+                        );
+                        setSecret(result.secret ?? "");
+                        if (result.secretUnavailable)
+                          throw new Error(
+                            "Credential already issued. Revoke it and issue another if you lost the response.",
                           );
-                          const list = await api(
-                            "/bots/" + bot.id + "/credentials",
-                          );
+                      })
+                    }
+                  >
+                    Issue credential
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() =>
+                      void api("/bots/" + bot.id + "/credentials")
+                        .then((r) =>
                           setCredentials((old) => ({
                             ...old,
-                            [bot.id]: list.credentials,
-                          }));
-                        })
-                      }
-                    >
-                      Revoke
-                    </button>
-                  )}
-                </div>
-              ))}
-              <p className="muted">
-                Run the Python or TypeScript reference client with your
-                credential, then enter this bot at a mixed table. Your browser
-                can watch while the bot makes its own decisions.
-              </p>
+                            [bot.id]: r.credentials,
+                          })),
+                        )
+                        .catch((e) => setError(e.message))
+                    }
+                  >
+                    Manage credentials
+                  </button>
+                  {credentials[bot.id]?.map((c) => (
+                    <div className="row" key={c.id}>
+                      <span>
+                        {c.id.slice(0, 8)} ·{" "}
+                        {c.revoked_at
+                          ? "revoked"
+                          : "expires " +
+                            new Date(c.expires_at).toLocaleDateString()}
+                      </span>
+                      {!c.revoked_at && (
+                        <button
+                          className="button small"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async (epoch) => {
+                              await api(
+                                "/bots/" + bot.id + "/credentials/" + c.id,
+                                { controllerEpoch: epoch },
+                                "DELETE",
+                              );
+                              const list = await api(
+                                "/bots/" + bot.id + "/credentials",
+                              );
+                              setCredentials((old) => ({
+                                ...old,
+                                [bot.id]: list.credentials,
+                              }));
+                            })
+                          }
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <p className="muted">
+                    Run the Python or TypeScript reference client with your
+                    credential, then enter this bot at a mixed table. Your
+                    browser can watch while the bot makes its own decisions.
+                  </p>
+                </>
+              )}
             </section>
           ))}
         </>

@@ -96,7 +96,10 @@ export async function command(
         if (c.round === undefined) throw new RuleError("INVALID_PAYLOAD");
         submit(m, c.seatId!, c.round, payload.move, now);
       } else if (c.type === "seat.ready") {
-        if (seat?.kind === "external" && !botsReady(m))
+        if (
+          (seat?.kind === "external" || seat?.kind === "visual") &&
+          !botsReady(m)
+        )
           throw new RuleError("BOT_OFFLINE");
         ready(m, c.seatId!, readySchema.parse(c.payload).ready);
       } else if (c.type === "seat.leave") {

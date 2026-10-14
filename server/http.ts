@@ -1,3 +1,5 @@
+import { visualHttp } from "./bots/visual-http";
+import { ProgramError } from "../domain/bots/program";
 import { challengeHttp } from "./yards/challenges";
 import { yardHttp } from "./yards/http";
 import { yard } from "./yards/world";
@@ -31,13 +33,16 @@ export function json(res: ServerResponse, status: number, data: unknown) {
   });
   res.end(JSON.stringify(data));
 }
-export async function body(req: IncomingMessage) {
+export async function body(req: IncomingMessage, maxBytes = 16384) {
   let size = 0;
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 16384)
-      throw new RuleError("INVALID_PAYLOAD", "Request exceeds 16 KiB");
+    if (size > maxBytes)
+      throw new RuleError(
+        "INVALID_PAYLOAD",
+        "Request exceeds " + maxBytes / 1024 + " KiB",
+      );
     chunks.push(Buffer.from(chunk));
   }
   try {
@@ -106,7 +111,7 @@ export async function api(
     }
     if (
       !config.FEATURE_EXTERNAL_BOTS &&
-      (path.startsWith("/bots") ||
+      ((!config.FEATURE_VISUAL_BOTS && path.startsWith("/bots")) ||
         path.startsWith("/bot/") ||
         path.startsWith("/bot-controller") ||
         req.headers.authorization)
@@ -119,6 +124,7 @@ export async function api(
       method === "GET" ? 30 : 10,
     );
     if (method !== "GET") assertCsrf(req, principal);
+    if (await visualHttp(req, res, path, method)) return true;
     if (await ownedBotHttp(req, res, path, method, onRevoke)) return true;
     if (await yardHttp(req, res, path, method)) return true;
     if (await challengeHttp(req, res, path, method)) return true;
@@ -131,6 +137,7 @@ export async function api(
         features: {
           voice: config.FEATURE_VOICE,
           externalBots: config.FEATURE_EXTERNAL_BOTS,
+          visualBots: config.FEATURE_VISUAL_BOTS,
           yard: config.FEATURE_YARD,
         },
       });
@@ -239,7 +246,7 @@ export async function api(
     });
   } catch (e) {
     const code =
-      e instanceof RuleError
+      e instanceof RuleError || e instanceof ProgramError
         ? e.code
         : e instanceof z.ZodError
           ? "INVALID_PAYLOAD"
@@ -268,7 +275,10 @@ export async function api(
     json(res, status, {
       error: {
         code,
-        message: e instanceof RuleError ? e.message : code,
+        message:
+          e instanceof RuleError || e instanceof ProgramError
+            ? e.message
+            : code,
         retryable: code === "SERVICE_UNAVAILABLE",
       },
     });

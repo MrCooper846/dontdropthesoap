@@ -6,7 +6,7 @@
     "dev": "npm run build:workers && tsx server.ts",
     "build": "npm run build:workers && next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.{ts,tsx}\" components/YardMatchPanel.tsx components/YardVoicePanel.tsx components/MediaProbe.tsx components/VoiceProbe.tsx \"examples/**/*.ts\" server.ts",
+    "lint": "prettier --check \"server/**/*.{ts,mjs}\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.{ts,mjs}\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.{ts,tsx}\" components/YardMatchPanel.tsx components/YardVoicePanel.tsx components/MediaProbe.tsx components/VoiceProbe.tsx \"examples/**/*.ts\" server.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run build:workers && vitest run",
     "test:browser": "playwright test",
@@ -15,14 +15,16 @@
     "db:migrate": "tsx server/persistence/migrate.ts",
     "dev:legacy": "cross-env SOAP_LEGACY=true tsx legacy-server.ts",
     "test:alpha": "playwright test -c playwright.alpha.config.ts",
-    "test:integration": "FEATURE_YARD=false DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
+    "test:integration": "npm run build:workers && FEATURE_VISUAL_BOTS=true FEATURE_YARD=false DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
     "test:recovery": "tsx tests/runtime/recovery.ts",
     "test:setup": "tsx scripts/init-test-dbs.ts",
     "legacy:archive": "tsx scripts/archive-legacy.ts",
     "test:yard": "playwright test -c playwright.yard.config.ts",
     "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts",
     "test:voice": "playwright test -c playwright.voice.config.ts",
-    "build:workers": "esbuild server/bots/visual-worker.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/workers/visual-worker.mjs"
+    "build:workers": "esbuild server/bots/visual-worker.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/workers/visual-worker.mjs",
+    "test:visual": "playwright test -c playwright.visual.config.ts",
+    "test:migrations": "tsx scripts/check-migrations.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

@@ -71,3 +71,17 @@ server/bots/visual-pool.ts uses two worker threads by default, a total capacity 
 npm run build:workers compiles only the trusted worker/interpreter source to ignored dist/workers/visual-worker.mjs using pinned esbuild 0.28.2. dev, build and test run this step automatically. Shipping requires the generated artifact alongside the application. Loader-based attempts on the installed Node/tsx runtime failed dependency resolution and module-cycle checks; the compiled worker removes that runtime-loader dependency.
 
 Publication/version storage, durable state-plus-move commits, live visual seats, owner feedback and the create/test/publish/enter/watch/edit UI remain unfinished. Deterministic replay from the same domain input is tested; atomic persistence is not claimed from those unit tests.
+
+### Integrated publication and participation
+
+FEATURE_VISUAL_BOTS enables the real /bots/build editor, independent of external credentials. It supports both Blockly gestures and labelled controls that add/connect/edit blocks, plus a readable summary, four starters, private worker-backed practice, immutable publication, yard admission and owner-only decision feedback. New unpublished drafts stay locally under the guest owner ID; published workspaces/programs live in PostgreSQL.
+
+POST /bots/visual creates the first version through the ordinary idempotent resource envelope. POST /bots/:id/versions publishes the next; GET /bots/:id/versions/latest or /versions/:versionId loads only an owned visual strategy. The server derives its canonical AST from the workspace and stores the hash, interpreter/ruleset version and editable JSON. The database rejects changes/deletion of published visual versions. External credentials cannot be issued for visual bots.
+
+POST /bots/preview uses {controllerEpoch,workspace,observation,previous?}, CSRF and a separate one-thread/four-task pool. It never writes match state. One preview per owner may be pending; admission is also rate-limited. Only these workspace-bearing routes accept up to 128 KiB envelopes, while workspace/program limits remain 64 KiB and other command bodies remain 16 KiB.
+
+The live scheduler reads the frozen admitted version. It initializes private per-seat memory/RNG once, executes outside transactions, then locks/rechecks the match, exact round/version/deadline, prior runtime state and owner status. Accepted move, memory/RNG, private trace and result/settlement transitions commit in one transaction. Duplicate or stale-window results cannot advance state twice. Worker errors record owner feedback, leave memory unchanged and use ordinary deadline timeout C; public snapshots expose only a bot-error flag.
+
+The visual vocabulary's history facts refer to revealed encounters between this seat and its current opponent. A first encounter has no last move and zero counts. Current accepted hidden moves are never part of that observation. Match-scoped memory still spans successive opponents; memory resets only when a new match starts.
+
+GET /matches/:matchId/seats/:seatId/visual-feedback is owner-only. Other spectators see ordinary public outcomes and bot status, never program memory, random state or private execution traces. Editing an owned bot cannot rewrite the strategy of an existing seat.

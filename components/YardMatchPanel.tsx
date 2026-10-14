@@ -1,5 +1,6 @@
 "use client";
-import { useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import type { Snapshot } from "../shared/protocol/commands";
 import type { BrowserSession } from "../shared/yard/types";
 export default function YardMatchPanel({
@@ -27,6 +28,36 @@ export default function YardMatchPanel({
       (s) => s.id === (pair?.a === own?.id ? pair?.b : pair?.a),
     ),
     terminal = ["finished", "aborted", "cancelled"].includes(match.phase);
+  const [feedback, setFeedback] = useState<
+    {
+      round_number: number;
+      status: string;
+      error_code: string | null;
+      trace_json: string[];
+    }[]
+  >([]);
+  useEffect(() => {
+    if (own?.kind !== "visual") {
+      setFeedback([]);
+      return;
+    }
+    let stopped = false;
+    const update = () =>
+      fetch(
+        "/api/v1/matches/" + match.id + "/seats/" + own.id + "/visual-feedback",
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (!stopped && r) setFeedback(r.decisions);
+        })
+        .catch(() => {});
+    void update();
+    const timer = setInterval(() => void update(), 1000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [match.id, own?.id, own?.kind]);
   return (
     <section className="panel stack yard-match" aria-label="Match panel">
       <div className="row">
@@ -150,11 +181,47 @@ export default function YardMatchPanel({
             </strong>
             <span>
               {s.score} noodles ·{" "}
-              {s.abandoned ? "left" : s.ready ? "ready" : "not ready"}
+              {s.abandoned
+                ? "left"
+                : s.botError
+                  ? "bot error · timeout Cooperate if no decision"
+                  : s.ready
+                    ? "ready"
+                    : "not ready"}
             </span>
           </li>
         ))}
       </ul>
+      {own?.kind === "visual" && (
+        <section aria-label="Your bot decisions" className="stack">
+          <h3>Your bot decisions</h3>
+          <p className="muted">
+            Private feedback for your frozen match strategy. Editing publishes a
+            version for later games.
+          </p>
+          <Link href={"/bots/build?bot=" + own.botId}>
+            Edit for the next game
+          </Link>
+          {feedback.slice(0, 5).map((d) => (
+            <details key={d.round_number}>
+              <summary>
+                Round {d.round_number} ·{" "}
+                {d.status === "error" ? "bot error" : "decision locked"}
+              </summary>
+              {d.error_code && (
+                <p className="danger">
+                  {d.error_code} · missing decisions become timeout Cooperate.
+                </p>
+              )}
+              <ol>
+                {d.trace_json.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ol>
+            </details>
+          ))}
+        </section>
+      )}
       {match.interruptions > 0 && (
         <p className="danger">
           Service interrupted. Accepted moves were preserved.

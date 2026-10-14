@@ -25,6 +25,7 @@ export type Seat = {
   ready: boolean;
   abandoned: boolean;
   score: number;
+  botErrorRound?: number;
   cooperations: number;
   timeouts: number;
 };

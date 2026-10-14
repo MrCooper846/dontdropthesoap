@@ -39,5 +39,10 @@ export type BrowserSession = {
   name: string;
   controllerEpoch: number;
   csrfToken: string;
-  features: { externalBots: boolean; yard: boolean; voice: boolean };
+  features: {
+    externalBots: boolean;
+    yard: boolean;
+    voice: boolean;
+    visualBots: boolean;
+  };
 };

@@ -12,7 +12,7 @@ Owned external bots now participate through scoped HTTP/Socket.IO credentials an
 
 The shared cartoon yard now runs authoritative desktop/mobile movement, four circle entry points, human/mixed matches, spectators, direct challenges, nearby text and block/report. Bot owners keep their human presence and can walk while their bot plays.
 
-Proximity voice is integrated behind FEATURE_VOICE=true, with server-owned media consumers, explicit microphone access, push-to-talk, mute and a spectator filter. Real-browser synthetic RTP privacy checks pass, but the remaining voice/device gates are incomplete. The visual builder and bot league remain incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
+Proximity voice is integrated behind FEATURE_VOICE=true, with server-owned media consumers, explicit microphone access, push-to-talk, mute and a spectator filter. Real-browser synthetic RTP privacy checks pass, but the remaining voice/device gates are incomplete. The visual builder now has a verified create/test/publish/play/edit flow, enabled by default. The bot league remains incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
 
 The original party MVP remains a local-only legacy demo. Its unauthenticated handlers are absent from the new game server.
 
@@ -48,13 +48,15 @@ npm run test:integration
 npm run test:browser
 npm run test:alpha
 npm run test:yard
+npm run test:visual
+npm run test:migrations
 npm run test:voice
 npm run test:recovery
 npm run build
 npm audit
 ```
 
-Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery; test:yard uses soap_yard_browser. The integration suite refuses another database and truncates only that test database.
+Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery; test:yard uses soap_yard_browser; test:visual uses soap_visual_browser. The integration suite refuses another database and truncates only that test database.
 
 test:browser exercises the local legacy baseline and Phaser/Blockly lifecycle and emulated touch spikes. These are prototypes, not completed yard/editor features. test:alpha exercises the authenticated match UI, actual HTTP/socket visibility, hostile commands, Clanker, bot management and real Python/TypeScript processes against a human. test:recovery kills and restarts real game processes, verifies committed hidden human/bot moves, controller fencing, bot-process reconnection and singleton exclusion.
 
@@ -63,6 +65,16 @@ lint checks new source formatting; typecheck checks TypeScript. test:yard verifi
 test:voice uses real browser WebRTC and the native mediasoup worker, including a listener that ignores closure events, distance/block denial, stalled-policy closure, native fake-device push-to-talk and native permission denial. Synthetic tracks and fake devices do not prove real mobile audio. Republish, controller takeover, session expiry/revocation, owner disable, bot exclusion and seated spectator routing are also exercised. Physical-device gates remain pending.
 
 For local voice, set FEATURE_VOICE=true in .env and restart the service. Join nearby voice explicitly, then enable the microphone and hold the talk button (pointer, Space or Enter). The native worker uses the configured UDP/TCP range; local defaults bind to loopback. For local Firefox media, set VOICE_LISTEN_IP to the machine's local network-interface address; the localhost-only ICE setup did not connect in Firefox. The browser suite uses a local interface and includes Chromium, Firefox and WebKit engine checks. Production requires HTTPS and an announced reachable media address. Real mobile devices, human playtests, full load/soak and backup restore remain pending.
+
+## Visual bot builder
+
+The builder is enabled by default (FEATURE_VISUAL_BOTS=false disables it). Open Your bots → Build a visual bot. Connect blocks by dragging or with the labelled block controls. Every branch needs a Cooperate/Betray choice. Try a private practice decision, then publish and enter the bot at a mixed circle. Its owner stays free to move and sees private execution feedback at the table.
+
+Published versions are immutable. Editing creates a version for later games; current seats retain the admitted version. Named memory and seeded randomness persist within the match and reset for a new match. Guest-cookie loss still loses access.
+
+The build/dev/test commands compile the trusted worker into dist/workers/visual-worker.mjs. Include dist/workers in a release package. Uploaded Blockly JSON is compiled into a restricted program; uploaded JavaScript is never executed.
+
+test:visual covers manual tit-for-tat construction, private practice, publication, full human-versus-visual play, feedback, revision, native HTTP security and emulated-touch construction/drag/rotation/reload. test:migrations creates and removes a uniquely named temporary database on the local development PostgreSQL only, proving fresh and repeated schema application. Real-device editor usability remains a release gate.
 
 ## Legacy data and demo
 

@@ -12,6 +12,7 @@ async function run() {
     "soap_browser",
     "soap_recovery",
     "soap_yard_browser",
+    "soap_visual_browser",
   ]) {
     if (
       !(await pool.query("SELECT 1 FROM pg_database WHERE datname=$1", [name]))

@@ -1,3 +1,4 @@
+import { accessSync, constants } from "node:fs";
 import { Worker } from "node:worker_threads";
 import { randomUUID } from "node:crypto";
 import {
@@ -92,6 +93,12 @@ export class VisualPool {
       capacity > 128
     )
       throw new Error("Invalid visual pool limits");
+    const workerURL =
+      this.options.workerURL ??
+      new URL("../../dist/workers/visual-worker.mjs", import.meta.url);
+    if (workerURL.protocol !== "file:")
+      throw new Error("Visual worker must be a trusted local artifact");
+    accessSync(workerURL, constants.R_OK);
     for (let i = 0; i < size; i++) this.spawn();
   }
   private spawn() {

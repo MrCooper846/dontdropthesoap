@@ -148,3 +148,9 @@ With FEATURE_VOICE=true, browser-only voice.command uses {controllerEpoch,payloa
 The native SFU permits Opus audio only and no SCTP/video. The server owns consumer creation and resume. Poll reveals eligible publisher IDs/gain/transmitting state only. voice.event reports consumer.closed or voice.closed; a hostile client ignoring those events still loses media at the SFU. Session/audience data refreshes every 200 ms; a separate watchdog fails closed when authorization is stale for 600 ms, including stalled database queries. No room-admin credential or reusable room token is issued.
 
 Distance/block transitions have bounded routing latency, not instantaneous privacy. Browser local gain affects presentation only after server authorization. Further republish, takeover/revocation and actual-device checks remain required by the voice gate.
+
+## Visual bot integration (feature gated)
+
+With FEATURE_VISUAL_BOTS=true, visual create/publish reuse the resource-creation key, command ID, controller epoch and receipt contract. Workspace compilation is server-owned; there is no accepted client-supplied JavaScript or separately claimed AST. Latest/specific version reads and match decision feedback are restricted to the owner. Preview is cookie/CSRF/controller protected but non-authoritative.
+
+Public seats now include frozen botVersionId and a boolean botError for the current round; neither is a credential or private program trace. HTTP workspace envelopes alone may reach 128 KiB; workspace/program limits remain 64 KiB. Other existing endpoints retain their 16-KiB body bound.

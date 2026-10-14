@@ -252,6 +252,7 @@ export default function YardCanvas(props: Props) {
             return this.add.container(0, 0, [g, label]);
           }
           update(_time: number, delta: number) {
+            if (cancelled || !host.current) return;
             const view = latest.current.view,
               owner = latest.current.ownerId;
             if (view.tick !== lastTick || view.epoch !== lastEpoch) {
@@ -363,7 +364,7 @@ export default function YardCanvas(props: Props) {
           audio: { noAudio: true },
         });
         observer = new ResizeObserver(() => {
-          if (host.current && game)
+          if (!cancelled && host.current && game)
             game.scale.resize(
               host.current.clientWidth,
               host.current.clientHeight,
