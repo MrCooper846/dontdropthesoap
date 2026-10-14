@@ -4,7 +4,7 @@ Status: proposed alpha deployment. No infrastructure is provisioned by these doc
 
 ## Deployment shape
 
-One game-service process with the existing web app, one PostgreSQL instance and a separate media service. Start with Docker Compose for local integration and a single host or equivalent services for a private alpha. Choose the actual host after checking available resources. Managed LiveKit versus self-hosted remains a cost/operations decision after the voice spike.
+One game-service process with the existing web app, one PostgreSQL instance and a separate media service. Start with Docker Compose for local integration and a single host or equivalent services for a private alpha. Choose the actual host after checking available resources. The media adapter currently uses a native mediasoup child worker. TURN/public network reachability and actual hosting remain deployment validation gates.
 
 Expose only HTTPS/WSS publicly through a reverse proxy. Keep PostgreSQL on a private network. Configure WebSocket upgrades, proxy timeouts and secure cookies. Keep media network requirements separate; HTTPS reachability alone does not prove WebRTC or TURN connectivity.
 
@@ -12,7 +12,7 @@ Proposed environment:
 - NODE_ENV, PORT, PUBLIC_ORIGIN
 - DATABASE_URL
 - SESSION_SECRET_PEPPER, COMMAND_KEY_SIGNING_SECRET
-- LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+- VOICE_LISTEN_IP, VOICE_ANNOUNCED_ADDRESS, VOICE_MIN_PORT, VOICE_MAX_PORT
 - MAX_YARD_PLAYERS, MAX_ACTIVE_MATCHES, LOG_LEVEL
 - FEATURE_YARD, FEATURE_EXTERNAL_BOTS, FEATURE_VOICE, FEATURE_LEAGUE
 

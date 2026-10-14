@@ -140,3 +140,11 @@ Only resource-creating commands require a key in addition to commandId. For an e
 ## Input budgets
 
 Initial tunables: 16 KiB command envelope, chat 280 characters, nickname/bot name 32 characters, 20 movement packets/second, 10 durable commands/second per principal with a small burst, 1 chat/second with burst 3, five invites/minute. Program publication has its own larger 64 KiB limit. Apply owner and IP connection/admission limits as well; do not disconnect a shared-network group based on a single low global IP allowance.
+
+## Integrated voice signaling (feature gated)
+
+With FEATURE_VOICE=true, browser-only voice.command uses {controllerEpoch,payload} on the existing /game-v1 socket. Strict operations: join, leave, transport(direction send/recv), connect(transportId,dtlsParameters), produce(rtpParameters), speaking(enabled), poll, consume(producerId,rtpCapabilities), resume(consumerId), settings(muteSpectators). IDs and payloads do not authenticate a caller; the cookie, live controller and exact active yard socket do. Bots cannot allocate media. ACK shape is {ok:true,result} or {ok:false,error}.
+
+The native SFU permits Opus audio only and no SCTP/video. The server owns consumer creation and resume. Poll reveals eligible publisher IDs/gain/transmitting state only. voice.event reports consumer.closed or voice.closed; a hostile client ignoring those events still loses media at the SFU. Session/audience data refreshes every 200 ms; a separate watchdog fails closed when authorization is stale for 600 ms, including stalled database queries. No room-admin credential or reusable room token is issued.
+
+Distance/block transitions have bounded routing latency, not instantaneous privacy. Browser local gain affects presentation only after server authorization. Further republish, takeover/revocation and actual-device checks remain required by the voice gate.

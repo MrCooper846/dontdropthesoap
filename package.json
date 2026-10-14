@@ -20,7 +20,8 @@
     "test:setup": "tsx scripts/init-test-dbs.ts",
     "legacy:archive": "tsx scripts/archive-legacy.ts",
     "test:yard": "playwright test -c playwright.yard.config.ts",
-    "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts"
+    "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts",
+    "test:voice": "playwright test -c playwright.voice.config.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

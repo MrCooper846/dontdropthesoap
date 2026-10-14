@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { io, type Socket } from "socket.io-client";
 import YardCanvas from "../../client/yard/YardCanvas";
+import YardVoicePanel from "../../components/YardVoicePanel";
 import YardMatchPanel from "../../components/YardMatchPanel";
 import type {
   YardView,
@@ -454,6 +455,13 @@ export default function YardPage() {
                 </section>
               </div>
               <aside className="yard-sidebar">
+                {session.features.voice && (
+                  <YardVoicePanel
+                    socket={socket.current}
+                    epoch={session.controllerEpoch}
+                    players={view.players}
+                  />
+                )}
                 <section className="panel stack">
                   <h2>Match circles</h2>
                   <p className="muted">

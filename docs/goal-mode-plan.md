@@ -217,7 +217,7 @@ Update this section during development. These initial statuses mean no implement
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
-| 4 Voice | IN_PROGRESS | Real LiveKit RTP/permission spike rejected the initial design; audibility domain implemented | Server-authorized consumer adapter, hostile-client proof and devices |
+| 4 Voice | IN_PROGRESS | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Republish, takeover/revocation, table routing, device/playtest gates |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
@@ -335,3 +335,15 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Fixed an audience test fixture literal-type error discovered by typecheck.
 - Evidence: npm run typecheck; npm test (49 passing, including real native SFU policy test); npm run lint; npm run build (pass); npm audit (zero advisories). Browser media remains unproved by this layer; no voice completion claim.
 - Next concrete action: connect authenticated browser-only Socket.IO signaling to yard/session/controller state; implement the browser send/receive adapter and push-to-talk UI; prove real audio restriction with modified listeners and routing failure.
+
+### Stage 4 checkpoint — integrated yard voice
+
+- Branch codex/proximity-voice, building on b9d0559. Implemented server/voice/socket.ts and client/voice/VoiceClient.ts, mounted behind FEATURE_VOICE=true in the real yard.
+- Browser-only signaling validates the cookie, controller epoch and exact active yard connection. Fresh session/match/block policy drives server-owned consumers; a separate 50 ms watchdog removes media when authorization is stale for 600 ms, including a stalled database query.
+- Added explicit listening/microphone actions, default pointer/keyboard push-to-talk, immediate local release/blur/background mute, microphone mute, spectator filter, visible transmitting status, autoplay retry, actionable failure messages and text fallback. Media defaults to loopback and production requires an announced address.
+- Real Chromium tests passed (npm run test:voice, four scenarios): actual synthetic RTP arrives nearby; distant requests reject; a modified listener ignores closure messages and retains its consumer but receives no new packets after distance/block changes; yard exit rejects rejoin; a database table lock stalls policy refresh and retained consumers stop receiving packets; native fake-device keyboard push-to-talk/mute/leave works; native denied microphone permission leaves listening/text usable.
+- Resolved observed failures: project PostgreSQL was stopped and was restarted; microphone tests needed Chromium's explicit native fake permission response (accept/deny), confirmed independently without replacing getUserMedia; stored microphone errors were omitted from the alert body; controller changes now reset local controls.
+- npm run typecheck and npm test (49) pass. Formatting passed after repairing server/voice/socket.ts. Production build passed; npm audit reports zero advisories.
+- Screenshot test-results/voice-controls.png was copied to the shared Windows workspace and visually inspected. The voice panel remains readable alongside yard/circle/text controls.
+- Remaining gates: track republish/rejoin, bot exclusion and controller/session revocation, same-table/spectator behavior through real media, additional browser/device interruption checks, real iOS/Android/desktop devices and a 4–8-person playtest. Voice remains IN_PROGRESS and disabled by default.
+- Next concrete action: finish the remaining hostile-client/lifecycle scenarios and tighten signaling ordering/reconnect behavior before declaring automated voice gates passed. Visual builder and league remain independent required stages.

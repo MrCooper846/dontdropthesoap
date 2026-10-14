@@ -35,7 +35,9 @@ export class VoiceMedia {
     },
     private notify: (
       identity: VoiceIdentity,
-      event: { type: "consumer.closed"; consumerId: string },
+      event:
+        | { type: "consumer.closed"; consumerId: string }
+        | { type: "voice.closed" },
     ) => void,
   ) {}
   async start() {
@@ -196,6 +198,7 @@ export class VoiceMedia {
       .map((p) => ({
         ownerId: p.identity.ownerId,
         producerId: p.producer!.id,
+        transmitting: !p.producer!.paused,
       }));
   }
   private allowed(p: Peer, sender: Peer) {
@@ -286,6 +289,7 @@ export class VoiceMedia {
     if (!p || (connectionId && p.identity.connectionId !== connectionId))
       return;
     this.peers.delete(ownerId);
+    this.notify(p.identity, { type: "voice.closed" });
     p.send?.close();
     p.recv?.close();
     for (const other of this.peers.values())

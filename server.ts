@@ -1,3 +1,4 @@
+import { startVoice } from "./server/voice/socket";
 import { attachYard, startYard } from "./server/yards/socket";
 import { RuleError } from "./domain/match/model";
 import { syncObservation } from "./server/matches/observations";
@@ -97,8 +98,10 @@ async function main() {
       next(new Error("FORBIDDEN"));
     }
   });
+  const voice = config.FEATURE_VOICE ? await startVoice(game) : null;
   game.on("connection", (socket) => {
     attachYard(socket, game);
+    voice?.attach(socket);
     socket.on("state.sync", (input: unknown, ack: (data: unknown) => void) => {
       void (async () => {
         rateLimit("socket:" + socket.data.principal.id);
@@ -207,6 +210,7 @@ async function main() {
     ready = false;
     clearInterval(timer);
     stopYard();
+    voice?.stop();
     io.emit("service.restarting");
     await new Promise<void>((resolve) => io.close(() => resolve()));
     await releaseWriter();

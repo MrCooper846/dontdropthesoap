@@ -101,6 +101,15 @@ export class Yard {
       if (p.disconnectedAt !== null && now - p.disconnectedAt >= 30000)
         this.people.delete(id);
   }
+  controls(ownerId: string, socketId: string, epoch: number) {
+    const p = this.people.get(ownerId);
+    return (
+      !!p &&
+      p.socketId === socketId &&
+      p.controllerEpoch === epoch &&
+      p.disconnectedAt === null
+    );
+  }
   active(ownerId: string) {
     return !!this.people.get(ownerId)?.socketId;
   }

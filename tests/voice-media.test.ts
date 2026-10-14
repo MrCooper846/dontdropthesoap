@@ -10,7 +10,9 @@ it("real native SFU enforces consumers, closes revoked audiences and fences repl
       audible: (a, b) => a === "b" && b === "a" && permitted,
     },
     { ip: "127.0.0.1", minPort: 19200, maxPort: 19230 },
-    (_, e) => closed.push(e.consumerId),
+    (_, e) => {
+      if (e.type === "consumer.closed") closed.push(e.consumerId);
+    },
   );
   const identity = (ownerId: string): VoiceIdentity => ({
     ownerId,
