@@ -217,7 +217,7 @@ Update this section during development. These initial statuses mean no implement
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
-| 4 Voice | NOT_STARTED | — | Enforced routing and devices |
+| 4 Voice | IMPLEMENTED_PENDING_VALIDATION | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Actual-device audio/interruption, public-network/TURN and human playtest |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
@@ -300,6 +300,16 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - Next ready stage after final check/commit: proximity-voice provider enforcement spike and adapter. The visual builder and league can proceed independently of real-device/playtest dependencies.
 - Verified implementation SHA: 70bd744. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/6 (base codex/external-bot-api). No public deployment or merge occurred.
 
+### Stage 4 checkpoint — measured media design failure
+
+- Active branch: codex/proximity-voice, based on cbcbbba. Yard remains verified in draft PR #6.
+- Pinned LiveKit client 2.22.4/server SDK 2.19.1 and local server image 1.13.10. Added a loopback-only Compose voice-spike profile, development-only /lab/voice probe and a real three-browser synthetic-tone test.
+- npm run test:voice-spike passed its diagnostic assertions: normal media/RTP delivery works; a canSubscribe:false client receives zero tracks/packets despite room-admin forcing; a canSubscribe:true client can override server unsubscribe and receive media again. This is a FAILED CANDIDATE DESIGN GATE, not an implemented/verified proximity voice feature.
+- Upstream LiveKit fix #4701 was still open when checked. Exact method/version evidence is recorded in yard-and-voice.md.
+- Added a pure audibility domain for authoritative distance <=8 tiles, full volume within three, symmetric blocks, same-table human rules, one-way spectator suppression and bot-owner avatar position. It is not yet mounted to a media transport.
+- Next concrete action: implement and prove a server-authorized consumer adapter, with mediasoup as the next candidate; retain the planned distance/block semantics. Do not substitute client volume controls or weaker acoustic privacy.
+- Real-device/audio/playtest evidence remains missing. Complete the adapter/builder/league/release work independently before requesting those external validation inputs.
+
 ## Resume procedure
 
 Read the record, inspect Git and verify claimed work against code and evidence. Resume the first incomplete ready stage. Re-run checks affected by intervening changes; do not automatically rerun every expensive test. If a prior stage regressed, repair it and update its status.
@@ -317,3 +327,37 @@ Return:
 - Deployment/rollback instructions or authorised deployment result.
 
 Stop expanding scope once the agreed v1 gates pass. Further mechanics require a new goal.
+
+### Stage 4 checkpoint — native consumer authorization layer
+
+- Branch codex/proximity-voice. Added server/voice/media.ts with a real mediasoup native worker, Opus-only transports, bounded allocations, paused consumer creation, authority rechecks, consumer closure and connection fencing.
+- Pinned mediasoup 3.29.0/client 3.24.5; explicitly approved the required mediasoup installer in package.json so a fresh npm install can install its native worker.
+- Fixed an audience test fixture literal-type error discovered by typecheck.
+- Evidence: npm run typecheck; npm test (49 passing, including real native SFU policy test); npm run lint; npm run build (pass); npm audit (zero advisories). Browser media remains unproved by this layer; no voice completion claim.
+- Next concrete action: connect authenticated browser-only Socket.IO signaling to yard/session/controller state; implement the browser send/receive adapter and push-to-talk UI; prove real audio restriction with modified listeners and routing failure.
+
+### Stage 4 checkpoint — integrated yard voice
+
+- Branch codex/proximity-voice, building on b9d0559. Implemented server/voice/socket.ts and client/voice/VoiceClient.ts, mounted behind FEATURE_VOICE=true in the real yard.
+- Browser-only signaling validates the cookie, controller epoch and exact active yard connection. Fresh session/match/block policy drives server-owned consumers; a separate 50 ms watchdog removes media when authorization is stale for 600 ms, including a stalled database query.
+- Added explicit listening/microphone actions, default pointer/keyboard push-to-talk, immediate local release/blur/background mute, microphone mute, spectator filter, visible transmitting status, autoplay retry, actionable failure messages and text fallback. Media defaults to loopback and production requires an announced address.
+- Real Chromium tests passed (npm run test:voice, four scenarios): actual synthetic RTP arrives nearby; distant requests reject; a modified listener ignores closure messages and retains its consumer but receives no new packets after distance/block changes; yard exit rejects rejoin; a database table lock stalls policy refresh and retained consumers stop receiving packets; native fake-device keyboard push-to-talk/mute/leave works; native denied microphone permission leaves listening/text usable.
+- Resolved observed failures: project PostgreSQL was stopped and was restarted; microphone tests needed Chromium's explicit native fake permission response (accept/deny), confirmed independently without replacing getUserMedia; stored microphone errors were omitted from the alert body; controller changes now reset local controls.
+- npm run typecheck and npm test (49) pass. Formatting passed after repairing server/voice/socket.ts. Production build passed; npm audit reports zero advisories.
+- Screenshot test-results/voice-controls.png was copied to the shared Windows workspace and visually inspected. The voice panel remains readable alongside yard/circle/text controls.
+- Remaining gates: track republish/rejoin, bot exclusion and controller/session revocation, same-table/spectator behavior through real media, additional browser/device interruption checks, real iOS/Android/desktop devices and a 4–8-person playtest. Voice remains IN_PROGRESS and disabled by default.
+- Next concrete action: finish the remaining hostile-client/lifecycle scenarios and tighten signaling ordering/reconnect behavior before declaring automated voice gates passed. Visual builder and league remain independent required stages.
+
+### Stage 4 checkpoint — lifecycle and browser-engine evidence
+
+- Branch codex/proximity-voice; last committed integration implementation 48b7adb. This checkpoint adds bounded FIFO signaling, exact native-peer callback fencing and forced post-entry join refresh.
+- Caught and repaired a join-cache race, a delayed old-transport callback that could remove a replacement peer, and a client consume-race cleanup gap. Added a queue regression that proves ordering, backlog rejection and recovery after failure.
+- Added real-media scenarios for track republish, denied rejoin, controller takeover/reentry, session expiry/revocation/owner disable, bot principal exclusion and same-table/spectator routing.
+- Strengthened movement evidence: fixed-duration input under development-server load did not always reach the claimed location, so privacy/lifecycle checks now wait for acknowledged coordinates. First-route compilation can deliberately stale voice authorization; the controls test prepares pages before establishing the call rather than treating development compilation as a media benchmark.
+- Chromium lifecycle scenarios and WebKit privacy passed. Firefox's loopback ICE setup failed; a targeted test on the actual local interface passed. No test was skipped or removed to claim compatibility. The shared media test configuration now uses that local interface; combined final-network run passed ten scenarios and timed out on WebKit reentry under its five-second window. A targeted WebKit run with a fifteen-second bounded ICE negotiation window passed; the two-repeat WebKit check also passed (38.4 seconds). All eleven scenarios have passing attributable evidence across the final combined/targeted runs; the earlier failed combined result remains recorded.
+- Source checks so far: npm run test:integration (seven PostgreSQL checks), npm run typecheck, npm test (50), npm run lint all pass. Production build remains to run after browser processes finish. No full-suite green result is claimed from the earlier failed combined run.
+- Physical-device audio and 4–8-person playtest evidence remains unavailable. Those gates cannot be satisfied with synthetic tracks or browser emulation. Continue visual-builder/league work while retaining pending validation.
+
+- Final source verification: expanded voice lint coverage, typecheck and 50 unit/native checks pass; seven PostgreSQL regressions pass. Production build passed; npm audit reports zero advisories. Voice is IMPLEMENTED_PENDING_VALIDATION, not VERIFIED, because physical-device audio and the human playtest remain open. Media join/restriction latency under load remains part of release validation. Next independent stage: visual bots.
+
+- Reviewed implementation checkpoint: 29e0157. Draft PR #7: https://github.com/MrCooper846/dontdropthesoap/pull/7 (base codex/playable-yard). No merge or deployment occurred. Next concrete work: canonical visual program validation/interpreter, bounded worker execution, immutable publication and the Blockly create/test/publish/watch/edit flow.

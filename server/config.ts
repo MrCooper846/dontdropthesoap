@@ -37,9 +37,10 @@ export function readConfig(
       .transform((v) => v === "true"),
     FEATURE_VOICE: flag,
     FEATURE_LEAGUE: flag,
-    LIVEKIT_URL: z.string().url().optional(),
-    LIVEKIT_API_KEY: z.string().optional(),
-    LIVEKIT_API_SECRET: z.string().optional(),
+    VOICE_LISTEN_IP: z.string().default("127.0.0.1"),
+    VOICE_ANNOUNCED_ADDRESS: z.string().min(1).optional(),
+    VOICE_MIN_PORT: z.coerce.number().int().min(1024).max(65535).default(18000),
+    VOICE_MAX_PORT: z.coerce.number().int().min(1024).max(65535).default(18127),
   });
   const c = schema.parse(env);
   if (c.NODE_ENV === "production") {
@@ -49,11 +50,16 @@ export function readConfig(
       if (s.startsWith("local-development"))
         throw new Error("Configure unique production secrets");
   }
+  if (c.VOICE_MIN_PORT > c.VOICE_MAX_PORT)
+    throw new Error("Invalid media port range");
+  if (c.FEATURE_VOICE && !c.FEATURE_YARD)
+    throw new Error("Voice requires yard");
   if (
     c.FEATURE_VOICE &&
-    (!c.LIVEKIT_URL || !c.LIVEKIT_API_KEY || !c.LIVEKIT_API_SECRET)
+    c.NODE_ENV === "production" &&
+    !c.VOICE_ANNOUNCED_ADDRESS
   )
-    throw new Error("Voice requires configured media credentials");
+    throw new Error("Voice requires an announced media address in production");
   return c;
 }
 export const config = readConfig();

@@ -129,6 +129,7 @@ export async function api(
         controllerEpoch: principal.epoch,
         csrfToken: csrf(principal),
         features: {
+          voice: config.FEATURE_VOICE,
           externalBots: config.FEATURE_EXTERNAL_BOTS,
           yard: config.FEATURE_YARD,
         },

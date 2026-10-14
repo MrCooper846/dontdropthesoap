@@ -1,0 +1,6 @@
+# Local-only media feasibility lab. Credentials come from --dev.
+port: 7880
+rtc:
+  tcp_port: 17981
+  udp_port: 17982
+  use_external_ip: false
