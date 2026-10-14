@@ -272,7 +272,7 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - Credential response replay deliberately returns metadata without the secret, preserving hash-only token storage. Lost issuance responses require revoke/reissue; owning protocol/examples document this exception.
 - Final checks passed after readiness/version/feature-flag fixes: typecheck; seven PostgreSQL integration tests (including explicit bot impersonation/host/management/foreign-observation rejection); six browser scenarios; physical human and external-bot crash/reconnect harness; production build; formatting; npm audit with zero advisories. Domain/configuration/protocol suite contains 36 passing tests.
 - External bots are enabled by default for the working alpha, with FEATURE_EXTERNAL_BOTS able to disable their routes, sockets and admission. No core bot acceptance uses mocks.
-- The implementation checkpoint and stacked draft review are recorded immediately after commit. No merge/deployment occurred.
+- Verified implementation SHA: 24ce3b0. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/5 (base codex/playable-alpha). No merge/deployment occurred.
 - Next ready stage after this gate: authoritative yard movement, four circles, challenges, spectating, nearby text and block/report. Voice/device gates stay pending.
 
 ## Resume procedure
