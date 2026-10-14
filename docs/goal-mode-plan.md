@@ -403,3 +403,5 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Next independent stage: league batch registration, deterministic pair fixtures/attempts, frozen visual versions, external readiness, separate standings, recoverable scheduling and recorded replay.
 
 - Final refinements: the builder defaults to enabled; feature-off readiness is verified against an existing waiting visual table. Visual browser fixtures use soap_visual_browser (separate from yard/voice), and native preview concurrency plus missing-worker-artifact checks are covered by the implementation. The final UI and compatibility/recovery runs passed after these changes.
+
+- Verified stage-5 implementation checkpoint: a516a89 (UI/runtime implementation 6fa89a8 plus the tracked schema migration). Draft PR #8: https://github.com/MrCooper846/dontdropthesoap/pull/8, base codex/proximity-voice. The final staging audit caught and included migration 005 before handoff; the review branch is clean. No merge or deployment occurred. Resume the league stage from this committed state.
