@@ -46,7 +46,7 @@ Structured logs: request/command ID, match ID, event type, latency and error cod
 
 Measure active presences/seats, commands rejected, ACK latency, event-loop lag, DB transaction latency, outbox age, timeout fraction, worker failures, reconnects and voice policy failures. Alert on repeated resolver failures, growing outbox backlog, disk pressure and loss of writer ownership.
 
-If database writes fail, stop accepting moves and report service unavailable; do not ACK in-memory moves. If degraded beyond a decision window, mark affected active matches for abort as soon as the database returns rather than awarding timeout wins caused by infrastructure failure. Record the incident for league fixture retry.
+If database writes fail, stop accepting moves and report service unavailable; do not ACK in-memory moves. If degraded beyond a decision window, abort affected active matches as soon as the database returns rather than awarding timeout wins caused by infrastructure failure. The service persists coordinator health and checks the database clock against each match's decision duration. An overdue coordinator makes readiness fail closed; the durable gap survives process death. Aborts retain hidden choices and diagnostic results but receive no settlement, and league fixtures requeue. The same conservative rule applies to long process downtime because the database cannot retrospectively prove the cause. Record the incident for league fixture retry.
 
 If voice authorization updates fail, remove or suspend the affected media participants until permissions reconcile. Client volume is not a fallback access control.
 

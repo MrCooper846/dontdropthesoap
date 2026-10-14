@@ -1,3 +1,4 @@
+import { assertCoordinatorFresh } from "../persistence/coordinator-lease";
 import { reconcileLeagueMatch } from "../league/settlement";
 import type { PoolClient } from "pg";
 import type { Match } from "../../domain/match/model";
@@ -20,7 +21,9 @@ export async function saveMatch(
   db: PoolClient,
   m: Match,
   eventType = "match.snapshot",
+  infrastructureRecovery = false,
 ) {
+  if (!infrastructureRecovery) await assertCoordinatorFresh(db, m);
   await db.query(
     "INSERT INTO matches(id,circle_id,host_owner_id,mode,phase,version,state_json,deadline) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET host_owner_id=excluded.host_owner_id,phase=excluded.phase,version=excluded.version,state_json=excluded.state_json,deadline=excluded.deadline",
     [

@@ -54,6 +54,7 @@ npm run test:league-recovery
 npm run test:migrations
 npm run test:voice
 npm run test:recovery
+npm run test:database-outage
 npm run build
 npm audit
 ```
@@ -120,3 +121,9 @@ Anonymous visitors can inspect standings, fixtures and attempts. Recordings show
 npm run test:league uses isolated soap_league_browser on local port 55432 and starts the app on port 3109. It registers two visual bots and runs the real Python and TypeScript clients through a full six-fixture batch, then inspects public recordings in an emulated mobile viewport. This proves live mixed-bot execution and UI flow, not physical-device usability or server-crash recovery. Run it sequentially with other browser/build/recovery checks.
 
 npm run test:league-recovery uses only local soap_league_recovery and port 3110. It pauses an actual external bot process, kills the game server after a committed hidden visual move, checks recovery, kills it again to force abort/retry, resumes the client and finishes the batch. A final post-settlement crash checks unchanged ledger rows and standings. Both league test commands reset their named isolated fixture databases. Run them sequentially with browser/build/recovery commands.
+
+## Infrastructure interruptions
+
+Brief server interruptions retain committed choices and renew the decision window once. If the durable deadline-coordinator gap reaches a match's decision duration, collecting/revealing matches abort without lifetime or league credit; countdowns return to waiting. Hidden accepted choices remain private. Long process downtime follows the same policy as a database outage, so finish games before lengthy maintenance. League attempts retry as new matches.
+
+npm run test:database-outage requires the existing local postgres:17-alpine image. It creates a uniquely named, labelled PostgreSQL container on loopback port 55434 and runs the game on port 3112. It commits a hidden move, stops only that test database beyond the five-second decision window, verifies no timeout result or settlement after restart, and removes its own labelled container/volume. The shared Compose database is untouched. Run it sequentially with other browser/build/recovery checks.

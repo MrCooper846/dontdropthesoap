@@ -1,3 +1,5 @@
+import { coordinatorLeaseEnforced } from "./coordinator-lease";
+import { RuleError } from "../../domain/match/model";
 import { Pool, type PoolClient } from "pg";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -15,11 +17,18 @@ export async function transaction<T>(
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
+    if (coordinatorLeaseEnforced())
+      await db.query("SET LOCAL soap.enforce_coordinator = 'on'");
     const result = await work(db);
     await db.query("COMMIT");
     return result;
   } catch (e) {
     await db.query("ROLLBACK");
+    if (e && typeof e === "object" && "code" in e && e.code === "P0C01")
+      throw new RuleError(
+        "SERVICE_UNAVAILABLE",
+        "Game service is recovering. Please retry.",
+      );
     throw e;
   } finally {
     db.release();

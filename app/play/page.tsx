@@ -488,6 +488,12 @@ export default function Play() {
                       </span>
                     </div>
                   ))}
+              {snapshot.abortReason === "infrastructure" && (
+                <p role="status">
+                  Match ended after a service interruption. No points were
+                  credited.
+                </p>
+              )}
               {snapshot.interruptions > 0 && (
                 <p className="danger">
                   Service interrupted. Accepted moves were preserved and the

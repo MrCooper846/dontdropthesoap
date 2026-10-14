@@ -26,6 +26,7 @@ Use Vitest for domain/interpreter tests; integration tests against an isolated r
 | Pairings | Every seat appears once per social round; filler only when required |
 | League | Each unordered pair has one settled fixture; retries cannot double-count |
 | Migration | Legacy IDs cannot authenticate or seize new owners |
+| Infrastructure outage | Stop an isolated real database beyond the decision duration; recovered active match aborts with hidden moves intact and no timeout result/credit. Commit-time guards reject late writes and incomplete recovery renewal |
 | Shutdown | Drain and restart resume unfinished state under documented policy |
 
 For payoffs assert the full four-case matrix and two-noodle ante. Property tests verify results sum to the expected joint net for each pairing and never generate multiple results for the same pairing. Avoid tests that simply copy implementation statements.

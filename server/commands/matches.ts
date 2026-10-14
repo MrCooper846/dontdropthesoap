@@ -148,7 +148,11 @@ export async function command(
         v: 1,
         commandId: c.commandId,
         ok: false,
-        error: { code: e.code, message: e.message, retryable: false },
+        error: {
+          code: e.code,
+          message: e.message,
+          retryable: e.code === "SERVICE_UNAVAILABLE",
+        },
       };
     throw e;
   }
