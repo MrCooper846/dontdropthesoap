@@ -308,6 +308,8 @@ export function project(
       id: s.id,
       ownerId: s.ownerId,
       botId: s.botId,
+      botVersionId: s.botVersionId,
+      botError: s.botErrorRound === m.round,
       name: s.name,
       ownerName: s.ownerName ?? (s.kind === "human" ? s.name : null),
       kind: s.kind,

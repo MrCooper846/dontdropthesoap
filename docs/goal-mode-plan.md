@@ -218,7 +218,7 @@ Update this section during development. These initial statuses mean no implement
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
 | 4 Voice | IMPLEMENTED_PENDING_VALIDATION | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Actual-device audio/interruption, public-network/TURN and human playtest |
-| 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
+| 5 Visual bots | VERIFIED | Manual Blockly construction, worker/DB atomicity and complete real-browser game/edit flow | Actual-device usability/playtest remains a final release gate |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
 
@@ -361,3 +361,47 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Final source verification: expanded voice lint coverage, typecheck and 50 unit/native checks pass; seven PostgreSQL regressions pass. Production build passed; npm audit reports zero advisories. Voice is IMPLEMENTED_PENDING_VALIDATION, not VERIFIED, because physical-device audio and the human playtest remain open. Media join/restriction latency under load remains part of release validation. Next independent stage: visual bots.
 
 - Reviewed implementation checkpoint: 29e0157. Draft PR #7: https://github.com/MrCooper846/dontdropthesoap/pull/7 (base codex/playable-yard). No merge or deployment occurred. Next concrete work: canonical visual program validation/interpreter, bounded worker execution, immutable publication and the Blockly create/test/publish/watch/edit flow.
+
+
+### Stage 5 checkpoint — visual execution foundation
+
+- Branch codex/visual-bot-builder, based on 07fc44b; stage 4 remains reviewable in draft PR #7.
+- Implemented a strictly typed canonical AST with explicit structural/byte limits, declared scalar memory, deterministic RNG, bounded interpreter steps and trace. Programs cannot execute JavaScript or perform I/O.
+- Added actual Blockly block definitions and starter workspaces plus deterministic saved-workspace compilation. Real headless Blockly serialization/field-edit tests establish correspondence with executed decisions; the browser editor remains unfinished.
+- Added a real worker-thread pool with bounded admission, startup/execution deadlines, queued/late-result expiry, memory/stack limits, bounded restarts and checked outcomes. Native fault fixtures prove an infinite worker is terminated while the parent event loop keeps ticking; malformed responses reject.
+- Loader attempts failed with extension resolution / require-ESM cycles on Node 24/tsx. Replaced them with an explicitly pinned esbuild compiler for trusted worker source, called by dev/build/test. The generated worker is ignored, reproducibly built and must be shipped with the release.
+- Verification: npm run typecheck, npm test (67 passing, including nine visual-language, four real Blockly and four real worker/fault tests), npm run lint. Production build passed (including the generated worker); npm audit reports zero advisories.
+- These are execution foundations, not a completed builder. Next concrete action: immutable visual publication and owner preview through the shared compiler; wire visual entrant/version freezing and atomic state/RNG/move acceptance against PostgreSQL; mount the real Blockly create/test/publish/watch/edit flow and run browser/touch/hostile-input gates.
+- Voice physical-device/playtest validation remains pending; league and final release gates remain required.
+
+- Committed/pushed visual foundation: 945698d on codex/visual-bot-builder. The stage is IN_PROGRESS; no completed builder, publication endpoint or live visual match participation is claimed. Next action remains the PostgreSQL publication/preview and atomic visual-decision integration, followed by the browser editor flow.
+
+
+### Stage 5 checkpoint — integrated visual publication and gameplay
+
+- Branch codex/visual-bot-builder, based on the foundation at 945698d/0c649ec. Added migration 005, immutable publication/version reads, independently gated preview/admission, live scheduler, atomic state/RNG/move acceptance and owner-private feedback.
+- Real Blockly editor now supports gestures and complete labelled add/connect/edit controls, readable summaries, private practice, immutable publication, bot-stable links, mixed-circle admission and edit-for-next-game. New drafts remain local to their guest owner; published workspaces are durable.
+- PostgreSQL/worker evidence: twelve integration checks pass, including publication retries/ownership/immutability, version freezing, duplicate acceptance races, injected mid-write rollback, five complete rounds with expected scores, recovery/stale-window fencing and live numeric-error → timeout-C behavior without memory advancement.
+- Three real Chromium scenarios pass: a user manually constructs tit-for-tat (not a preset-only shortcut), tests both branches, publishes, plays all five rounds, watches private feedback and publishes revision 2 while the existing match retains revision 1; hostile HTTP checks; emulated-touch construction, actual SVG block drag, rotation, no horizontal overflow and version reload.
+- Fixed actual Phaser teardown: one final frame could read a removed yard container while navigating to the editor. It now observes cancellation/ref state. Blockly resize callbacks also observe disposal.
+- Failed runs recorded: exact/partial dropdown labels initially matched option text/other controls; the editor now has concise explicit accessible names. One subsequent trace failed because a test source file was edited during capture; the stable-source three-scenario suite passed. A migration-check CLI initially used unsupported top-level await in this package's CJS mode; the normal async entry fixed it.
+- Fresh/repeated migration check passes on a unique temporary local database, with five migrations and visual constraints present. Earlier migrations upgraded successfully in the existing isolated test databases.
+- Six standalone match/external-bot browser regressions pass. Shared-yard regressions are still running; source/build/recovery/visual review checkpoints remain before marking this stage verified.
+- Visual remains feature gated (FEATURE_VISUAL_BOTS=false by default). Real-device editor/audio and the human playtest remain final release gates. League and final release work remain unfinished.
+
+
+### Stage 5 checkpoint — verified playable visual bots
+
+- Final feature is enabled by default; FEATURE_VISUAL_BOTS=false disables publication/preview/admission and prevents existing waiting visual seats from starting as a timeout-only substitute.
+- Final evidence: 69 domain/protocol/native-worker/Blockly tests; 13 isolated PostgreSQL tests; three real visual browser scenarios; six standalone match/external-client browser regressions with the new default; six shared-yard regressions; fresh/repeated five-migration check; physical human/external-bot crash/reconnect harness. Typecheck and expanded formatting pass. Production build passed, including the compiled worker; npm audit reports zero advisories.
+- Actual visual bot game and private feedback run through the live server scheduler, real worker threads and PostgreSQL. The manually constructed mirror scores -6 against the human's -1 over five rounds; published revision 2 cannot change the game's frozen revision 1. Database fault injection, duplicate races and pre-interruption result rejection protect memory/RNG advancement. A live runtime error leaves state untouched and becomes a visibly tagged timeout C.
+- Final UI review fixed low-contrast Blockly toolbox text, fitted the constructed graph and used a horizontal mobile toolbox. Mobile supports complete labelled construction/editing plus actual touch SVG drag; it is not a preset-only fallback. Actual-device parity is still unproved.
+- A stale circle snapshot briefly gave the acceptance test a null match ID; it now waits for the authoritative circle update. Failed synthetic matches also occupied a circle on later runs, so visual acceptance now uses its own soap_visual_browser database with explicit local/name checks before reset. Production admission was not relaxed.
+- Retained desktop/mobile screenshots were visually inspected and copied to the shared Windows workspace as visual-builder-desktop.png and visual-builder-mobile.png. Guest aliases/strategies are synthetic; no credentials or raw voice are included.
+- Fixed draft autosave so opening a published strategy cannot overwrite a new draft while its version loads. Missing compiled workers now fail immediately rather than entering a startup crash loop. Runtime shutdown drains pending work before releasing persistence ownership.
+- Stage 5 is VERIFIED for its automated playable gate, with actual-device editor usability and human playtesting retained as final release dependencies, consistent with stage 3. Voice remains IMPLEMENTED_PENDING_VALIDATION; league and release remain unfinished.
+- Next independent stage: league batch registration, deterministic pair fixtures/attempts, frozen visual versions, external readiness, separate standings, recoverable scheduling and recorded replay.
+
+- Final refinements: the builder defaults to enabled; feature-off readiness is verified against an existing waiting visual table. Visual browser fixtures use soap_visual_browser (separate from yard/voice), and native preview concurrency plus missing-worker-artifact checks are covered by the implementation. The final UI and compatibility/recovery runs passed after these changes.
+
+- Verified stage-5 implementation checkpoint: a516a89 (UI/runtime implementation 6fa89a8 plus the tracked schema migration). Draft PR #8: https://github.com/MrCooper846/dontdropthesoap/pull/8, base codex/proximity-voice. The final staging audit caught and included migration 005 before handoff; the review branch is clean. No merge or deployment occurred. Resume the league stage from this committed state.

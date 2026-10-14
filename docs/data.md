@@ -85,3 +85,9 @@ Schema migrations run once before the service starts; failure blocks readiness. 
 Retain owner/bot records until explicit deletion/archive policy applies. Keep round histories and event payloads for 90 days, durable score summaries/settlements longer. Keep command receipts 7 days; gameplay uniqueness constraints protect older retries, while expired creation-command retries return expired/idempotency-window errors rather than creating duplicates. Use server-issued time-bounded creation keys for resource creation.
 
 Sessions and revoked credentials are cleaned after expiry plus 7 days. Reports default to 30 days pending a documented operator policy. Backups expire after 7 days initially. These are engineering defaults, not legal retention advice; deletion must cover live records and documented backup expiry.
+
+## Implemented visual version/runtime records
+
+Migration 005 stores visual ruleset version metadata, complete program/workspace/hash/interpreter payloads and an immutability trigger for published visual versions. Runtime state references the exact admitted version and the match/seat pair; uint32 RNG is nonzero. visual_decisions has one accepted/error record per match/round/seat, foreign keys to the real round/seat/version and owner-private bounded feedback.
+
+Runtime initialization is durable but does not advance memory. Actual state/RNG advancement, move acceptance, normalized/checkpoint transitions and accepted feedback are atomic under the match/runtime locks. A forced database failure after intermediate writes has been verified to roll all of them back; retry then commits once. Recovery preserves accepted moves and memory. Deadline changes fence pre-interruption worker results.

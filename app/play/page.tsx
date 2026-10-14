@@ -8,7 +8,7 @@ type Session = {
   name: string;
   controllerEpoch: number;
   csrfToken: string;
-  features?: { externalBots: boolean };
+  features?: { externalBots: boolean; visualBots?: boolean };
 };
 export default function Play() {
   const [session, setSession] = useState<Session | null>(null),
@@ -251,7 +251,8 @@ export default function Play() {
           </section>
           {!snapshot ? (
             <section className="panel stack">
-              {session.features?.externalBots && (
+              {(session.features?.externalBots ||
+                session.features?.visualBots) && (
                 <Link className="button" href="/bots">
                   Manage your bots
                 </Link>

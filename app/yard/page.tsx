@@ -13,7 +13,7 @@ import type {
 } from "../../shared/yard/types";
 import type { Snapshot } from "../../shared/protocol/commands";
 import { distance } from "../../shared/yard/map";
-type Bot = { id: string; name: string; online: boolean };
+type Bot = { id: string; name: string; online: boolean; kind: string };
 export default function YardPage() {
   const [session, setSession] = useState<BrowserSession | null>(null),
     [name, setName] = useState(""),
@@ -152,6 +152,7 @@ export default function YardPage() {
     }
   }
   useEffect(() => {
+    setBotId(new URLSearchParams(location.search).get("bot") ?? "");
     inviteMatch.current =
       new URLSearchParams(location.search).get("match") ?? "";
     fetch("/api/v1/session")
@@ -200,7 +201,7 @@ export default function YardPage() {
       try {
         const [inbox, owned] = await Promise.all([
           api("/challenges"),
-          session.features.externalBots
+          session.features.externalBots || session.features.visualBots
             ? api("/bots")
             : Promise.resolve({ bots: [] }),
         ]);
@@ -527,7 +528,12 @@ export default function YardPage() {
                               {selected.mode !== "human" &&
                                 bots.map((b) => (
                                   <option key={b.id} value={b.id}>
-                                    {b.name} · {b.online ? "online" : "offline"}
+                                    {b.name} ·{" "}
+                                    {b.kind === "visual"
+                                      ? "visual · ready"
+                                      : b.online
+                                        ? "online"
+                                        : "offline"}
                                   </option>
                                 ))}
                             </select>

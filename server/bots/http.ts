@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { syncObservation } from "../matches/observations";
 import { authenticate } from "../auth/sessions";
 import { pool } from "../persistence/db";
@@ -108,6 +109,7 @@ export async function ownedBotHttp(
       return true;
     }
     if (method === "POST") {
+      if (!config.FEATURE_EXTERNAL_BOTS) throw new RuleError("NOT_FOUND");
       json(
         res,
         201,
@@ -130,10 +132,11 @@ export async function ownedBotHttp(
     }
   }
   const cred = path.match(/^\/bots\/([^/]+)\/credentials(?:\/([^/]+))?$/);
+  if (cred && !config.FEATURE_EXTERNAL_BOTS) throw new RuleError("NOT_FOUND");
   if (cred && method === "GET" && !cred[2]) {
     const p = await authenticate(req);
     const owned = await pool.query(
-      "SELECT 1 FROM bots WHERE id=$1 AND owner_id=$2",
+      "SELECT 1 FROM bots WHERE id=$1 AND owner_id=$2 AND kind='external'",
       [z.string().uuid().parse(cred[1]), p.ownerId],
     );
     if (!owned.rowCount) throw new RuleError("NOT_FOUND");

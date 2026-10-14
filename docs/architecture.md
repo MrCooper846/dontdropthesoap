@@ -76,3 +76,5 @@ Reviewed 14 October 2026:
 - [Socket.IO disconnections](https://socket.io/docs/v4/tutorial/handling-disconnections/): clients need resynchronisation.
 - [Phaser framework templates](https://docs.phaser.io/phaser/getting-started/project-templates): reference for the React/renderer boundary.
 - [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html): basis for transaction locking.
+
+Visual-worker runtime checkpoint: trusted interpreter/worker source is compiled with pinned esbuild 0.28.2 into dist/workers/visual-worker.mjs. dev/build/test create the artifact; the release package must include it. The isolated threads do not invoke a runtime TypeScript loader or execute uploaded source. Node 24.18.0 is the verified runtime at this checkpoint.

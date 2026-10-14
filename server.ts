@@ -1,3 +1,5 @@
+import { startVisualRuntime } from "./server/bots/visual-runtime";
+import { closeVisualPreview } from "./server/bots/visual-http";
 import { startVoice } from "./server/voice/socket";
 import { attachYard, startYard } from "./server/yards/socket";
 import { RuleError } from "./domain/match/model";
@@ -153,6 +155,7 @@ async function main() {
     });
   });
   const stopYard = startYard(game);
+  const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
   let ticking = false;
   const timer = setInterval(() => {
     if (ticking || !ready) return;
@@ -211,6 +214,8 @@ async function main() {
     clearInterval(timer);
     stopYard();
     voice?.stop();
+    await stopVisual?.();
+    await closeVisualPreview();
     io.emit("service.restarting");
     await new Promise<void>((resolve) => io.close(() => resolve()));
     await releaseWriter();

@@ -35,6 +35,10 @@ export function readConfig(
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
+    FEATURE_VISUAL_BOTS: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
     FEATURE_VOICE: flag,
     FEATURE_LEAGUE: flag,
     VOICE_LISTEN_IP: z.string().default("127.0.0.1"),

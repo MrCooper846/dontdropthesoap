@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { randomBytes, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import type { PoolClient } from "pg";
@@ -157,10 +158,14 @@ export async function createExternalBot(
 export async function listOwnedBots(req: IncomingMessage) {
   const p = await authenticate(req);
   const result = await pool.query(
-    "SELECT b.id,b.name,b.kind,v.id AS version_id,v.revision,v.external_label FROM bots b JOIN LATERAL (SELECT id,revision,external_label FROM bot_versions WHERE bot_id=b.id ORDER BY revision DESC LIMIT 1) v ON true WHERE b.owner_id=$1 AND b.archived_at IS NULL ORDER BY b.name",
-    [p.ownerId],
+    "SELECT b.id,b.name,b.kind,v.id AS version_id,v.revision,v.external_label FROM bots b JOIN LATERAL (SELECT id,revision,external_label FROM bot_versions WHERE bot_id=b.id ORDER BY revision DESC LIMIT 1) v ON true WHERE b.owner_id=$1 AND b.archived_at IS NULL AND ((b.kind='external' AND $2) OR (b.kind='visual' AND $3)) ORDER BY b.name",
+    [p.ownerId, config.FEATURE_EXTERNAL_BOTS, config.FEATURE_VISUAL_BOTS],
   );
-  return result.rows.map((row) => ({ ...row, online: isBotOnline(row.id) }));
+  return result.rows.map((row) => ({
+    ...row,
+    online:
+      row.kind === "visual" ? config.FEATURE_VISUAL_BOTS : isBotOnline(row.id),
+  }));
 }
 export async function mintCredential(
   req: IncomingMessage,
@@ -181,7 +186,7 @@ export async function mintCredential(
       p.id,
     ]);
     const bot = await db.query(
-      "SELECT id FROM bots WHERE id=$1 AND owner_id=$2 AND archived_at IS NULL FOR UPDATE",
+      "SELECT id FROM bots WHERE id=$1 AND owner_id=$2 AND kind='external' AND archived_at IS NULL FOR UPDATE",
       [botId, p.ownerId],
     );
     if (!bot.rowCount) throw new RuleError("NOT_FOUND");

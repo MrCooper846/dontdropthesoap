@@ -1,6 +1,6 @@
 # Technical plan
 
-Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots and playable yard are implemented. Voice is integrated behind a feature flag with validation still pending; the visual builder and league remain incomplete. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
+Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots, visual bot builder and playable yard are implemented. Voice is integrated behind a feature flag with device/playtest validation still pending; the league remains incomplete. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
 
 ## Read in this order
 
@@ -26,7 +26,7 @@ Status: v1 specifications and implementation references, 14 October 2026. The au
 | Realtime | Keep Socket.IO; new application protocol | Recommended |
 | Data | PostgreSQL transactions; movement in memory | Recommended |
 | Rendering | Phaser with React overlays | Recommended; mobile spike |
-| Editor | Blockly → restricted JSON interpreter | Recommended; mobile spike |
+| Editor | Blockly → restricted JSON interpreter | Integrated; native workers and emulated-touch flow verified |
 | Voice | mediasoup native worker with server-owned consumers | Integrated; device/playtest validation pending |
 | Identity | Server-issued guest session; scoped bot tokens | Recommended; recovery/account upgrade deferred |
 | Economy | Per-match net score, separate casual totals and league rankings | Proposed gameplay default |
