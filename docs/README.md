@@ -16,6 +16,7 @@ Status: proposed v1 design, 14 October 2026. The code remains the original party
 | [Testing](testing.md) | Correctness, hostile clients, playtests and performance gates |
 | [Operations](operations.md) | Deployment, credentials, observability and recovery |
 | [Implementation](implementation.md) | Milestones and migration from current code |
+| [Goal Mode execution](goal-mode-plan.md) | Paste-ready goal, stage gates, checkpoint record and resume instructions |
 
 ## Decision register
 

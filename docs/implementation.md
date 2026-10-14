@@ -2,6 +2,8 @@
 
 Status: proposed work sequence. No features below should be marked complete merely because this document exists. Aim for playable increments over the coming weeks; estimates await the initial spikes and are not commitments.
 
+For an agent-ready goal, explicit acceptance gates and a persistent progress record, use the [Goal Mode execution plan](goal-mode-plan.md). This document remains the engineering milestone reference.
+
 ## Working method
 
 Keep the current MVP runnable while replacing its foundations. Each milestone should produce a reviewable PR, a playable demonstration and tests tied to its failure risks. Avoid merging all systems in one enormous rewrite.
