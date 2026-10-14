@@ -277,7 +277,7 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 
 ### Stage 3 checkpoint — authoritative yard domain
 
-- Active branch: codex/playable-yard, based on 48da6f7. Stage 2 remains reviewable in PR #5; no pending merge blocks this work.
+- Active branch: codex/playable-yard, based on 48da6f7. Last committed implementation SHA: bb251fe. Stage 2 remains reviewable in PR #5; no pending merge blocks this work.
 - Implemented shared/yard/map.ts and domain/yard/yard.ts: a 960×640 map with four named circles, spawn/bounds/rectangular obstacles, shared collision geometry, normalized axis movement, fixed 50 ms simulation steps, 250 ms stale-input stop, capacity, processed-input acknowledgements, socket/controller fencing, anchored human seating, circle-distance admission and bounded nearby-recipient selection.
 - Tests reject absolute-position teleport payloads and extreme axes/sequence jumps; prove diagonal speed, bounds/collision sliding, stale/duplicate inputs, controller/socket replacement, seating, capacity, authoritative interaction distance, blocked/distant recipient exclusion and public-state projection.
 - Checks: npm test (44 total passing, including eight new yard tests), npm run typecheck and npm run lint pass.
