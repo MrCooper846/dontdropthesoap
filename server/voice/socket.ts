@@ -258,6 +258,11 @@ export async function startVoice(game: Namespace) {
   await refresh();
   return {
     attach,
+    removeBeforeEpoch: (ownerId: string, epoch: number) => {
+      const identity = identities.get(ownerId);
+      if (identity && identity.epoch < epoch)
+        media.remove(ownerId, identity.connectionId);
+    },
     stop: async () => {
       stopped = true;
       freshAt = 0;

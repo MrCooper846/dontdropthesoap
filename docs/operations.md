@@ -93,3 +93,28 @@ SIGTERM/SIGINT make readiness return 503 and fence new work while already admitt
 The exclusive writer lease is a dedicated PostgreSQL client, separate from the application pool. Cleanup drains the pool and closes Next before releasing that lease, so another writer cannot overlap unfinished work. Repeated signals are idempotent. Structured events service.drain.started/complete/timeout/failed contain only counters/status, never bodies or moves. SHUTDOWN_GRACE_MS defaults to 30 seconds, configurable from 1–60 seconds; supervisor/container stop timeout should exceed it. Timeout/failure exits 1; process teardown closes any remaining ownership/connections, with ordinary durable crash recovery. Normal completion exits 0.
 
 After a production build and test:setup, npm run test:shutdown exercises only isolated soap_shutdown on local port 3114. Both WebSocket and HTTP-polling cases hold match/owner locks while real HTTP moves, socket moves and private previews are admitted, then signal shutdown. Late commands are rejected, the second writer fails, existing ACKs/results complete, and restart preserves exactly two moves and one round result. A preview creates its actual worker only after drain starts and still finishes before cleanup. The native voice case allocates a real receive transport, blocks owner-block policy refresh, checks voice removal and waiting ownership, then verifies native worker exit. An unfinished HTTP body demonstrates bounded failure at a two-second test grace and preserved identity after restart. This validates signal draining; operator-triggered admission maintenance and audited moderation remain separate work.
+
+## Audited local operator controls
+
+Run from the release checkout with its configured DATABASE_URL and SOAP_OPERATOR_ID set to an attributable operator label. Access is controlled by the host account and private database credentials; the label is audit metadata, not authentication. There is no public operator HTTP/socket route.
+
+npm run operator -- apply reads one JSON object from stdin (maximum 16 KiB):
+```json
+{
+  "commandId": "<fresh UUID>",
+  "action": "owner.disable",
+  "targetId": "<owner UUID>",
+  "reason": "Explain the moderation action"
+}
+```
+Use actual UUIDs. Supported actions are owner.disable, owner.enable, session.revoke, credential.revoke, voice.remove and report.review. Targets are the corresponding owner/session/credential/report public identifiers, never secrets. report.review additionally requires status reviewed, dismissed or actioned; it preserves the original report text. The operator reason is required, limited to 500 characters and stored privately in the audit.
+
+List reports with npm run operator -- reports open, optionally adding its returned next cursor; list audit records with npm run operator -- audit, optionally adding its next sequence. Pages contain at most 100 records. Treat report content as untrusted player text; it does not authorize an action. Before acting, confirm the target identifier against the report and relevant record. No action edits moves, outcomes or score ledgers.
+
+Each action and its immutable audit record commit atomically. Repeat the same commandId, operator label and payload after an uncertain outcome to receive the stored response; changed payloads reject. SQL UPDATE/DELETE of audit rows is prohibited. A privileged database administrator can still alter schema or bypass protections; these records are not tamper-proof against that administrator.
+
+Owner disable blocks browser and bot authentication; enable restores access only to otherwise valid, unrevoked credentials. Individual session/credential revocation stays permanent. voice.remove is a one-time removal: it advances the durable owner controller epoch and closes older voice identities. A user can explicitly acquire fresh authority and join again. Use owner.disable when continued account access must be prevented.
+
+The singleton polls unapplied audit effects every 250 ms, closes matching live sockets and clears the revoked credential's ephemeral lease. Voice authority/watchdog checks independently fail closed. Failed delivery remains pending for retry; effects are idempotent and do not close a newer credential/controller identity. Shutdown awaits in-flight delivery before releasing writer ownership. Enforcement has bounded routing latency; already heard audio cannot be retracted.
+
+Automated evidence: real PostgreSQL authority/audit rollback, retry, immutable rows, scoped credentials, delayed effects and report pagination; actual operator CLI with Chromium synthetic RTP, hostile retained voice, fresh reentry, owner disable/enable, report review, session revocation and connected bot credential revocation. These tests run on isolated local fixture databases. Physical audio devices and human moderation usability remain separate release validation. Admission maintenance is separate work.

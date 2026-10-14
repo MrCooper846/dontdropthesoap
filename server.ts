@@ -1,3 +1,5 @@
+import { startOperatorEffects } from "./server/operators/effects";
+import { dropCredentialLease } from "./server/bots/identity";
 import { serviceWork } from "./server/lifecycle/work";
 import { maintainCoordinator } from "./server/matches/availability";
 import {
@@ -203,6 +205,28 @@ async function main() {
         });
     });
   });
+  const stopOperators = startOperatorEffects((effect) => {
+    if (effect.action === "credential.revoke")
+      dropCredentialLease(effect.targetId);
+    if (
+      (effect.action === "voice.remove" || effect.action === "owner.enable") &&
+      effect.epoch !== undefined
+    )
+      voice?.removeBeforeEpoch(effect.targetId, effect.epoch);
+    for (const socket of game.sockets.values()) {
+      const p = socket.data.principal;
+      if (
+        (effect.action === "owner.disable" && p.ownerId === effect.targetId) ||
+        (effect.action === "session.revoke" &&
+          p.kind === "browser" &&
+          p.sessionId === effect.targetId) ||
+        (effect.action === "credential.revoke" &&
+          p.kind === "bot" &&
+          p.credentialId === effect.targetId)
+      )
+        socket.disconnect(true);
+    }
+  });
   const stopYard = startYard(game);
   const stopLeague = config.FEATURE_LEAGUE ? startLeague() : null;
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
@@ -299,6 +323,7 @@ async function main() {
     game.emit("service.restarting");
     clearInterval(timer);
     await Promise.all([
+      stopOperators(),
       stopYard(),
       voice?.stop(),
       stopLeague?.(),
