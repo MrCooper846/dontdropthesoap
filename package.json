@@ -6,7 +6,7 @@
     "dev": "tsx server.ts",
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" server.ts",
+    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"examples/**/*.ts\" server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "playwright test",

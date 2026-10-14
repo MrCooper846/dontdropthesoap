@@ -85,6 +85,18 @@ export async function saveMatch(
         );
   await db.query(
     "INSERT INTO match_events(match_id,sequence,type,visibility,payload) VALUES($1,$2,$3,'public',$4) ON CONFLICT DO NOTHING",
-    [m.id, m.version, eventType, JSON.stringify(project(m, null))],
+    [
+      m.id,
+      Number(
+        (
+          await db.query(
+            "SELECT coalesce(max(sequence),0)+1 AS next FROM match_events WHERE match_id=$1",
+            [m.id],
+          )
+        ).rows[0].next,
+      ),
+      eventType,
+      JSON.stringify(project(m, null)),
+    ],
   );
 }

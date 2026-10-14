@@ -1,3 +1,4 @@
+import { RuleError } from "../../domain/match/model";
 import { z } from "zod";
 export const settingsSchema = z
   .object({
@@ -41,3 +42,15 @@ export type Ack = {
   result?: unknown;
   error?: { code: string; message: string; retryable: boolean };
 };
+
+export function parseCommand(input: unknown) {
+  if (
+    input &&
+    typeof input === "object" &&
+    "v" in input &&
+    typeof input.v === "number" &&
+    input.v !== 1
+  )
+    throw new RuleError("VERSION_UNSUPPORTED");
+  return commandSchema.parse(input);
+}

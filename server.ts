@@ -1,3 +1,6 @@
+import { RuleError } from "./domain/match/model";
+import { syncObservation } from "./server/matches/observations";
+import { actor } from "./server/auth/actors";
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
@@ -21,6 +24,7 @@ async function main() {
     process.exit(1);
   });
   await pool.query("UPDATE owners SET controller_epoch=controller_epoch+1");
+  await pool.query("UPDATE bots SET controller_epoch=controller_epoch+1");
   await recoverMatches();
   const app = next({
     dev: config.NODE_ENV !== "production",
@@ -43,6 +47,11 @@ async function main() {
           if (socket.data.principal.sessionId === sessionId)
             socket.disconnect(true);
       },
+      (credentialId) => {
+        for (const socket of game.sockets.values())
+          if (socket.data.principal.credentialId === credentialId)
+            socket.disconnect(true);
+      },
     )
       .then((handled) => {
         if (!handled) return app.getRequestHandler()(req, res);
@@ -57,15 +66,21 @@ async function main() {
   const io = new Server(http, {
     maxHttpBufferSize: 16384,
     allowRequest: (req, done) =>
-      done(null, req.headers.origin === config.PUBLIC_ORIGIN),
+      done(
+        null,
+        req.headers.origin === config.PUBLIC_ORIGIN ||
+          (!req.headers.origin && !!req.headers.authorization),
+      ),
     serveClient: false,
   });
   io.of("/").use((_socket, next) => next(new Error("Use /game-v1")));
   const game = io.of("/game-v1");
   game.use((socket, next) => {
     try {
-      assertOrigin(socket.request);
-      void authenticate(socket.request)
+      if (socket.request.headers.authorization && !config.FEATURE_EXTERNAL_BOTS)
+        throw new RuleError("NOT_FOUND");
+      if (!socket.request.headers.authorization) assertOrigin(socket.request);
+      void actor(socket.request)
         .then((p) => {
           socket.data.principal = p;
           next();
@@ -79,15 +94,27 @@ async function main() {
     socket.on("state.sync", (input: unknown, ack: (data: unknown) => void) => {
       void (async () => {
         rateLimit("socket:" + socket.data.principal.id);
-        const { matchId } = z
-          .object({ matchId: z.string().uuid() })
+        const { matchId, after } = z
+          .object({
+            matchId: z.string().uuid(),
+            after: z.number().int().nonnegative().optional(),
+          })
           .strict()
           .parse(input);
-        const snapshot = await observe(socket.request, matchId);
+        const sync = await syncObservation(socket.request, matchId, after);
+        const snapshot = sync.snapshot;
         for (const room of socket.rooms)
           if (room !== socket.id) await socket.leave(room);
         await socket.join(matchId);
-        if (typeof ack === "function") ack({ ok: true, snapshot });
+        if (typeof ack === "function")
+          ack({
+            ok: true,
+            snapshot,
+            events: sync.events,
+            cursor: sync.cursor,
+            hasMore: sync.hasMore,
+            reset: sync.reset,
+          });
       })().catch(() => {
         if (typeof ack === "function") ack({ ok: false });
       });
@@ -97,9 +124,20 @@ async function main() {
         rateLimit("socket:" + socket.data.principal.id);
         const result = await command(socket.request, input);
         if (typeof ack === "function") ack(result);
-      })().catch(() => {
+      })().catch((e) => {
         if (typeof ack === "function")
-          ack({ ok: false, error: { code: "INVALID_PAYLOAD" } });
+          ack({
+            ok: false,
+            error: {
+              code:
+                e instanceof RuleError
+                  ? e.code
+                  : e instanceof z.ZodError
+                    ? "INVALID_PAYLOAD"
+                    : "SERVICE_UNAVAILABLE",
+              retryable: !(e instanceof RuleError || e instanceof z.ZodError),
+            },
+          });
       });
     });
   });
@@ -110,13 +148,18 @@ async function main() {
     void tickMatches()
       .then(async () => {
         const q = await pool.query(
-          "SELECT match_id,sequence,type,payload FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",
+          "SELECT match_id,sequence,type,payload,visibility,recipient_seat_id FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",
         );
         for (const row of q.rows) {
           for (const socket of game.sockets.values())
             if (socket.rooms.has(row.match_id)) {
               try {
                 const snapshot = await observe(socket.request, row.match_id);
+                if (
+                  row.visibility !== "public" &&
+                  snapshot.ownSeatId !== row.recipient_seat_id
+                )
+                  continue;
                 socket.emit("match.snapshot", {
                   v: 1,
                   type: row.type,

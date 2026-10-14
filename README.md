@@ -8,7 +8,9 @@ The target is a cartoon 2D prison yard where people hang out, talk, challenge on
 
 The integration branch now contains a playable authenticated match foundation. PostgreSQL owns guest sessions, matches, accepted moves, round results, command receipts and social score settlement. Players ready up, play simultaneous cooperate/betray rounds, see results and leave or create a new match. Odd tables use the system Clanker.
 
-The yard, proximity voice, external bot participation, visual builder and bot league are still incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
+Owned external bots now participate through scoped HTTP/Socket.IO credentials and a fenced controller lease. The bot page supports registration and credential issuance/revocation, and mixed tables admit an owned bot while its owner watches. Runnable Python and TypeScript clients are in [examples/bots](examples/bots/README.md).
+
+The yard, proximity voice, visual builder and bot league are still incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
 
 The original party MVP remains a local-only legacy demo. Its unauthenticated handlers are absent from the new game server.
 
@@ -50,7 +52,7 @@ npm audit
 
 Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery. The integration suite refuses another database and truncates only that test database.
 
-test:browser exercises the local legacy baseline and Phaser/Blockly lifecycle and emulated touch spikes. These are prototypes, not completed yard/editor features. test:alpha exercises the authenticated match UI, actual HTTP/socket visibility, hostile commands and Clanker. test:recovery kills and restarts real game processes, verifies a committed hidden move and controller fencing, and rejects a second writer.
+test:browser exercises the local legacy baseline and Phaser/Blockly lifecycle and emulated touch spikes. These are prototypes, not completed yard/editor features. test:alpha exercises the authenticated match UI, actual HTTP/socket visibility, hostile commands, Clanker, bot management and real Python/TypeScript processes against a human. test:recovery kills and restarts real game processes, verifies committed hidden human/bot moves, controller fencing, bot-process reconnection and singleton exclusion.
 
 lint checks new source formatting; typecheck checks TypeScript. Real mobile devices, media authorization, human playtests, full load/soak and backup restore are still pending.
 

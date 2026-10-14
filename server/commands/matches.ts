@@ -1,8 +1,11 @@
+import { assertScope } from "../bots/identity";
+import { actor, lockActor } from "../auth/actors";
+import { entrant, seatCaps, botsReady } from "../bots/participation";
 import { createHash, randomUUID, randomBytes } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { z } from "zod";
 import {
-  commandSchema,
+  parseCommand,
   moveSchema,
   readySchema,
   settingsSchema,
@@ -46,10 +49,10 @@ export async function command(
   req: IncomingMessage,
   input: unknown,
 ): Promise<Ack> {
-  const c = commandSchema.parse(input);
+  const c = parseCommand(input);
   try {
     return await transaction(async (db) => {
-      const p = await authenticate(req, db);
+      const p = await actor(req, db);
       if (c.controllerEpoch !== p.epoch)
         throw new RuleError("CONTROLLER_STALE");
       await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
@@ -65,15 +68,24 @@ export async function command(
         return receipt.rows[0].response as Ack;
       }
       const m = await loadMatch(db, c.matchId, true);
-      await assertController(db, p, c.controllerEpoch);
+      await lockActor(db, p, c.controllerEpoch);
       const now = await dbTime(db);
       const seat = m.seats.find((s) => s.id === c.seatId);
       if (c.type.startsWith("seat.") || c.type === "move.submit") {
-        if (!seat || seat.ownerId !== p.ownerId || seat.kind !== "human")
+        if (
+          !seat ||
+          (p.kind === "bot"
+            ? c.type !== "move.submit" ||
+              seat.botId !== p.id ||
+              seat.kind !== "external"
+            : seat.ownerId !== p.ownerId ||
+              (c.type === "move.submit" && seat.kind !== "human"))
+        )
           throw new RuleError("FORBIDDEN");
       }
       if (c.type.startsWith("match.")) {
-        if (m.hostOwnerId !== p.ownerId) throw new RuleError("FORBIDDEN");
+        if (p.kind === "bot" || m.hostOwnerId !== p.ownerId)
+          throw new RuleError("FORBIDDEN");
         if (c.matchVersion !== m.version)
           throw new RuleError("VERSION_CONFLICT");
       }
@@ -81,17 +93,33 @@ export async function command(
         const payload = moveSchema.parse(c.payload);
         if (c.round === undefined) throw new RuleError("INVALID_PAYLOAD");
         submit(m, c.seatId!, c.round, payload.move, now);
-      } else if (c.type === "seat.ready")
+      } else if (c.type === "seat.ready") {
+        if (seat?.kind === "external" && !botsReady(m))
+          throw new RuleError("BOT_OFFLINE");
         ready(m, c.seatId!, readySchema.parse(c.payload).ready);
-      else if (c.type === "seat.leave") {
+      } else if (c.type === "seat.leave") {
         z.object({}).strict().parse(c.payload);
         leave(m, c.seatId!);
       } else if (c.type === "match.start") {
         z.object({}).strict().parse(c.payload);
+        if (!botsReady(m)) throw new RuleError("BOT_OFFLINE");
         requestStart(m, now);
       } else if (c.type === "match.configure")
         configure(m, settingsSchema.parse(c.payload));
       await saveMatch(db, m);
+      if (c.type === "move.submit")
+        await db.query(
+          "INSERT INTO match_events(match_id,sequence,type,visibility,recipient_seat_id,payload) SELECT $1,coalesce(max(sequence),0)+1,'move.accepted','private',$2,$3 FROM match_events WHERE match_id=$1",
+          [
+            m.id,
+            c.seatId,
+            JSON.stringify({
+              round: c.round,
+              seatId: c.seatId,
+              move: moveSchema.parse(c.payload).move,
+            }),
+          ],
+        );
       const response: Ack = {
         v: 1,
         commandId: c.commandId,
@@ -122,6 +150,7 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
       key: z.string().uuid(),
       mode: z.enum(["human", "mixed", "challenge"]).default("human"),
       settings: settingsSchema.optional(),
+      botId: z.string().uuid().optional(),
       controllerEpoch: z.number().int(),
     })
     .strict()
@@ -148,7 +177,7 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
     );
     if (!key.rowCount) throw new RuleError("KEY_EXPIRED");
     await assertController(db, p, data.controllerEpoch);
-    await assertSeatCaps(db, p);
+    await seatCaps(db, p, data.botId);
     const id = randomUUID(),
       m = createMatch(
         id,
@@ -158,7 +187,7 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
         await dbTime(db),
         randomBytes(4).readUInt32LE(),
       );
-    addSeat(m, makeSeat(randomUUID(), p.ownerId, p.name));
+    addSeat(m, await entrant(db, p, data.botId));
     await saveMatch(db, m);
     const response = { id };
     await db.query(
@@ -168,15 +197,6 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
     return response;
   });
 }
-async function assertSeatCaps(db: import("pg").PoolClient, p: Principal) {
-  const q = await db.query(
-    "SELECT count(*) FROM match_seats s JOIN matches m ON m.id=s.match_id WHERE s.owner_id=$1 AND s.kind='human' AND m.phase NOT IN ('finished','cancelled','aborted')",
-    [p.ownerId],
-  );
-  if (Number(q.rows[0].count) >= 1)
-    throw new RuleError("ALREADY_SEATED", "Leave your current table first");
-}
-
 export async function joinMatch(
   req: IncomingMessage,
   id: string,
@@ -185,6 +205,7 @@ export async function joinMatch(
   const data = z
     .object({
       controllerEpoch: z.number().int(),
+      botId: z.string().uuid().optional(),
       commandId: z.string().uuid(),
       key: z.string().uuid(),
     })
@@ -212,9 +233,15 @@ export async function joinMatch(
       [data.key, p.id],
     );
     if (!key.rowCount) throw new RuleError("KEY_EXPIRED");
+    if (
+      m.seats.some(
+        (s) => s.ownerId === p.ownerId && (s.botId ?? undefined) !== data.botId,
+      )
+    )
+      throw new RuleError("ALREADY_SEATED");
     if (!m.seats.some((s) => s.ownerId === p.ownerId)) {
-      await assertSeatCaps(db, p);
-      addSeat(m, makeSeat(randomUUID(), p.ownerId, p.name));
+      await seatCaps(db, p, data.botId);
+      addSeat(m, await entrant(db, p, data.botId));
       await saveMatch(db, m);
     }
     const response = project(m, p.ownerId);
@@ -226,10 +253,18 @@ export async function joinMatch(
   });
 }
 export async function observe(req: IncomingMessage, id: string) {
-  const p = await authenticate(req);
+  const p = await actor(req);
   const db = await pool.connect();
   try {
-    return project(await loadMatch(db, id), p.ownerId);
+    const m = await loadMatch(db, id);
+    if (p.kind === "bot") assertScope(p, "observations:read");
+    if (p.kind === "bot" && !m.seats.some((s) => s.botId === p.id))
+      throw new RuleError("FORBIDDEN");
+    return project(
+      m,
+      p.kind === "browser" ? p.ownerId : null,
+      p.kind === "bot" ? p.id : null,
+    );
   } finally {
     db.release();
   }
@@ -243,6 +278,14 @@ export async function tickMatches() {
   for (const row of ids)
     await transaction(async (db) => {
       const m = await loadMatch(db, row.id, true);
+      if (m.phase === "countdown" && !botsReady(m)) {
+        m.phase = "waiting";
+        m.deadline = null;
+        for (const s of m.seats) s.ready = false;
+        m.version++;
+        await saveMatch(db, m);
+        return;
+      }
       if (advance(m, await dbTime(db))) await saveMatch(db, m);
     });
 }

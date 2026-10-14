@@ -1,3 +1,5 @@
+import { syncObservation } from "./matches/observations";
+import { botHttp, ownedBotHttp } from "./bots/http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -58,6 +60,7 @@ export async function api(
   res: ServerResponse,
   isReady: () => boolean,
   onLogout: (id: string) => void,
+  onRevoke: (id: string) => void = () => {},
 ): Promise<boolean> {
   const url = new URL(req.url ?? "/", config.PUBLIC_ORIGIN),
     pathname = url.pathname;
@@ -98,18 +101,29 @@ export async function api(
       json(res, 201, { ownerId: guest.ownerId });
       return true;
     }
+    if (
+      !config.FEATURE_EXTERNAL_BOTS &&
+      (path.startsWith("/bots") ||
+        path.startsWith("/bot/") ||
+        path.startsWith("/bot-controller") ||
+        req.headers.authorization)
+    )
+      throw new RuleError("NOT_FOUND");
+    if (await botHttp(req, res, path, method, onRevoke)) return true;
     const principal = await authenticate(req);
     rateLimit(
       (method === "GET" ? "read:" : "write:") + principal.id,
       method === "GET" ? 30 : 10,
     );
     if (method !== "GET") assertCsrf(req, principal);
+    if (await ownedBotHttp(req, res, path, method, onRevoke)) return true;
     if (path === "/session" && method === "GET") {
       json(res, 200, {
         ownerId: principal.ownerId,
         name: principal.name,
         controllerEpoch: principal.epoch,
         csrfToken: csrf(principal),
+        features: { externalBots: config.FEATURE_EXTERNAL_BOTS },
       });
       return true;
     }
@@ -174,11 +188,24 @@ export async function api(
     if (match) {
       const id = z.string().uuid().parse(match[1]);
       if (method === "GET") {
-        const snapshot = await observe(req, id);
+        const sync = await syncObservation(
+          req,
+          id,
+          url.searchParams.get("after") ?? undefined,
+        );
+        const snapshot = sync.snapshot;
         json(
           res,
           200,
-          match[2] === "results" ? { results: snapshot.results } : snapshot,
+          match[2] === "results"
+            ? { results: snapshot.results }
+            : {
+                ...snapshot,
+                events: sync.events,
+                cursor: sync.cursor,
+                hasMore: sync.hasMore,
+                reset: sync.reset,
+              },
         );
         return true;
       }
@@ -219,7 +246,14 @@ export async function api(
                 ? 503
                 : 400;
     if (code === "SERVICE_UNAVAILABLE")
-      console.error(JSON.stringify({ event: "api.error", code }));
+      console.error(
+        JSON.stringify({
+          event: "api.error",
+          code,
+          name: e instanceof Error ? e.name : "unknown",
+          frames: e instanceof Error ? e.stack?.split("\n").slice(1, 5) : [],
+        }),
+      );
     json(res, status, {
       error: {
         code,
