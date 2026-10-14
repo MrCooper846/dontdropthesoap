@@ -95,6 +95,172 @@ async function singleton() {
   assert.equal(code, 1);
   assert.match(output, /Another game writer/);
 }
+async function externalRecovery() {
+  const human = await guest("External recovery human"),
+    owner = await guest("External recovery owner");
+  async function resource(path: string, payload: unknown) {
+    const { key } = await request(owner, "/command-keys", {});
+    return request(owner, path, {
+      key,
+      commandId: randomUUID(),
+      controllerEpoch: owner.epoch,
+      payload,
+    });
+  }
+  const bot = await resource("/bots", { name: "Recovery snake" }),
+    credential = await resource("/bots/" + bot.id + "/credentials", {});
+  let runner: ChildProcess | undefined;
+  function launch() {
+    runner = spawn(
+      process.execPath,
+      ["--import", "tsx", "examples/bots/client.ts"],
+      {
+        env: {
+          ...process.env,
+          SOAP_URL: origin,
+          SOAP_BOT_TOKEN: credential.secret,
+          SOAP_STRATEGY: "betray",
+        },
+        stdio: "ignore",
+      },
+    );
+  }
+  async function waitFor(check: () => Promise<boolean>) {
+    for (let i = 0; i < 80; i++) {
+      if (await check()) return;
+      await delay(250);
+    }
+    throw new Error("External recovery condition did not become true");
+  }
+  try {
+    launch();
+    await waitFor(async () => {
+      const { bots } = await request(owner, "/bots");
+      return !!bots.find(
+        (b: { id: string; online: boolean }) => b.id === bot.id,
+      )?.online;
+    });
+    const { key } = await request(human, "/command-keys", {}),
+      { id } = await request(human, "/matches", {
+        key,
+        commandId: randomUUID(),
+        controllerEpoch: human.epoch,
+        mode: "mixed",
+        settings: { rounds: 5, decisionMs: 10000, revealMs: 1000, maxSeats: 8 },
+      });
+    const joinKey = await request(owner, "/command-keys", {});
+    await request(owner, "/matches/" + id + "/join", {
+      key: joinKey.key,
+      commandId: randomUUID(),
+      controllerEpoch: owner.epoch,
+      botId: bot.id,
+    });
+    let state = await request(human, "/matches/" + id);
+    const hs = state.seats.find((s: { kind: string }) => s.kind === "human").id,
+      bs = state.seats.find((s: { botId: string }) => s.botId === bot.id).id;
+    function command(
+      c: Client,
+      type: string,
+      seatId: string,
+      payload: unknown,
+    ) {
+      return {
+        v: 1,
+        commandId: randomUUID(),
+        controllerEpoch: c.epoch,
+        type,
+        matchId: id,
+        seatId,
+        round: state.round,
+        matchVersion: state.version,
+        payload,
+      };
+    }
+    assert.equal(
+      (
+        await request(
+          human,
+          "/commands",
+          command(human, "seat.ready", hs, { ready: true }),
+        )
+      ).ok,
+      true,
+    );
+    assert.equal(
+      (
+        await request(
+          owner,
+          "/commands",
+          command(owner, "seat.ready", bs, { ready: true }),
+        )
+      ).ok,
+      true,
+    );
+    state = await request(human, "/matches/" + id);
+    assert.equal(
+      (await request(human, "/commands", command(human, "match.start", hs, {})))
+        .ok,
+      true,
+    );
+    await waitFor(async () => {
+      const s = await request(owner, "/matches/" + id);
+      return s.phase === "collecting" && s.ownMove === "D";
+    });
+    await stop("SIGKILL");
+    await start();
+    state = await request(human, "/matches/" + id);
+    assert.equal(state.ownMove, null);
+    assert.equal(state.interruptions, 1);
+    assert.equal((await request(owner, "/matches/" + id)).ownMove, "D");
+    human.epoch = (
+      await request(human, "/controller/acquire", {})
+    ).controllerEpoch;
+    for (let round = 1; round <= 5; round++) {
+      await waitFor(async () => {
+        state = await request(human, "/matches/" + id);
+        return state.phase === "collecting" && state.round === round;
+      });
+      if (round === 3) {
+        await waitFor(async () => {
+          return (await request(owner, "/matches/" + id)).ownMove === "D";
+        });
+        runner?.kill("SIGTERM");
+        await new Promise<void>((resolve) =>
+          runner!.once("exit", () => resolve()),
+        );
+        launch();
+      }
+      assert.equal(
+        (
+          await request(
+            human,
+            "/commands",
+            command(human, "move.submit", hs, { move: "C" }),
+          )
+        ).ok,
+        true,
+      );
+    }
+    await waitFor(async () => {
+      state = await request(human, "/matches/" + id);
+      return state.phase === "finished";
+    });
+    assert.equal(
+      state.seats.find((s: { id: string }) => s.id === hs).score,
+      -10,
+    );
+    assert.equal(
+      state.seats.find((s: { id: string }) => s.id === bs).score,
+      15,
+    );
+    console.log(
+      "External bot recovery passed: accepted bot decision survives a physical server crash, remains private, client reacquires fenced lease, bot process reconnects mid-match, and the full game scores once.",
+    );
+  } finally {
+    runner?.kill("SIGTERM");
+  }
+}
+
 async function run() {
   await start();
   await singleton();
@@ -182,6 +348,7 @@ async function run() {
   );
 }
 run()
+  .then(() => externalRecovery())
   .catch((e) => {
     console.error(e);
     process.exitCode = 1;

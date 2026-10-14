@@ -215,7 +215,7 @@ Update this section during development. These initial statuses mean no implement
 | --- | --- | --- | --- |
 | 0 Foundation | IMPLEMENTED_PENDING_VALIDATION | Baseline/domain tests, real browsers, renderer/editor lifecycle and emulated touch | Voice authorization spike and real devices |
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
-| 2 Persistence/API | IN_PROGRESS | PostgreSQL transactions, receipts, outbox, ledger, sessions, singleton and recovery pulled forward | External bots/clients, cursor delivery and full fault matrix |
+| 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | NOT_STARTED | — | Complete social/mixed loop |
 | 4 Voice | NOT_STARTED | — | Enforced routing and devices |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
@@ -259,6 +259,21 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - This layer is not mounted as public bot routes and cannot yet enter a bot into a match. Do not claim external bot participation complete. Registration/credential issuance still needs resource-creation idempotency before HTTP exposure.
 - Next concrete action: wire bot principals into the common command service, add owner admission/readiness and real HTTP/socket routes, close active sockets on revocation, provide runnable Python/TypeScript strategy clients, add cursor replay and finish the human-versus-external-bot/restart gates.
 - No live game-service process was left running. Local Compose PostgreSQL remains available. No voice provider credentials or physical-device evidence was supplied; those final gates remain pending.
+
+### Stage 2 checkpoint — working external participation
+
+- Active branch remains codex/external-bot-api. The owned identity layer is now wired into authenticated HTTP/Socket.IO actors and the common match command service.
+- Implemented owned admission/version freezing, per-owner/per-bot active-seat limits, bot readiness/heartbeat checks, external-only moves, shown-once credential creation, idempotent resource receipts, active-socket revocation, stable version errors and filtered cursor replay.
+- Added /bots registration/credential UI and mixed-table entrant selection/watch flow. Python and TypeScript reference clients each implement cooperate, betray, tit-for-tat and seeded random with exact-round actions, retained retry IDs, heartbeats and reconnects.
+- Real evidence: each client runs as a separate process against a human and finishes with expected scores; a browser registers/issues/hides/revokes a credential; modified clients remain unable to control humans or obtain owner-management access; revoked sockets disconnect and subsequent requests reject.
+- Physical external recovery: a committed bot decision survives a server SIGKILL, stays hidden from the human, receives the interruption policy, and a real client reacquires its fenced lease. A separate mid-match bot-process restart resumes participation; final scores are -10/+15 with one completed game.
+- Cursor sentinel test proves unrelated observers cannot see private move events, advances their cursor across invisible rows and resets invalid cursors. Competing resolver calls are now exercised in PostgreSQL regressions.
+- A real-process check found a PostgreSQL DISTINCT/ORDER BY assignment-query error; replaced it with a membership EXISTS query and reran both clients successfully.
+- Credential response replay deliberately returns metadata without the secret, preserving hash-only token storage. Lost issuance responses require revoke/reissue; owning protocol/examples document this exception.
+- Final checks passed after readiness/version/feature-flag fixes: typecheck; seven PostgreSQL integration tests (including explicit bot impersonation/host/management/foreign-observation rejection); six browser scenarios; physical human and external-bot crash/reconnect harness; production build; formatting; npm audit with zero advisories. Domain/configuration/protocol suite contains 36 passing tests.
+- External bots are enabled by default for the working alpha, with FEATURE_EXTERNAL_BOTS able to disable their routes, sockets and admission. No core bot acceptance uses mocks.
+- The implementation checkpoint and stacked draft review are recorded immediately after commit. No merge/deployment occurred.
+- Next ready stage after this gate: authoritative yard movement, four circles, challenges, spectating, nearby text and block/report. Voice/device gates stay pending.
 
 ## Resume procedure
 

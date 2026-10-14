@@ -73,6 +73,8 @@ export async function acquireBot(req: IncomingMessage) {
   return transaction(async (db) => {
     const p = await botPrincipal(req, db);
     assertScope(p, "moves:write");
+    await db.query("SELECT id FROM bots WHERE id=$1 FOR UPDATE", [p.id]);
+    await botPrincipal(req, db);
     const q = await db.query(
       "UPDATE bots SET controller_epoch=controller_epoch+1 WHERE id=$1 RETURNING controller_epoch",
       [p.id],
@@ -80,11 +82,12 @@ export async function acquireBot(req: IncomingMessage) {
     const epoch = Number(q.rows[0].controller_epoch);
     return { p, epoch };
   }).then(({ p, epoch }) => {
-    leases.set(p.id, {
-      credentialId: p.credentialId,
-      epoch,
-      seenAt: Date.now(),
-    });
+    if (!leases.get(p.id) || leases.get(p.id)!.epoch < epoch)
+      leases.set(p.id, {
+        credentialId: p.credentialId,
+        epoch,
+        seenAt: Date.now(),
+      });
     return {
       botId: p.id,
       controllerEpoch: epoch,
@@ -109,7 +112,11 @@ export async function heartbeatBot(req: IncomingMessage, input: unknown) {
   lease.seenAt = Date.now();
   return { ok: true, controllerEpoch };
 }
-export async function createExternalBot(req: IncomingMessage, input: unknown) {
+export async function createExternalBot(
+  req: IncomingMessage,
+  input: unknown,
+  existingDb?: PoolClient,
+) {
   const data = z
     .object({
       name: z.string().trim().min(1).max(32),
@@ -118,7 +125,7 @@ export async function createExternalBot(req: IncomingMessage, input: unknown) {
     })
     .strict()
     .parse(input);
-  return transaction(async (db) => {
+  const work = async (db: PoolClient) => {
     const p = await authenticate(req, db);
     await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
       p.id,
@@ -144,7 +151,8 @@ export async function createExternalBot(req: IncomingMessage, input: unknown) {
       [versionId, id, data.externalLabel],
     );
     return { id, name: data.name, kind: "external", versionId, revision: 1 };
-  });
+  };
+  return existingDb ? work(existingDb) : transaction(work);
 }
 export async function listOwnedBots(req: IncomingMessage) {
   const p = await authenticate(req);
@@ -158,6 +166,7 @@ export async function mintCredential(
   req: IncomingMessage,
   botId: string,
   input: unknown,
+  existingDb?: PoolClient,
 ) {
   z.string().uuid().parse(botId);
   const { controllerEpoch } = z
@@ -166,7 +175,7 @@ export async function mintCredential(
     .parse(input);
   const secret = randomBytes(32).toString("hex"),
     id = randomUUID();
-  await transaction(async (db) => {
+  const work = async (db: PoolClient) => {
     const p = await authenticate(req, db);
     await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
       p.id,
@@ -190,7 +199,9 @@ export async function mintCredential(
       "INSERT INTO bot_credentials(id,bot_id,secret_hash,scopes,expires_at) VALUES($1,$2,$3,$4,now()+interval '30 days')",
       [id, botId, hashSecret(secret), ["observations:read", "moves:write"]],
     );
-  });
+  };
+  if (existingDb) await work(existingDb);
+  else await transaction(work);
   return { credentialId: id, secret, expiresInDays: 30 };
 }
 export async function revokeCredential(

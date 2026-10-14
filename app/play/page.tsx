@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { Snapshot, Ack } from "@/shared/protocol/commands";
@@ -7,6 +8,7 @@ type Session = {
   name: string;
   controllerEpoch: number;
   csrfToken: string;
+  features?: { externalBots: boolean };
 };
 export default function Play() {
   const [session, setSession] = useState<Session | null>(null),
@@ -21,6 +23,11 @@ export default function Play() {
   const socket = useRef<Socket | null>(null);
   const [matchId, setMatchId] = useState("");
   const activeMatch = useRef("");
+  const [ownedBots, setOwnedBots] = useState<
+      { id: string; name: string; online: boolean }[]
+    >([]),
+    [selectedBot, setSelectedBot] = useState("");
+  const [tableMode, setTableMode] = useState<"human" | "mixed">("mixed");
   const [rounds, setRounds] = useState(10),
     [decisionSeconds, setDecisionSeconds] = useState(20);
   function selectMatch(id: string) {
@@ -131,6 +138,12 @@ export default function Play() {
     if (!ack.ok) throw new Error(ack.error?.message ?? "Command failed");
     accept(await request("/matches/" + snapshot.id + "/observation"));
   }
+  useEffect(() => {
+    if (session)
+      void request("/bots")
+        .then((r) => setOwnedBots(r.bots))
+        .catch(() => {});
+  }, [session?.ownerId]);
   async function list() {
     setMatches((await request("/matches")).matches);
   }
@@ -140,7 +153,8 @@ export default function Play() {
     const created = await request("/matches", {
       commandId: crypto.randomUUID(),
       key,
-      mode: "human",
+      mode: selectedBot ? "mixed" : tableMode,
+      ...(selectedBot ? { botId: selectedBot } : {}),
       controllerEpoch: control.controllerEpoch,
       settings: {
         rounds,
@@ -158,6 +172,7 @@ export default function Play() {
     const { key } = await request("/command-keys", {});
     await request("/matches/" + id + "/join", {
       controllerEpoch: control.controllerEpoch,
+      ...(selectedBot ? { botId: selectedBot } : {}),
       commandId: crypto.randomUUID(),
       key,
     });
@@ -236,6 +251,44 @@ export default function Play() {
           </section>
           {!snapshot ? (
             <section className="panel stack">
+              {session.features?.externalBots && (
+                <Link className="button" href="/bots">
+                  Manage your bots
+                </Link>
+              )}
+              <label className="label">
+                Table type
+                <select
+                  className="input"
+                  value={tableMode}
+                  onChange={(e) => {
+                    setTableMode(e.target.value as "human" | "mixed");
+                    if (e.target.value === "human") setSelectedBot("");
+                  }}
+                >
+                  <option value="mixed">Mixed: humans and bots</option>
+                  <option value="human">Humans only</option>
+                </select>
+              </label>
+              <label className="label">
+                Enter as
+                <select
+                  className="input"
+                  value={selectedBot}
+                  onChange={(e) => setSelectedBot(e.target.value)}
+                >
+                  <option value="">Myself</option>
+                  {ownedBots.map((b) => (
+                    <option
+                      key={b.id}
+                      value={b.id}
+                      disabled={tableMode === "human"}
+                    >
+                      {b.name} · {b.online ? "online" : "offline"}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="label">
                 Rounds
                 <input
@@ -307,6 +360,23 @@ export default function Play() {
               </div>
               {snapshot.phase === "waiting" && (
                 <>
+                  {!own && snapshot.mode !== "human" && (
+                    <label className="label">
+                      Enter as
+                      <select
+                        className="input"
+                        value={selectedBot}
+                        onChange={(e) => setSelectedBot(e.target.value)}
+                      >
+                        <option value="">Myself</option>
+                        {ownedBots.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} · {b.online ? "online" : "offline"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <p className="muted">
                     Changes to seats or settings clear readiness. Ready up once
                     everyone has joined.
@@ -356,45 +426,47 @@ export default function Play() {
                   </button>
                 </>
               )}
-              {snapshot.phase === "collecting" && own && !own.abandoned && (
-                <>
-                  <h2>You face {opponent?.name}</h2>
-                  <p>
-                    {snapshot.lockedCount}/{snapshot.seats.length} locked
-                  </p>
-                  {snapshot.ownMove ? (
-                    <p role="status">
-                      Locked:{" "}
-                      {snapshot.ownMove === "C" ? "Cooperate" : "Betray"}
+              {snapshot.phase === "collecting" &&
+                own?.kind === "human" &&
+                !own.abandoned && (
+                  <>
+                    <h2>You face {opponent?.name}</h2>
+                    <p>
+                      {snapshot.lockedCount}/{snapshot.seats.length} locked
                     </p>
-                  ) : (
-                    <div className="splitActions">
-                      <button
-                        className="button good choiceButton"
-                        disabled={busy}
-                        onClick={() =>
-                          void act(() => send("move.submit", { move: "C" }))
-                        }
-                      >
-                        Cooperate
-                      </button>
-                      <button
-                        className="button bad choiceButton"
-                        disabled={busy}
-                        onClick={() =>
-                          void act(() => send("move.submit", { move: "D" }))
-                        }
-                      >
-                        Betray
-                      </button>
-                    </div>
-                  )}
-                  <p className="muted">
-                    First move locks. Missing moves become Cooperate at the
-                    deadline.
-                  </p>
-                </>
-              )}
+                    {snapshot.ownMove ? (
+                      <p role="status">
+                        Locked:{" "}
+                        {snapshot.ownMove === "C" ? "Cooperate" : "Betray"}
+                      </p>
+                    ) : (
+                      <div className="splitActions">
+                        <button
+                          className="button good choiceButton"
+                          disabled={busy}
+                          onClick={() =>
+                            void act(() => send("move.submit", { move: "C" }))
+                          }
+                        >
+                          Cooperate
+                        </button>
+                        <button
+                          className="button bad choiceButton"
+                          disabled={busy}
+                          onClick={() =>
+                            void act(() => send("move.submit", { move: "D" }))
+                          }
+                        >
+                          Betray
+                        </button>
+                      </div>
+                    )}
+                    <p className="muted">
+                      First move locks. Missing moves become Cooperate at the
+                      deadline.
+                    </p>
+                  </>
+                )}
               {(snapshot.phase === "revealing" ||
                 snapshot.phase === "finished") &&
                 snapshot.results

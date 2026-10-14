@@ -28,7 +28,10 @@ export function readConfig(
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
     MAX_ACTIVE_MATCHES: z.coerce.number().int().min(1).max(16).default(4),
     FEATURE_YARD: flag,
-    FEATURE_EXTERNAL_BOTS: flag,
+    FEATURE_EXTERNAL_BOTS: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
     FEATURE_VOICE: flag,
     FEATURE_LEAGUE: flag,
     LIVEKIT_URL: z.string().url().optional(),

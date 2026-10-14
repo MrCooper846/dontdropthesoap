@@ -67,7 +67,7 @@ async function expire(id: string) {
     m.deadline = Date.now() - 10;
     await saveMatch(db, m);
   });
-  await tickMatches();
+  await Promise.all([tickMatches(), tickMatches()]);
 }
 it("commits accepted moves and receipts, recovers without score duplication", async () => {
   const { a, b, id, sa, sb } = await setup();
