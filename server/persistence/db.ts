@@ -1,6 +1,6 @@
 import { coordinatorLeaseEnforced } from "./coordinator-lease";
 import { RuleError } from "../../domain/match/model";
-import { Pool, type PoolClient } from "pg";
+import { Pool, Client, type PoolClient } from "pg";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { config } from "../config";
@@ -64,12 +64,17 @@ export async function dbTime(db: PoolClient) {
   );
 }
 export async function acquireWriter(onLost: () => void) {
-  const db = await pool.connect();
+  const db = new Client({
+    connectionString: config.DATABASE_URL,
+    connectionTimeoutMillis: 3000,
+    statement_timeout: 10000,
+  });
+  await db.connect();
   const acquired = (
     await db.query("SELECT pg_try_advisory_lock(724101) AS locked")
   ).rows[0].locked;
   if (!acquired) {
-    db.release();
+    await db.end();
     throw new Error("Another game writer owns this database");
   }
   db.on("error", onLost);
@@ -79,8 +84,8 @@ export async function acquireWriter(onLost: () => void) {
   );
   return async () => {
     clearInterval(timer);
+    await db.query("SELECT pg_advisory_unlock(724101)");
+    await db.end();
     db.removeListener("error", onLost);
-    await db.query("SELECT pg_advisory_unlock(724101)").catch(() => {});
-    db.release();
   };
 }

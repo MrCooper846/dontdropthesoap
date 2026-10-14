@@ -1,3 +1,4 @@
+import { serviceWork } from "./server/lifecycle/work";
 import { maintainCoordinator } from "./server/matches/availability";
 import {
   enforceCoordinatorLease,
@@ -16,7 +17,7 @@ import next from "next";
 import { Server } from "socket.io";
 import { z } from "zod";
 import { config } from "./server/config";
-import { api, rateLimit } from "./server/http";
+import { api, rateLimit, json } from "./server/http";
 import { pool, migrate, acquireWriter } from "./server/persistence/db";
 import { authenticate, assertOrigin } from "./server/auth/sessions";
 import {
@@ -45,6 +46,22 @@ async function main() {
   enforceCoordinatorLease();
   await recoverMatches();
   const http = createServer((req, res) => {
+    if (serviceWork.draining) {
+      res.setHeader("Connection", "close");
+      if (req.url === "/health/live")
+        json(res, 200, { live: true, draining: true });
+      else if (req.url === "/health/ready")
+        json(res, 503, { ready: false, draining: true });
+      else
+        json(res, 503, {
+          error: {
+            code: "SERVICE_UNAVAILABLE",
+            message: "Service restarting. Please retry.",
+            retryable: true,
+          },
+        });
+      return;
+    }
     if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
       res.writeHead(302, { Location: config.FEATURE_YARD ? "/yard" : "/play" });
       res.end();
@@ -56,24 +73,26 @@ async function main() {
       res.end();
       return;
     }
-    void api(
-      req,
-      res,
-      () => ready && coordinatorAvailable(),
-      (sessionId) => {
-        for (const socket of game.sockets.values())
-          if (socket.data.principal.sessionId === sessionId)
-            socket.disconnect(true);
-      },
-      (credentialId) => {
-        for (const socket of game.sockets.values())
-          if (socket.data.principal.credentialId === credentialId)
-            socket.disconnect(true);
-      },
-    )
-      .then((handled) => {
-        if (!handled) return app.getRequestHandler()(req, res);
-      })
+    void serviceWork
+      .run(() =>
+        api(
+          req,
+          res,
+          () => ready && coordinatorAvailable(),
+          (sessionId) => {
+            for (const socket of game.sockets.values())
+              if (socket.data.principal.sessionId === sessionId)
+                socket.disconnect(true);
+          },
+          (credentialId) => {
+            for (const socket of game.sockets.values())
+              if (socket.data.principal.credentialId === credentialId)
+                socket.disconnect(true);
+          },
+        ).then((handled) => {
+          if (!handled) return app.getRequestHandler()(req, res);
+        }),
+      )
       .catch(() => {
         if (!res.headersSent) {
           res.writeHead(500);
@@ -86,8 +105,9 @@ async function main() {
     allowRequest: (req, done) =>
       done(
         null,
-        req.headers.origin === config.PUBLIC_ORIGIN ||
-          (!req.headers.origin && !!req.headers.authorization),
+        !stopping &&
+          (req.headers.origin === config.PUBLIC_ORIGIN ||
+            (!req.headers.origin && !!req.headers.authorization)),
       ),
     serveClient: false,
   });
@@ -100,12 +120,22 @@ async function main() {
       if (socket.request.headers.authorization && !config.FEATURE_EXTERNAL_BOTS)
         throw new RuleError("NOT_FOUND");
       if (!socket.request.headers.authorization) assertOrigin(socket.request);
-      void actor(socket.request)
-        .then((p) => {
-          socket.data.principal = p;
-          next();
-        })
-        .catch(() => next(new Error("AUTH_REQUIRED")));
+      void serviceWork
+        .run(() =>
+          actor(socket.request).then((p) => {
+            if (serviceWork.draining)
+              throw new RuleError("SERVICE_UNAVAILABLE");
+            socket.data.principal = p;
+            next();
+          }),
+        )
+        .catch(() =>
+          next(
+            new Error(
+              serviceWork.draining ? "SERVICE_UNAVAILABLE" : "AUTH_REQUIRED",
+            ),
+          ),
+        );
     } catch {
       next(new Error("FORBIDDEN"));
     }
@@ -115,66 +145,74 @@ async function main() {
     attachYard(socket, game);
     voice?.attach(socket);
     socket.on("state.sync", (input: unknown, ack: (data: unknown) => void) => {
-      void (async () => {
-        rateLimit("socket:" + socket.data.principal.id);
-        const { matchId, after } = z
-          .object({
-            matchId: z.string().uuid(),
-            after: z.number().int().nonnegative().optional(),
-          })
-          .strict()
-          .parse(input);
-        const sync = await syncObservation(socket.request, matchId, after);
-        const snapshot = sync.snapshot;
-        for (const room of socket.rooms)
-          if (room !== socket.id && room !== "yard") await socket.leave(room);
-        await socket.join(matchId);
-        if (typeof ack === "function")
-          ack({
-            ok: true,
-            snapshot,
-            events: sync.events,
-            cursor: sync.cursor,
-            hasMore: sync.hasMore,
-            reset: sync.reset,
-          });
-      })().catch(() => {
-        if (typeof ack === "function") ack({ ok: false });
-      });
+      void serviceWork
+        .run(async () => {
+          rateLimit("socket:" + socket.data.principal.id);
+          const { matchId, after } = z
+            .object({
+              matchId: z.string().uuid(),
+              after: z.number().int().nonnegative().optional(),
+            })
+            .strict()
+            .parse(input);
+          const sync = await syncObservation(socket.request, matchId, after);
+          const snapshot = sync.snapshot;
+          for (const room of socket.rooms)
+            if (room !== socket.id && room !== "yard") await socket.leave(room);
+          await socket.join(matchId);
+          if (typeof ack === "function")
+            ack({
+              ok: true,
+              snapshot,
+              events: sync.events,
+              cursor: sync.cursor,
+              hasMore: sync.hasMore,
+              reset: sync.reset,
+            });
+        })
+        .catch(() => {
+          if (typeof ack === "function") ack({ ok: false });
+        });
     });
     socket.on("command", (input: unknown, ack: (data: unknown) => void) => {
-      void (async () => {
-        if (!ready || !coordinatorAvailable())
-          throw new RuleError("SERVICE_UNAVAILABLE");
-        rateLimit("socket:" + socket.data.principal.id);
-        const result = await command(socket.request, input);
-        if (typeof ack === "function") ack(result);
-      })().catch((e) => {
-        if (typeof ack === "function")
-          ack({
-            ok: false,
-            error: {
-              code:
-                e instanceof RuleError
-                  ? e.code
-                  : e instanceof z.ZodError
-                    ? "INVALID_PAYLOAD"
-                    : "SERVICE_UNAVAILABLE",
-              retryable: !(e instanceof RuleError || e instanceof z.ZodError),
-            },
-          });
-      });
+      void serviceWork
+        .run(async () => {
+          if (!ready || !coordinatorAvailable())
+            throw new RuleError("SERVICE_UNAVAILABLE");
+          rateLimit("socket:" + socket.data.principal.id);
+          const result = await command(socket.request, input);
+          if (typeof ack === "function") ack(result);
+        })
+        .catch((e) => {
+          if (typeof ack === "function")
+            ack({
+              ok: false,
+              error: {
+                code:
+                  e instanceof RuleError
+                    ? e.code
+                    : e instanceof z.ZodError
+                      ? "INVALID_PAYLOAD"
+                      : "SERVICE_UNAVAILABLE",
+                retryable:
+                  e instanceof RuleError
+                    ? e.code === "SERVICE_UNAVAILABLE"
+                    : !(e instanceof z.ZodError),
+              },
+            });
+        });
     });
   });
   const stopYard = startYard(game);
   const stopLeague = config.FEATURE_LEAGUE ? startLeague() : null;
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
+  let tickWork: Promise<void> | undefined;
   let ticking = false,
     lastCoordinatorCheck = performance.now();
   const timer = setInterval(() => {
     if (ticking || !ready) return;
     ticking = true;
-    void (async () => {
+    tickWork = (async () => {
       if (performance.now() - lastCoordinatorCheck >= 500) {
         const result = await maintainCoordinator();
         lastCoordinatorCheck = performance.now();
@@ -229,6 +267,7 @@ async function main() {
       })
       .finally(() => {
         ticking = false;
+        tickWork = undefined;
       });
   }, 100);
   ready = true;
@@ -239,21 +278,67 @@ async function main() {
     if (stopping) return;
     stopping = true;
     ready = false;
+    serviceWork.begin();
+    const deadline = setTimeout(() => {
+      console.error(
+        JSON.stringify({
+          event: "service.drain.timeout",
+          pending: serviceWork.pendingCount,
+        }),
+      );
+      // Exiting closes ownership and DB connections together; no early unlock.
+      process.exit(1);
+    }, config.SHUTDOWN_GRACE_MS);
+    deadline.unref();
+    console.log(
+      JSON.stringify({
+        event: "service.drain.started",
+        pending: serviceWork.pendingCount,
+      }),
+    );
+    game.emit("service.restarting");
     clearInterval(timer);
-    stopYard();
-    voice?.stop();
-    await stopLeague?.();
-    await stopVisual?.();
+    await Promise.all([
+      stopYard(),
+      voice?.stop(),
+      stopLeague?.(),
+      stopVisual?.(),
+      tickWork,
+    ]);
+    await serviceWork.wait();
     await closeVisualPreview();
-    io.emit("service.restarting");
+    // Preserve queued ACKs on both polling and WebSocket transports.
+    await Promise.all(
+      [...new Set([...game.sockets.values()].map((socket) => socket.conn))].map(
+        (connection) => {
+          if (connection.readyState === "closed") return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            connection.once("close", () => resolve());
+            connection.close(false);
+          });
+        },
+      ),
+    );
     await new Promise<void>((resolve) => io.close(() => resolve()));
-    await releaseWriter();
     await pool.end();
     await app.close();
+    // The independent writer connection is released after all other work closes.
+    await releaseWriter();
+    clearTimeout(deadline);
+    console.log(JSON.stringify({ event: "service.drain.complete" }));
     process.exit(0);
   }
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
+  function shutdownFailed() {
+    console.error(
+      JSON.stringify({
+        event: "service.drain.failed",
+        code: "SERVICE_UNAVAILABLE",
+      }),
+    );
+    process.exit(1);
+  }
+  process.on("SIGINT", () => void shutdown().catch(shutdownFailed));
+  process.on("SIGTERM", () => void shutdown().catch(shutdownFailed));
 }
 main().catch((e) => {
   console.error(e instanceof Error ? e.message : "Startup failed");

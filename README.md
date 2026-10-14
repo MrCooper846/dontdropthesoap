@@ -56,6 +56,7 @@ npm run test:voice
 npm run test:recovery
 npm run test:database-outage
 npm run build
+npm run test:shutdown
 npm audit
 ```
 
@@ -131,3 +132,9 @@ npm run test:database-outage requires the existing local postgres:17-alpine imag
 ## Restore and rollback checks
 
 With the completed integration/league-recovery fixtures and a production build, npm run test:restore validates encrypted PostgreSQL snapshots in new isolated databases. For a real binary rollback, run npm run prepare:rollback, set SOAP_ROLLBACK_DIR to its printed package path, then run npm run test:rollback. The strict command requires that package and verifies its committed source. Existing pre-backup cookies and settled results must survive current → previous → current. Private drill archives/reports are ignored; ephemeral test keys are discarded. See docs/operations.md for prerequisites, scope and measured results. Deployment backup scheduling, off-host storage and secret management still need the eventual hosting environment.
+
+## Graceful service shutdown
+
+SIGTERM/SIGINT fence new requests and commands, send service.restarting on /game-v1, and finish admitted HTTP/socket work plus background coordinators. Visual previews can finish before their pool closes; voice is removed while pending policy refreshes drain. Polling and WebSocket acknowledgements flush before transport closure. The independent PostgreSQL writer connection stays owned through application-pool and framework cleanup.
+
+SHUTDOWN_GRACE_MS defaults to 30000 (valid range 1000–60000). Give the host supervisor a longer stop timeout. A normal drain exits 0; a timeout or cleanup failure exits 1 and uses the existing crash-recovery policy. npm run test:shutdown requires Ubuntu, local soap_shutdown from test:setup and a production build. It blocks real row locks, checks HTTP/socket/preview completion and second-writer exclusion, tests native voice closure behind a policy lock, and exercises an unfinished-body timeout with a two-second test grace.

@@ -156,3 +156,5 @@ With FEATURE_VISUAL_BOTS=true, visual create/publish reuse the resource-creation
 Public seats now include frozen botVersionId and a boolean botError for the current round; neither is a credential or private program trace. HTTP workspace envelopes alone may reach 128 KiB; workspace/program limits remain 64 KiB. Other existing endpoints retain their 16-KiB body bound.
 
 Infrastructure recovery adds abortReason: null or "infrastructure" to public match snapshots and persists match.infrastructure-interruption events. The reason explains no-credit termination; it does not expose pending decisions. Temporary coordinator fencing returns SERVICE_UNAVAILABLE with a retryable command ACK. Accepted receipts remain stable across retries.
+
+During graceful shutdown, /game-v1 emits service.restarting. New HTTP work returns SERVICE_UNAVAILABLE/503, primary socket commands receive a retryable SERVICE_UNAVAILABLE error, and admitted commands retain their normal transaction/receipt semantics. Accepted ACKs are sent before graceful polling/WebSocket closure. Readiness returns {ready:false,draining:true}; liveness remains available while the process drains.
