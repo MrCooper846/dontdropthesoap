@@ -1,3 +1,8 @@
+import { maintainCoordinator } from "./server/matches/availability";
+import {
+  enforceCoordinatorLease,
+  coordinatorAvailable,
+} from "./server/persistence/coordinator-lease";
 import { startLeague } from "./server/league/service";
 import { startVisualRuntime } from "./server/bots/visual-runtime";
 import { closeVisualPreview } from "./server/bots/visual-http";
@@ -30,13 +35,15 @@ async function main() {
   });
   await pool.query("UPDATE owners SET controller_epoch=controller_epoch+1");
   await pool.query("UPDATE bots SET controller_epoch=controller_epoch+1");
-  await recoverMatches();
   const app = next({
     dev: config.NODE_ENV !== "production",
     hostname: "0.0.0.0",
     port: config.PORT,
   });
   await app.prepare();
+  await maintainCoordinator();
+  enforceCoordinatorLease();
+  await recoverMatches();
   const http = createServer((req, res) => {
     if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
       res.writeHead(302, { Location: config.FEATURE_YARD ? "/yard" : "/play" });
@@ -52,7 +59,7 @@ async function main() {
     void api(
       req,
       res,
-      () => ready,
+      () => ready && coordinatorAvailable(),
       (sessionId) => {
         for (const socket of game.sockets.values())
           if (socket.data.principal.sessionId === sessionId)
@@ -88,6 +95,8 @@ async function main() {
   const game = io.of("/game-v1");
   game.use((socket, next) => {
     try {
+      if (!ready || !coordinatorAvailable())
+        throw new RuleError("SERVICE_UNAVAILABLE");
       if (socket.request.headers.authorization && !config.FEATURE_EXTERNAL_BOTS)
         throw new RuleError("NOT_FOUND");
       if (!socket.request.headers.authorization) assertOrigin(socket.request);
@@ -135,6 +144,8 @@ async function main() {
     });
     socket.on("command", (input: unknown, ack: (data: unknown) => void) => {
       void (async () => {
+        if (!ready || !coordinatorAvailable())
+          throw new RuleError("SERVICE_UNAVAILABLE");
         rateLimit("socket:" + socket.data.principal.id);
         const result = await command(socket.request, input);
         if (typeof ack === "function") ack(result);
@@ -158,11 +169,26 @@ async function main() {
   const stopYard = startYard(game);
   const stopLeague = config.FEATURE_LEAGUE ? startLeague() : null;
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
-  let ticking = false;
+  let ticking = false,
+    lastCoordinatorCheck = performance.now();
   const timer = setInterval(() => {
     if (ticking || !ready) return;
     ticking = true;
-    void tickMatches()
+    void (async () => {
+      if (performance.now() - lastCoordinatorCheck >= 500) {
+        const result = await maintainCoordinator();
+        lastCoordinatorCheck = performance.now();
+        if (result.aborted)
+          console.error(
+            JSON.stringify({
+              event: "game.infrastructure-abort",
+              count: result.aborted,
+              gapMs: Math.round(result.gap),
+            }),
+          );
+      }
+      await tickMatches();
+    })()
       .then(async () => {
         const q = await pool.query(
           "SELECT match_id,sequence,type,payload,visibility,recipient_seat_id FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",

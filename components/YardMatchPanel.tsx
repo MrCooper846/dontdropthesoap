@@ -222,6 +222,11 @@ export default function YardMatchPanel({
           ))}
         </section>
       )}
+      {match.abortReason === "infrastructure" && (
+        <p role="status">
+          Match ended after a service interruption. No points were credited.
+        </p>
+      )}
       {match.interruptions > 0 && (
         <p className="danger">
           Service interrupted. Accepted moves were preserved.

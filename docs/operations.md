@@ -46,7 +46,7 @@ Structured logs: request/command ID, match ID, event type, latency and error cod
 
 Measure active presences/seats, commands rejected, ACK latency, event-loop lag, DB transaction latency, outbox age, timeout fraction, worker failures, reconnects and voice policy failures. Alert on repeated resolver failures, growing outbox backlog, disk pressure and loss of writer ownership.
 
-If database writes fail, stop accepting moves and report service unavailable; do not ACK in-memory moves. If degraded beyond a decision window, mark affected active matches for abort as soon as the database returns rather than awarding timeout wins caused by infrastructure failure. Record the incident for league fixture retry.
+If database writes fail, stop accepting moves and report service unavailable; do not ACK in-memory moves. If degraded beyond a decision window, abort affected active matches as soon as the database returns rather than awarding timeout wins caused by infrastructure failure. The service persists coordinator health and checks the database clock against each match's decision duration. An overdue coordinator makes readiness fail closed; the durable gap survives process death. Aborts retain hidden choices and diagnostic results but receive no settlement, and league fixtures requeue. The same conservative rule applies to long process downtime because the database cannot retrospectively prove the cause. Record the incident for league fixture retry.
 
 If voice authorization updates fail, remove or suspend the affected media participants until permissions reconcile. Client volume is not a fallback access control.
 
@@ -63,3 +63,9 @@ Budget separately for application compute, PostgreSQL, backups and voice bandwid
 ## Launch gates
 
 A private alpha can ship rough art and basic UI. It must pass hidden-move, identity, deadline, settlement and reconnect tests. Voice requires the media authorization gate. Public sharing additionally needs workable mute/block/report, operational rollback, a restore drill and clear guest-account limitations.
+
+## Verified production package baseline
+
+The custom server uses pinned runtime tsx 4.21.0; next.config.mjs loads without installing TypeScript at service startup. On the build machine, use npm ci and npm run build. The release must retain the versioned application/server/domain/shared source and assets, package.json/package-lock.json/next.config.mjs, .next and dist/workers. Keep .env, credentials, local databases, test outputs and existing node_modules out of the artifact. Install its locked runtime dependencies with npm ci --omit=dev, configure production environment/secrets, then use npm start. A public deployment still needs the proxy/media/restore/rollback gates above.
+
+A clean temporary package has passed npm ci --omit=dev and actual production npm start against a dedicated local database. scripts/production-smoke.ts can be run from that package with node --import tsx scripts/production-smoke.ts. It deliberately refuses a development install containing Vitest and targets only local soap_release_smoke on Compose port 55432, with application port 3111. It checks built pages, migrations/readiness, Secure cookie issuance, compiled visual-worker execution and native media binary startup. It does not test public HTTPS, media connectivity, load or deployment. The first run discovered the runtime next.config.ts compiler dependency; the JavaScript config fixes it without a runtime package-install step.

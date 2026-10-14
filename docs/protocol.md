@@ -154,3 +154,5 @@ Distance/block transitions have bounded routing latency, not instantaneous priva
 With FEATURE_VISUAL_BOTS=true, visual create/publish reuse the resource-creation key, command ID, controller epoch and receipt contract. Workspace compilation is server-owned; there is no accepted client-supplied JavaScript or separately claimed AST. Latest/specific version reads and match decision feedback are restricted to the owner. Preview is cookie/CSRF/controller protected but non-authoritative.
 
 Public seats now include frozen botVersionId and a boolean botError for the current round; neither is a credential or private program trace. HTTP workspace envelopes alone may reach 128 KiB; workspace/program limits remain 64 KiB. Other existing endpoints retain their 16-KiB body bound.
+
+Infrastructure recovery adds abortReason: null or "infrastructure" to public match snapshots and persists match.infrastructure-interruption events. The reason explains no-credit termination; it does not expose pending decisions. Temporary coordinator fencing returns SERVICE_UNAVAILABLE with a retryable command ACK. Accepted receipts remain stable across retries.

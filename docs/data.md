@@ -66,7 +66,7 @@ Outbox publication can repeat after a crash. Keep events until retention expiry;
 
 ## Recovery policy
 
-Recover waiting rooms but clear readiness. Interrupted countdown returns to waiting. For collecting rounds retain committed moves and grant one fresh full decision window on service restart; emit a visible interruption event. Revealing resumes with a fresh five-second display window before advancing.
+Recover waiting rooms but clear readiness. Interrupted countdown returns to waiting. For brief interruptions, collecting rounds retain committed moves and receive one fresh full decision window on service restart; emit a visible interruption event. Revealing resumes with a fresh five-second display window before advancing. A durable deadline-coordinator heartbeat bounds this recovery: if its gap reaches a match's decision-window length, abort collecting/revealing matches without timeout scoring or settlement, and return countdowns to waiting with readiness cleared. A long process outage and a long database outage cannot be reliably distinguished after connection loss; both use this conservative infrastructure policy. Finish active matches before planned long maintenance.
 
 After more than one service interruption of the same match, abort it to prevent indefinite extension. Aborted matches contribute no lifetime/league settlement. Existing round results remain diagnostic history. Retry a league fixture using a new match attempt. This alpha rule favours transparent recovery over pretending uninterrupted competitive fairness.
 
