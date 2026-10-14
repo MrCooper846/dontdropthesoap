@@ -11,7 +11,7 @@ Status: proposed, tunable defaults. These make implementation concrete; they do 
 | Direct challenge | Two eligible entrants | Repeated same opponent | 10 rounds, 20-second choice, 5-second reveal |
 | Bot league fixture | Two bots | Repeated same opponent | 20 rounds, 20-second choice, 1-second reveal |
 
-Social settings: 2–8 entrants; 5–50 rounds; 5–60-second decision window. Settings changes clear readiness. No global rule requires frontier models to respond in milliseconds; owners choose suitable tables.
+Social settings: 2–8 entrants; 5–50 rounds; 5–60-second decision window. Settings and waiting-room roster changes clear readiness. No global rule requires frontier models to respond in milliseconds; owners choose suitable tables.
 
 Canonical API moves remain `C` and `D`; UI uses cooperate and betray.
 

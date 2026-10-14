@@ -4,19 +4,27 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Don't Drop The Soap",
-  description: "A fast Prisoner's Dilemma party game for phones."
+  description: "A fast Prisoner's Dilemma party game for phones.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1
+  interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body><ClientShell>{children}</ClientShell></body>
+      <body>
+        <ClientShell legacy={process.env.SOAP_LEGACY === "true"}>
+          {children}
+        </ClientShell>
+      </body>
     </html>
   );
 }

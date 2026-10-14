@@ -8,6 +8,14 @@ Use same-origin HTTPS for resource management and snapshots. Socket.IO carries b
 
 Namespace: `/game-v1`. REST prefix: `/api/v1`. Both adapters call identical command handlers. Unsupported major versions return VERSION_UNSUPPORTED and never silently downgrade.
 
+## Current integration surface
+
+The match-foundation slice implements /session/guest, /session, /session/logout, /controller/acquire, /command-keys, /commands, /matches (create/list), /matches/:id/join, /matches/:id/observation, /matches/:id/moves, /matches/:id/results and /leaderboard under /api/v1. Guest creation takes {name}. Browser controller acquisition takes an empty body and returns controllerEpoch. Match creation and joining require commandId, controllerEpoch and a server-issued single-use creation key. Joining additionally targets the match in the route. Cookie-authenticated writes require x-csrf-token.
+
+The /game-v1 namespace currently provides command and state.sync({matchId}) with acknowledgements and projected match.snapshot events. Reconnect gets a current projected snapshot; filtered durable cursor replay is still a stage-2 task. Resource creation keys are opaque durable UUIDs checked against their stored owner, expiry and consumed state; unknown or cleaned-up keys reject rather than become reusable. This first slice does not use self-contained signed creation keys.
+
+All other endpoints and commands below remain implementation targets. Health routes /health/live and /health/ready are outside the versioned API. The legacy demo's handlers are not mounted by the new server.
+
 ## Credentials
 
 Browser: server-created guest session cookie, origin check and CSRF token for writes. A public owner ID is never accepted as proof of identity.
