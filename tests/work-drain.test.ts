@@ -42,3 +42,32 @@ it("a failed admitted operation settles the drain without swallowing its error",
   await drain.wait();
   expect(drain.pendingCount).toBe(0);
 });
+
+it("rejects overload before executing work and reserves capacity before reentrant work starts", async () => {
+  const drain = new WorkDrain(1);
+  let release!: () => void,
+    rejectedRan = false;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const admitted = drain.run(async () => {
+    await expect(
+      drain.run(() => {
+        rejectedRan = true;
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+    await held;
+    return 42;
+  });
+  expect(drain.pendingCount).toBe(1);
+  await expect(
+    drain.run(() => {
+      rejectedRan = true;
+    }),
+  ).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  expect(rejectedRan).toBe(false);
+  release();
+  expect(await admitted).toBe(42);
+  expect(drain.pendingCount).toBe(0);
+  expect(await drain.run(() => 7)).toBe(7);
+});

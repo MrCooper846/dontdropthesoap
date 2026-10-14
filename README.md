@@ -142,3 +142,7 @@ SHUTDOWN_GRACE_MS defaults to 30000 (valid range 1000–60000). Give the host su
 ## Local moderation
 
 Audited host-side operator controls support owner disable/enable, individual session and bot credential revocation, current voice removal and report review. Set SOAP_OPERATOR_ID and use npm run operator with the private deployment database configuration. See [the operator procedure](docs/operations.md#audited-local-operator-controls) for target checks, input format, retry semantics and access boundaries. No public administration route is provided. Audited matches.pause/matches.resume stop new games while accepted games finish; operator status reports when active games have drained. The paused state survives restart.
+
+## Load-readiness measurements
+
+The server emits bounded aggregate latency/event-loop/memory windows and limits admitted HTTP/socket work with MAX_PENDING_WORK (initial default 256). npm run test:overload exercises actual saturation/recovery on isolated soap_load with a production build; it does not establish nominal capacity or the required 60-minute soak. See [measurement scope](docs/operations.md#bounded-admitted-work-and-aggregate-measurements).

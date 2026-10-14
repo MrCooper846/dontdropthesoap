@@ -1,3 +1,4 @@
+import { duration } from "../observability/metrics";
 import { coordinatorLeaseEnforced } from "./coordinator-lease";
 import { RuleError } from "../../domain/match/model";
 import { Pool, Client, type PoolClient } from "pg";
@@ -14,6 +15,7 @@ export const pool = new Pool({
 export async function transaction<T>(
   work: (db: PoolClient) => Promise<T>,
 ): Promise<T> {
+  const started = performance.now();
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
@@ -36,6 +38,7 @@ export async function transaction<T>(
       );
     throw e;
   } finally {
+    duration("db.transaction", performance.now() - started);
     db.release();
   }
 }

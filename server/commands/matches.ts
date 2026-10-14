@@ -1,3 +1,4 @@
+import { duration, increment } from "../observability/metrics";
 import { config } from "../config";
 import { requireNear } from "../yards/world";
 import { assertScope } from "../bots/identity";
@@ -48,6 +49,21 @@ export async function controller(req: IncomingMessage) {
   });
 }
 export async function command(
+  req: IncomingMessage,
+  input: unknown,
+): Promise<Ack> {
+  const started = performance.now();
+  try {
+    const result = await executeCommand(req, input);
+    if (result.ok) duration("command.accepted", performance.now() - started);
+    else increment("command.rejected");
+    return result;
+  } catch (error) {
+    increment("command.rejected");
+    throw error;
+  }
+}
+async function executeCommand(
   req: IncomingMessage,
   input: unknown,
 ): Promise<Ack> {
