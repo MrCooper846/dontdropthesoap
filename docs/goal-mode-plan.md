@@ -250,6 +250,16 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - Final verification: npm test (35 pass); npm run typecheck; npm run lint; npm run test:browser (2 pass); npm run test:integration (3 pass); npm run test:alpha (3 pass); npm run test:recovery (physical crash/restart pass); npm run build (pass after legacy-route prerender repair); npm audit (zero advisories). Environment: Ubuntu WSL, Node 24.18.0, PostgreSQL 17.11 via Docker, Chromium 156.
 - Next concrete work: stage 2 external bot principals, scoped credentials, leases, examples and cursor recovery. Continue independent stages while voice/device gates remain pending.
 
+### Stage 2 checkpoint — external identity layer
+
+- Active branch: codex/external-bot-api, based on 60fc8bc. The stage-1 review branch remains frozen for draft PR #4; pending merge does not block this descendant stage.
+- Implemented server/bots/identity.ts against real PostgreSQL: owned external bot/version registration, owner-only listing, 256-bit scoped bearer credentials stored as hashes, credential revocation, durable controller epochs, a five-second heartbeat contract and fifteen-second ephemeral lease expiry.
+- Verified separate owners cannot mint/revoke another owner's credentials; takeover fences earlier controllers; revocation invalidates the active credential and clears its lease. Per-owner credential issuance is serialized for cap enforcement.
+- Checks: npm run typecheck, npm run lint and npm run test:integration all pass (five PostgreSQL tests total, including the three match-persistence tests).
+- This layer is not mounted as public bot routes and cannot yet enter a bot into a match. Do not claim external bot participation complete. Registration/credential issuance still needs resource-creation idempotency before HTTP exposure.
+- Next concrete action: wire bot principals into the common command service, add owner admission/readiness and real HTTP/socket routes, close active sockets on revocation, provide runnable Python/TypeScript strategy clients, add cursor replay and finish the human-versus-external-bot/restart gates.
+- No live game-service process was left running. Local Compose PostgreSQL remains available. No voice provider credentials or physical-device evidence was supplied; those final gates remain pending.
+
 ## Resume procedure
 
 Read the record, inspect Git and verify claimed work against code and evidence. Resume the first incomplete ready stage. Re-run checks affected by intervening changes; do not automatically rerun every expensive test. If a prior stage regressed, repair it and update its status.
