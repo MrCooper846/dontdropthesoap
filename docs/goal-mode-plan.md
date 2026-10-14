@@ -298,7 +298,7 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - Yard is enabled by default and / redirects to /yard. Core regression configurations explicitly disable the yard and preserve their independent fixture paths. New migrations 003/004 apply to fresh and existing local test databases.
 - Final post-polish checks passed: 45 domain/config/protocol tests, seven PostgreSQL regressions, six complete real yard scenarios, production build, typecheck and formatting. The six standalone match/bot scenarios and physical human/bot crash/reconnect harness also passed on this stage before the final display/cap/report additions. Actual-device/audio/playtest/load gates remain separate; no such evidence is claimed.
 - Next ready stage after final check/commit: proximity-voice provider enforcement spike and adapter. The visual builder and league can proceed independently of real-device/playtest dependencies.
-- No public deployment or merge is authorized by this checkpoint.
+- Verified implementation SHA: 70bd744. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/6 (base codex/external-bot-api). No public deployment or merge occurred.
 
 ## Resume procedure
 
