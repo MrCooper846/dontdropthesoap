@@ -216,7 +216,7 @@ Update this section during development. These initial statuses mean no implement
 | 0 Foundation | IMPLEMENTED_PENDING_VALIDATION | Baseline/domain tests, real browsers, renderer/editor lifecycle and emulated touch | Voice authorization spike and real devices |
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
-| 3 Yard | NOT_STARTED | — | Complete social/mixed loop |
+| 3 Yard | IN_PROGRESS | Shared four-circle map and authoritative movement/recipient rules; eight domain tests | Renderer, live transport, circle/game integration and social UI |
 | 4 Voice | NOT_STARTED | — | Enforced routing and devices |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
@@ -274,6 +274,16 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - External bots are enabled by default for the working alpha, with FEATURE_EXTERNAL_BOTS able to disable their routes, sockets and admission. No core bot acceptance uses mocks.
 - Verified implementation SHA: 24ce3b0. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/5 (base codex/playable-alpha). No merge/deployment occurred.
 - Next ready stage after this gate: authoritative yard movement, four circles, challenges, spectating, nearby text and block/report. Voice/device gates stay pending.
+
+### Stage 3 checkpoint — authoritative yard domain
+
+- Active branch: codex/playable-yard, based on 48da6f7. Stage 2 remains reviewable in PR #5; no pending merge blocks this work.
+- Implemented shared/yard/map.ts and domain/yard/yard.ts: a 960×640 map with four named circles, spawn/bounds/rectangular obstacles, shared collision geometry, normalized axis movement, fixed 50 ms simulation steps, 250 ms stale-input stop, capacity, processed-input acknowledgements, socket/controller fencing, anchored human seating, circle-distance admission and bounded nearby-recipient selection.
+- Tests reject absolute-position teleport payloads and extreme axes/sequence jumps; prove diagonal speed, bounds/collision sliding, stale/duplicate inputs, controller/socket replacement, seating, capacity, authoritative interaction distance, blocked/distant recipient exclusion and public-state projection.
+- Checks: npm test (44 total passing, including eight new yard tests), npm run typecheck and npm run lint pass.
+- This domain is not yet mounted by the live server or rendered as the game yard. It is not a completed yard feature.
+- Next concrete action: add the server yard coordinator and typed socket bridge; mount a Phaser scene with original cartoon primitives, prediction/interpolation and desktop/mobile controls; integrate four circles with durable matches, owned-bot admission, spectators/challenges and nearby text/block/report.
+- Local PostgreSQL remains running; no game-service or external bot test process remains live. Final physical-device/voice/playtest gates remain pending.
 
 ## Resume procedure
 

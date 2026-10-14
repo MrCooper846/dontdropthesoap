@@ -10,6 +10,8 @@ Use original cartoon prisoners and a compact top-down map with depth sorting by 
 
 Desktop WASD/arrows; mobile virtual joystick plus large interaction button. Normalise diagonal input. Cancel movement on blur, touch cancel and modal opening. Camera follows the local avatar; respect reduced motion, UI safe areas and landscape/portrait resizing. Include a text list of nearby circles as an alternative to canvas-only interaction.
 
+Initial implemented geometry: 960×640 pixels, 32 pixels per tile, 10-pixel avatar radius, 96 pixels/second movement, four fixed 64-pixel circles and a one-tile extra interaction reach. A shared pure movement function applies the same rectangular collision checks to server authority and planned client prediction. Initial nearby text routing uses eight tiles. These are tuneable map defaults; the domain implementation does not yet imply a mounted yard client.
+
 ## Movement protocol
 
 Proposed starting values: 20 Hz authoritative server simulation, input sends at up to 20 Hz, position broadcasts at 10 Hz, 100 ms interpolation buffer for remote avatars. Client render rate is independent.
