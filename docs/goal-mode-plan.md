@@ -373,3 +373,5 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Verification: npm run typecheck, npm test (67 passing, including nine visual-language, four real Blockly and four real worker/fault tests), npm run lint. Production build passed (including the generated worker); npm audit reports zero advisories.
 - These are execution foundations, not a completed builder. Next concrete action: immutable visual publication and owner preview through the shared compiler; wire visual entrant/version freezing and atomic state/RNG/move acceptance against PostgreSQL; mount the real Blockly create/test/publish/watch/edit flow and run browser/touch/hostile-input gates.
 - Voice physical-device/playtest validation remains pending; league and final release gates remain required.
+
+- Committed/pushed visual foundation: 945698d on codex/visual-bot-builder. The stage is IN_PROGRESS; no completed builder, publication endpoint or live visual match participation is claimed. Next action remains the PostgreSQL publication/preview and atomic visual-decision integration, followed by the browser editor flow.
