@@ -220,7 +220,7 @@ Update this section during development. These initial statuses mean no implement
 | 4 Voice | IMPLEMENTED_PENDING_VALIDATION | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Actual-device audio/interruption, public-network/TURN and human playtest |
 | 5 Visual bots | VERIFIED | Manual Blockly construction, worker/DB atomicity and complete real-browser game/edit flow | Actual-device usability/playtest remains a final release gate |
 | 6 League | VERIFIED | Live visual/Python/TypeScript UI batch, hostile HTTP, offline/readmission, immutable schema and physical crash/retry/settlement checks | Maintain integration regressions; release load/device/playtest gates remain |
-| 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
+| 7 Release candidate | IN_PROGRESS | Clean production-only install, real npm start/pages/visual/native-worker smoke | Load/soak, backup/rollback, moderation, outage policy, devices and playtest |
 
 At each checkpoint append or update:
 - Branch and last committed implementation SHA; preserve notes on uncommitted work.
@@ -438,3 +438,12 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Final stage-6 source check: 74 unit checks, typecheck, formatting and the production build all pass with the league enabled by default. No merge or deployment was performed.
 
 - Stage-6 implementation is committed/pushed as b663dfa, with the earlier service/UI checkpoints aba40ea and 3561d13. Review: draft PR #9, https://github.com/MrCooper846/dontdropthesoap/pull/9, stacked on PR #8. No merge or deployment.
+
+### Stage 7 checkpoint — production-only package boot
+
+- Active branch: codex/alpha-readiness, based on league review checkpoint a4ca7ae. Promoted the already installed tsx 4.21.0 to a pinned runtime dependency because npm start invokes it; a production install previously omitted it.
+- Built a new temporary release directory from versioned working-tree source plus .next (excluding cache) and dist/workers. No .env, credentials, .git or existing node_modules was copied. npm ci --omit=dev installed 165 packages and audited zero advisories. This first production smoke found another real startup defect: loading next.config.ts attempted to install TypeScript dynamically and then failed. Converted the identical two-option config to next.config.mjs, recopied the canonical package files and repeated npm ci --omit=dev from scratch. No compiler was promoted into production to mask the issue.
+- scripts/production-smoke.ts refuses an installation containing Vitest and requires built Next/worker artifacts. It targets only local port 3111 and guarded local soap_release_smoke, then exercises actual npm start in production mode with test-only generated secrets, migrations/readiness, built yard/editor/league HTML, Secure session-cookie issuance, authenticated private visual-worker preview, public league read and the actual native mediasoup binary. All passed after the config correction. It shuts down its child process group. PUBLIC_ORIGIN uses a reserved HTTPS test name while requests stay on loopback; this is explicitly not a public TLS, reverse-proxy, audio-network or deployment test.
+- Remaining stage-7 work is unchanged: complete load/soak, database outage handling, moderation/audit and drain, backup/restore/rollback, broad integrated regressions, fresh full build packaging, real mobile/browser audio/editor/gameplay and a 4–8-person playtest. Goal remains active; no release-candidate or deployment claim.
+
+- Packaging checkpoint verification: typecheck, formatting and a rebuilt production Next application pass after the next.config.mjs conversion. The clean production-only runtime smoke also passed as recorded above.
