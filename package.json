@@ -27,6 +27,9 @@
     "test:league-recovery": "npm run build:workers && tsx tests/runtime/league-recovery.ts",
     "test:league": "playwright test -c playwright.league.config.ts",
     "test:visual": "playwright test -c playwright.visual.config.ts",
+    "prepare:rollback": "tsx scripts/prepare-rollback.ts",
+    "test:rollback": "tsx scripts/restore-drill.ts --require-rollback",
+    "test:restore": "tsx scripts/restore-drill.ts",
     "test:migrations": "tsx scripts/check-migrations.ts"
   },
   "dependencies": {
