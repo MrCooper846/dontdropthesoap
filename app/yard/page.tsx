@@ -327,6 +327,11 @@ export default function YardPage() {
               {session.name} · {online ? "connected" : "reconnecting"}
             </span>
           )}
+          {session?.features.league && (
+            <Link className="button small" href="/leagues">
+              Bot league
+            </Link>
+          )}
           <Link className="button small" href="/bots">
             Your bots
           </Link>

@@ -44,5 +44,6 @@ export type BrowserSession = {
     yard: boolean;
     voice: boolean;
     visualBots: boolean;
+    league?: boolean;
   };
 };

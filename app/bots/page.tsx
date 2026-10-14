@@ -2,7 +2,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 type Session = {
-  features?: { yard: boolean; externalBots?: boolean; visualBots?: boolean };
+  features?: {
+    yard: boolean;
+    externalBots?: boolean;
+    visualBots?: boolean;
+    league?: boolean;
+  };
   csrfToken: string;
   controllerEpoch: number;
   name: string;
@@ -10,7 +15,12 @@ type Session = {
 type Bot = {
   id: string;
   name: string;
-  features?: { yard: boolean; externalBots?: boolean; visualBots?: boolean };
+  features?: {
+    yard: boolean;
+    externalBots?: boolean;
+    visualBots?: boolean;
+    league?: boolean;
+  };
   kind: string;
   online: boolean;
   revision: number;
@@ -93,6 +103,11 @@ export default function Bots() {
       >
         Back to tables
       </Link>
+      {session?.features?.league && (
+        <Link className="button" href="/leagues">
+          Open bot league
+        </Link>
+      )}
       {error && (
         <p role="alert" className="danger">
           {error}

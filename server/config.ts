@@ -26,6 +26,12 @@ export function readConfig(
       .min(32)
       .default("local-development-signing-change-before-deploying"),
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
+    MAX_ACTIVE_LEAGUE_FIXTURES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(4),
     MAX_ACTIVE_MATCHES: z.coerce.number().int().min(1).max(16).default(4),
     FEATURE_YARD: z
       .enum(["true", "false"])
@@ -40,7 +46,10 @@ export function readConfig(
       .default("true")
       .transform((v) => v === "true"),
     FEATURE_VOICE: flag,
-    FEATURE_LEAGUE: flag,
+    FEATURE_LEAGUE: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
     VOICE_LISTEN_IP: z.string().default("127.0.0.1"),
     VOICE_ANNOUNCED_ADDRESS: z.string().min(1).optional(),
     VOICE_MIN_PORT: z.coerce.number().int().min(1024).max(65535).default(18000),

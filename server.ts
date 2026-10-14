@@ -1,3 +1,4 @@
+import { startLeague } from "./server/league/service";
 import { startVisualRuntime } from "./server/bots/visual-runtime";
 import { closeVisualPreview } from "./server/bots/visual-http";
 import { startVoice } from "./server/voice/socket";
@@ -155,6 +156,7 @@ async function main() {
     });
   });
   const stopYard = startYard(game);
+  const stopLeague = config.FEATURE_LEAGUE ? startLeague() : null;
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
   let ticking = false;
   const timer = setInterval(() => {
@@ -214,6 +216,7 @@ async function main() {
     clearInterval(timer);
     stopYard();
     voice?.stop();
+    await stopLeague?.();
     await stopVisual?.();
     await closeVisualPreview();
     io.emit("service.restarting");

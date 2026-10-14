@@ -111,6 +111,20 @@ describe("authoritative match rules", () => {
     recover(m, 60000);
     expect(m.phase).toBe("aborted");
     expect(m.deadline).toBeNull();
+    expect(project(m, null)).not.toHaveProperty("revealedMoves");
+    expect(project(m, "owner1")).not.toHaveProperty("revealedMoves");
+    expect(project(m, "owner0").ownMove).toBe("D");
+    expect(project(m, null).results).toEqual([]);
+  });
+  it("aborting during reveal preserves only decisions already resolved", () => {
+    const m = game();
+    submit(m, "s0", 1, "D", 3001);
+    submit(m, "s1", 1, "C", 3002);
+    recover(m, 50000);
+    recover(m, 60000);
+    expect(m.phase).toBe("aborted");
+    expect(project(m, null).revealedMoves).toEqual({ s0: "D", s1: "C" });
+    expect(project(m, null).results).toHaveLength(1);
   });
   it("countdown departures cancel and clear readiness", () => {
     const m = game();

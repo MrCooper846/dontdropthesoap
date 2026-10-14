@@ -1,6 +1,6 @@
 # Technical plan
 
-Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots, visual bot builder and playable yard are implemented. Voice is integrated behind a feature flag with device/playtest validation still pending; the league remains incomplete. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
+Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots, visual bot builder and playable yard are implemented. Voice is integrated behind a feature flag with device/playtest validation still pending; the league has a verified mixed-bot batch, public results and physical recovery flow. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
 
 ## Read in this order
 

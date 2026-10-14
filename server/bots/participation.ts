@@ -37,7 +37,11 @@ export async function entrant(db: PoolClient, p: Principal, botId?: string) {
   seat.ownerName = p.name;
   return seat;
 }
-export async function seatCaps(db: PoolClient, p: Principal, botId?: string) {
+export async function seatCaps(
+  db: PoolClient,
+  p: Pick<Principal, "ownerId">,
+  botId?: string,
+) {
   const q = await db.query(
     "SELECT s.kind,v.bot_id FROM match_seats s JOIN matches m ON m.id=s.match_id LEFT JOIN bot_versions v ON v.id=s.bot_version_id WHERE s.owner_id=$1 AND m.phase NOT IN ('finished','cancelled','aborted')",
     [p.ownerId],

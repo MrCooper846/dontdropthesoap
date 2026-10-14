@@ -70,6 +70,11 @@ export async function command(
         return receipt.rows[0].response as Ack;
       }
       const m = await loadMatch(db, c.matchId, true);
+      if (m.mode === "league" && p.kind === "browser")
+        throw new RuleError(
+          "FORBIDDEN",
+          "League fixtures are managed by the scheduler",
+        );
       await lockActor(db, p, c.controllerEpoch);
       const now = await dbTime(db);
       const seat = m.seats.find((s) => s.id === c.seatId);

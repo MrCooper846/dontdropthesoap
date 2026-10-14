@@ -1,3 +1,4 @@
+import { publicLeagueHttp, leagueHttp } from "./league/http";
 import { visualHttp } from "./bots/visual-http";
 import { ProgramError } from "../domain/bots/program";
 import { challengeHttp } from "./yards/challenges";
@@ -91,6 +92,7 @@ export async function api(
     if (!isReady()) throw new RuleError("SERVICE_UNAVAILABLE");
     const path = pathname.slice(7),
       method = req.method ?? "GET";
+    if (await publicLeagueHttp(req, res, path, method, url)) return true;
     if (path === "/session/guest" && method === "POST") {
       assertOrigin(req);
       rateLimit("guest:" + req.socket.remoteAddress, 3);
@@ -124,6 +126,7 @@ export async function api(
       method === "GET" ? 30 : 10,
     );
     if (method !== "GET") assertCsrf(req, principal);
+    if (await leagueHttp(req, res, path, method)) return true;
     if (await visualHttp(req, res, path, method)) return true;
     if (await ownedBotHttp(req, res, path, method, onRevoke)) return true;
     if (await yardHttp(req, res, path, method)) return true;
@@ -135,6 +138,7 @@ export async function api(
         controllerEpoch: principal.epoch,
         csrfToken: csrf(principal),
         features: {
+          league: config.FEATURE_LEAGUE,
           voice: config.FEATURE_VOICE,
           externalBots: config.FEATURE_EXTERNAL_BOTS,
           visualBots: config.FEATURE_VISUAL_BOTS,
