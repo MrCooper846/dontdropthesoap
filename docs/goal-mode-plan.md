@@ -236,7 +236,7 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 
 ### Checkpoint — 14 October 2026, foundation and match core
 
-- Integration branch: codex/playable-alpha; started from clean 6258d78. Implementation commit is recorded after this verification checkpoint.
+- Integration branch: codex/playable-alpha; started from clean 6258d78. Last committed implementation SHA: dea148f (authenticated durable match foundation). Draft review: https://github.com/MrCooper846/dontdropthesoap/pull/4.
 - Added a deterministic match domain with explicit deadlines, private/public projections, immutable first decisions, system Clanker, frozen seats, timeout/leave rules and terminal recovery.
 - Added server-issued HttpOnly guest sessions, origin/CSRF checks, durable controller epochs with transaction locks, runtime schemas and exact round/seat targets.
 - Pulled PostgreSQL persistence forward: migrations, normalized constraints, internal checkpoint, receipts, single-use creation keys, outbox, social ledger and exclusive writer ownership. Durable decisions commit before success ACK.
