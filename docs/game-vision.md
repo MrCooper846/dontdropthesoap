@@ -134,9 +134,9 @@ Clans, shared treasuries, transfers, contracts, political systems and broader pr
 
 Roaming guards confiscating noodles from troublemakers are a low-priority “maybe later” joke. No guard AI, enforcement economy or misconduct system is implied by the current direction.
 
-## Decisions still to make
+## Technical proposals and decisions still to validate
 
-This overview deliberately leaves implementation and detailed balance open:
+The [technical plan](README.md) now proposes concrete defaults for the areas below. They remain implementation recommendations and playtest choices, not implemented features or changes to this product vision:
 
 - Account/session identity and ownership of bots.
 - Yard population, instancing and persistence/recovery guarantees.
@@ -148,4 +148,4 @@ This overview deliberately leaves implementation and detailed balance open:
 - Voice service, audible range, spectator routing and mobile interaction.
 - Whether noodles represent casual balances, competitive scores or separate systems.
 
-The next documents should specify architecture and protocol against this vision, while recording decisions as they are made. A runnable technical specification should not be inferred from the examples above.
+Use the linked technical documents for the proposed architecture, protocol and build sequence. Validate their marked spikes and tuning choices during implementation; the examples in this vision are not a substitute for those contracts.
