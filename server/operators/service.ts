@@ -1,3 +1,4 @@
+import { SERVICE_CONTROL_ID } from "./maintenance";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { pool, transaction } from "../persistence/db";
@@ -9,6 +10,20 @@ const base = {
   reason: z.string().trim().min(1).max(500),
 };
 export const operatorRequest = z.discriminatedUnion("action", [
+  z
+    .object({
+      ...base,
+      targetId: z.literal(SERVICE_CONTROL_ID),
+      action: z.literal("matches.pause"),
+    })
+    .strict(),
+  z
+    .object({
+      ...base,
+      targetId: z.literal(SERVICE_CONTROL_ID),
+      action: z.literal("matches.resume"),
+    })
+    .strict(),
   z.object({ ...base, action: z.literal("owner.disable") }).strict(),
   z.object({ ...base, action: z.literal("owner.enable") }).strict(),
   z.object({ ...base, action: z.literal("session.revoke") }).strict(),
@@ -90,6 +105,20 @@ export async function applyOperator(label: unknown, input: unknown) {
             table +
             ' SET revoked_at=coalesce(revoked_at,clock_timestamp()) WHERE id=$1 RETURNING revoked_at AS "revokedAt"',
           [c.targetId],
+        )
+      ).rows[0];
+    } else if (c.action === "matches.pause" || c.action === "matches.resume") {
+      before = (
+        await db.query(
+          'SELECT matches_open AS "matchesOpen" FROM service_controls WHERE id=$1 FOR UPDATE',
+          [c.targetId],
+        )
+      ).rows[0];
+      if (!before) throw new RuleError("NOT_FOUND");
+      after = (
+        await db.query(
+          'UPDATE service_controls SET matches_open=$2 WHERE id=$1 RETURNING matches_open AS "matchesOpen"',
+          [c.targetId, c.action === "matches.resume"],
         )
       ).rows[0];
     } else {

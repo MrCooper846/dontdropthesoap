@@ -15,6 +15,33 @@ import type { Snapshot } from "../../shared/protocol/commands";
 import { distance } from "../../shared/yard/map";
 type Bot = { id: string; name: string; online: boolean; kind: string };
 export default function YardPage() {
+  const [admissionsPaused, setAdmissionsPaused] = useState(false);
+  useEffect(() => {
+    let stopped = false,
+      pending = false;
+    async function refresh() {
+      if (pending) return;
+      pending = true;
+      try {
+        const response = await fetch("/api/v1/service");
+        if (response.ok) {
+          const state = await response.json();
+          if (!stopped) setAdmissionsPaused(state.matchesOpen === false);
+        }
+      } catch {
+        /* Keep the last confirmed service state during reconnect. */
+      } finally {
+        pending = false;
+      }
+    }
+    void refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, []);
+
   const [session, setSession] = useState<BrowserSession | null>(null),
     [name, setName] = useState(""),
     [online, setOnline] = useState(false),
@@ -315,6 +342,12 @@ export default function YardPage() {
     near = !!me && !!selected && distance(me, selected) <= selected.radius + 32;
   return (
     <main className="yard-page">
+      {admissionsPaused && (
+        <p role="status">
+          New games are paused for maintenance. Existing games can finish; the
+          yard and nearby chat remain open.
+        </p>
+      )}
       <header className="yard-header">
         <div>
           <span className="yard-eyebrow">THE NOODLE ECONOMY</span>

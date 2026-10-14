@@ -146,7 +146,7 @@ async function start(directory: string, database: string) {
       DATABASE_URL: base + database,
       SESSION_SECRET_PEPPER: pepper,
       COMMAND_KEY_SIGNING_SECRET: signing,
-      FEATURE_YARD: "true",
+      FEATURE_YARD: "false",
       FEATURE_LEAGUE: "true",
       FEATURE_VOICE: "false",
     },
@@ -170,6 +170,50 @@ async function start(directory: string, database: string) {
   }, "restored service readiness");
   assert.equal((await fetch(local + "/leagues")).status, 200);
   assert.equal((await fetch(local + "/api/v1/leagues")).status, 200);
+}
+// Exercise actual authenticated HTTP writes in the standalone match regression mode.
+// The SQL backstop must hold even when the previous binary has no maintenance code.
+async function pausedAdmission(cookie: string, db: Pool) {
+  const session = await (
+    await fetch(local + "/api/v1/session", { headers: { Cookie: cookie } })
+  ).json();
+  async function post(route: string, input: unknown) {
+    return fetch(local + "/api/v1" + route, {
+      method: "POST",
+      headers: {
+        Cookie: cookie,
+        Origin: origin,
+        "x-csrf-token": session.csrfToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  }
+  const controller = await post("/controller/acquire", {});
+  assert.equal(controller.status, 200);
+  const { controllerEpoch } = await controller.json();
+  const keyResponse = await post("/command-keys", {});
+  assert.equal(keyResponse.status, 201);
+  const { key } = await keyResponse.json();
+  const before = (await db.query("SELECT count(*)::text AS n FROM matches"))
+    .rows[0].n;
+  const attempt = await post("/matches", {
+    commandId: randomUUID(),
+    key,
+    controllerEpoch,
+  });
+  assert.ok(
+    [409, 503].includes(attempt.status),
+    "Paused admission must reject on both current and previous binaries",
+  );
+  assert.equal(
+    (await db.query("SELECT count(*)::text AS n FROM matches")).rows[0].n,
+    before,
+    "No match may persist during maintenance",
+  );
+  const control = (await db.query("SELECT matches_open FROM service_controls"))
+    .rows[0];
+  assert.equal(control.matches_open, false);
 }
 async function restoreOne(
   source: string,
@@ -336,6 +380,7 @@ async function restoreOne(
       "league_settlements",
     ];
     const ledger = await fingerprints(restored, durableTables);
+    await restored.query("UPDATE service_controls SET matches_open=false");
     await start(root, destination);
     const cookie = "dds_session=" + seeded.secret;
     const restoredSession = await fetch(local + "/api/v1/session", {
@@ -348,6 +393,7 @@ async function restoreOne(
     );
     const session = await restoredSession.json();
     assert.equal(session.ownerId, seeded.ownerId);
+    await pausedAdmission(cookie, restored);
     const publicBefore = await (await fetch(local + "/api/v1/leagues")).json();
     const restoredReadyMs = Math.round(performance.now() - started);
     await stop();
@@ -368,6 +414,7 @@ async function restoreOne(
       });
       assert.equal(response.status, 200);
       assert.equal((await response.json()).ownerId, session.ownerId);
+      await pausedAdmission(cookie, restored);
       assert.deepEqual(
         await (await fetch(local + "/api/v1/leagues")).json(),
         publicBefore,
@@ -386,6 +433,8 @@ async function restoreOne(
       });
       assert.equal(forward.status, 200);
       assert.equal((await forward.json()).ownerId, session.ownerId);
+      await pausedAdmission(cookie, restored);
+      await restored.query("UPDATE service_controls SET matches_open=true");
       assert.deepEqual(await fingerprints(restored, durableTables), ledger);
       await stop();
     }
@@ -411,6 +460,7 @@ async function restoreOne(
       ledgerPreservation: "PASS",
       rollback: rollback ? "PASS" : "NOT_RUN",
       rollbackRevision: rollbackRevision ?? null,
+      pausedAdmissionAcrossBinaryChanges: rollback ? "PASS" : "CURRENT_ONLY",
       keyLifecycle: "EPHEMERAL_TEST_KEY_DISCARDED",
       publicTLS: "NOT_TESTED",
     };

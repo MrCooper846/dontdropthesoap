@@ -1,3 +1,4 @@
+import { matchesOpen } from "../operators/maintenance";
 import type { IncomingMessage } from "node:http";
 import type { PoolClient } from "pg";
 import { randomUUID, randomBytes } from "node:crypto";
@@ -248,6 +249,7 @@ async function manageWaitingFixtures() {
     await transaction(async (db) => {
       const m = await loadMatch(db, row.id, true);
       if (m.phase !== "waiting") return;
+      if (!(await matchesOpen(db, true))) return;
       if (!botsReady(m)) {
         m.phase = "cancelled";
         m.deadline = null;
@@ -285,6 +287,7 @@ export async function tickLeague() {
           "UPDATE league_entries SET offline_at=NULL,offline_epoch=NULL WHERE id=$1",
           [entry.id],
         );
+    const admitting = await matchesOpen(db, true);
     const batches = (
       await db.query(
         "SELECT id FROM league_batches WHERE state='running' ORDER BY sequence",
@@ -298,12 +301,14 @@ export async function tickLeague() {
       ).rows[0].count,
     );
     for (const batch of batches) {
-      const candidates = (
-        await db.query(
-          "SELECT f.*,a.bot_id AS a_bot,b.bot_id AS b_bot FROM league_fixtures f JOIN league_entries a ON a.id=f.entry_a_id JOIN league_entries b ON b.id=f.entry_b_id WHERE f.batch_id=$1 AND f.state='queued' AND a.offline_at IS NULL AND b.offline_at IS NULL ORDER BY f.ordinal LIMIT 120 FOR UPDATE OF f",
-          [batch.id],
-        )
-      ).rows;
+      const candidates = admitting
+        ? (
+            await db.query(
+              "SELECT f.*,a.bot_id AS a_bot,b.bot_id AS b_bot FROM league_fixtures f JOIN league_entries a ON a.id=f.entry_a_id JOIN league_entries b ON b.id=f.entry_b_id WHERE f.batch_id=$1 AND f.state='queued' AND a.offline_at IS NULL AND b.offline_at IS NULL ORDER BY f.ordinal LIMIT 120 FOR UPDATE OF f",
+              [batch.id],
+            )
+          ).rows
+        : [];
       for (const fixture of candidates) {
         if (active >= config.MAX_ACTIVE_LEAGUE_FIXTURES) break;
         const entries = (

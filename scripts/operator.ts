@@ -1,3 +1,4 @@
+import { maintenanceStatus } from "../server/operators/maintenance";
 import {
   applyOperator,
   listReports,
@@ -11,7 +12,8 @@ async function run() {
   const label = operatorLabel.parse(process.env.SOAP_OPERATOR_ID);
   const mode = process.argv[2] ?? "apply";
   let result: unknown;
-  if (mode === "reports")
+  if (mode === "status") result = await maintenanceStatus();
+  else if (mode === "reports")
     result = await listReports(
       label,
       process.argv[3] ?? "open",
@@ -35,7 +37,11 @@ async function run() {
       throw new RuleError("INVALID_PAYLOAD");
     }
     result = await applyOperator(label, input);
-  } else throw new RuleError("INVALID_PAYLOAD", "Use apply, reports or audit");
+  } else
+    throw new RuleError(
+      "INVALID_PAYLOAD",
+      "Use apply, reports, audit or status",
+    );
   console.log(JSON.stringify(result));
 }
 run()
