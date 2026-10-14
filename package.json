@@ -19,7 +19,8 @@
     "test:recovery": "tsx tests/runtime/recovery.ts",
     "test:setup": "tsx scripts/init-test-dbs.ts",
     "legacy:archive": "tsx scripts/archive-legacy.ts",
-    "test:yard": "playwright test -c playwright.yard.config.ts"
+    "test:yard": "playwright test -c playwright.yard.config.ts",
+    "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",
@@ -27,6 +28,10 @@
     "blockly": "13.4.0",
     "cross-env": "^7.0.3",
     "dotenv": "18.0.8",
+    "livekit-client": "2.22.4",
+    "livekit-server-sdk": "2.19.1",
+    "mediasoup": "3.29.0",
+    "mediasoup-client": "3.24.5",
     "next": "^15.3.2",
     "pg": "8.23.1",
     "phaser": "4.2.1",
@@ -55,5 +60,8 @@
   "overrides": {
     "postcss": "8.5.30",
     "esbuild": "0.28.2"
+  },
+  "allowScripts": {
+    "mediasoup@3.29.0": true
   }
 }

@@ -217,7 +217,7 @@ Update this section during development. These initial statuses mean no implement
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
-| 4 Voice | NOT_STARTED | — | Enforced routing and devices |
+| 4 Voice | IN_PROGRESS | Real LiveKit RTP/permission spike rejected the initial design; audibility domain implemented | Server-authorized consumer adapter, hostile-client proof and devices |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
@@ -300,6 +300,16 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 - Next ready stage after final check/commit: proximity-voice provider enforcement spike and adapter. The visual builder and league can proceed independently of real-device/playtest dependencies.
 - Verified implementation SHA: 70bd744. Stacked draft review: https://github.com/MrCooper846/dontdropthesoap/pull/6 (base codex/external-bot-api). No public deployment or merge occurred.
 
+### Stage 4 checkpoint — measured media design failure
+
+- Active branch: codex/proximity-voice, based on cbcbbba. Yard remains verified in draft PR #6.
+- Pinned LiveKit client 2.22.4/server SDK 2.19.1 and local server image 1.13.10. Added a loopback-only Compose voice-spike profile, development-only /lab/voice probe and a real three-browser synthetic-tone test.
+- npm run test:voice-spike passed its diagnostic assertions: normal media/RTP delivery works; a canSubscribe:false client receives zero tracks/packets despite room-admin forcing; a canSubscribe:true client can override server unsubscribe and receive media again. This is a FAILED CANDIDATE DESIGN GATE, not an implemented/verified proximity voice feature.
+- Upstream LiveKit fix #4701 was still open when checked. Exact method/version evidence is recorded in yard-and-voice.md.
+- Added a pure audibility domain for authoritative distance <=8 tiles, full volume within three, symmetric blocks, same-table human rules, one-way spectator suppression and bot-owner avatar position. It is not yet mounted to a media transport.
+- Next concrete action: implement and prove a server-authorized consumer adapter, with mediasoup as the next candidate; retain the planned distance/block semantics. Do not substitute client volume controls or weaker acoustic privacy.
+- Real-device/audio/playtest evidence remains missing. Complete the adapter/builder/league/release work independently before requesting those external validation inputs.
+
 ## Resume procedure
 
 Read the record, inspect Git and verify claimed work against code and evidence. Resume the first incomplete ready stage. Re-run checks affected by intervening changes; do not automatically rerun every expensive test. If a prior stage regressed, repair it and update its status.
@@ -317,3 +327,11 @@ Return:
 - Deployment/rollback instructions or authorised deployment result.
 
 Stop expanding scope once the agreed v1 gates pass. Further mechanics require a new goal.
+
+### Stage 4 checkpoint — native consumer authorization layer
+
+- Branch codex/proximity-voice. Added server/voice/media.ts with a real mediasoup native worker, Opus-only transports, bounded allocations, paused consumer creation, authority rechecks, consumer closure and connection fencing.
+- Pinned mediasoup 3.29.0/client 3.24.5; explicitly approved the required mediasoup installer in package.json so a fresh npm install can install its native worker.
+- Fixed an audience test fixture literal-type error discovered by typecheck.
+- Evidence: npm run typecheck; npm test (49 passing, including real native SFU policy test); npm run lint; npm run build (pass); npm audit (zero advisories). Browser media remains unproved by this layer; no voice completion claim.
+- Next concrete action: connect authenticated browser-only Socket.IO signaling to yard/session/controller state; implement the browser send/receive adapter and push-to-talk UI; prove real audio restriction with modified listeners and routing failure.
