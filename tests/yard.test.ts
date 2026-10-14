@@ -98,3 +98,21 @@ it("projects only public presence and acknowledgement fields", () => {
   expect(snapshot.players[0]).not.toHaveProperty("controllerEpoch");
   expect(snapshot.players[0]).not.toHaveProperty("input");
 });
+
+it("never downgrades a controller from an older metadata refresh and excludes disconnected recipients", () => {
+  const y = new Yard();
+  y.enter("a", "A", "a", 3, 0);
+  y.enter("b", "B", "b", 1, 0);
+  y.setController("a", 2);
+  expect(() => y.input("a", "a", 2, { seq: 0, axisX: 1, axisY: 0 }, 1)).toThrow(
+    "CONTROLLER_STALE",
+  );
+  expect(y.input("a", "a", 3, { seq: 0, axisX: 1, axisY: 0 }, 1)).toBe(true);
+  y.disconnect("b", "b", 2);
+  expect(y.recipients("a", () => false)).toEqual(["a"]);
+  y.enter("b", "B", "new", 2, 10);
+  expect(y.active("b")).toBe(true);
+  y.disconnect("b", "new", 10);
+  y.prune(30011);
+  expect(y.has("b")).toBe(false);
+});

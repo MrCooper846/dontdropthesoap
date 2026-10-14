@@ -1,6 +1,6 @@
 # Yard client, movement and proximity voice
 
-Status: proposed alpha design; voice authorization requires a feasibility spike before implementation is committed to a provider.
+Status: the yard/movement/social alpha is implemented and under browser verification. Voice remains a proposed design and requires a feasibility spike before committing to its provider.
 
 ## Rendering and input
 
@@ -10,7 +10,7 @@ Use original cartoon prisoners and a compact top-down map with depth sorting by 
 
 Desktop WASD/arrows; mobile virtual joystick plus large interaction button. Normalise diagonal input. Cancel movement on blur, touch cancel and modal opening. Camera follows the local avatar; respect reduced motion, UI safe areas and landscape/portrait resizing. Include a text list of nearby circles as an alternative to canvas-only interaction.
 
-Initial implemented geometry: 960×640 pixels, 32 pixels per tile, 10-pixel avatar radius, 96 pixels/second movement, four fixed 64-pixel circles and a one-tile extra interaction reach. A shared pure movement function applies the same rectangular collision checks to server authority and planned client prediction. Initial nearby text routing uses eight tiles. These are tuneable map defaults; the domain implementation does not yet imply a mounted yard client.
+Initial implemented geometry: 960×640 pixels, 32 pixels per tile, 10-pixel avatar radius, 96 pixels/second movement, four fixed 64-pixel circles and a one-tile extra interaction reach. A shared pure movement function applies the same rectangular collision checks to server authority and planned client prediction. Initial nearby text routing uses eight tiles. These are tuneable map defaults; these defaults now back the mounted Phaser client and live server. Disconnected presences reserve their last position for 30 seconds before expiry; reconnect binds a new authenticated socket, while service restart respawns at the entrance.
 
 ## Movement protocol
 

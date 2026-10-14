@@ -10,7 +10,9 @@ The integration branch now contains a playable authenticated match foundation. P
 
 Owned external bots now participate through scoped HTTP/Socket.IO credentials and a fenced controller lease. The bot page supports registration and credential issuance/revocation, and mixed tables admit an owned bot while its owner watches. Runnable Python and TypeScript clients are in [examples/bots](examples/bots/README.md).
 
-The yard, proximity voice, visual builder and bot league are still incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
+The shared cartoon yard now runs authoritative desktop/mobile movement, four circle entry points, human/mixed matches, spectators, direct challenges, nearby text and block/report. Bot owners keep their human presence and can walk while their bot plays.
+
+Proximity voice, the visual builder and bot league remain incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
 
 The original party MVP remains a local-only legacy demo. Its unauthenticated handlers are absent from the new game server.
 
@@ -26,7 +28,7 @@ npm run db:migrate
 npm run dev
 ```
 
-Open http://localhost:3000. Enter a guest alias, create a table, copy its invite, and open it in another browser profile. Each participant readies up before the host starts. A new browser tab can explicitly take controller authority; earlier controller epochs cannot write.
+Open http://localhost:3000. Save a guest alias, enter the yard, and use WASD/arrows or the touch joystick. Approach a circle and inspect it using its map marker, E/Interact, or the accessible circle list. Create/join personally or enter an owned bot at mixed tables. Each owner readies their entrant before the host starts. Other yard members can watch; a human seat stays anchored, while a bot owner remains free to walk. Nearby players can exchange expiring direct challenges. A new browser tab can explicitly take controller authority; earlier controller epochs cannot write.
 
 Defaults are 10 rounds, 20-second decisions, five-second reveals and at most eight entrants. The first accepted move locks. Missing moves become C at the deadline. Leaving an active match retains the seat and accepted move; future moves become timeout C. Match scores start at zero; completed social scores settle to a separate lifetime ledger.
 
@@ -45,16 +47,19 @@ npm run lint
 npm run test:integration
 npm run test:browser
 npm run test:alpha
+npm run test:yard
 npm run test:recovery
 npm run build
 npm audit
 ```
 
-Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery. The integration suite refuses another database and truncates only that test database.
+Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery; test:yard uses soap_yard_browser. The integration suite refuses another database and truncates only that test database.
 
 test:browser exercises the local legacy baseline and Phaser/Blockly lifecycle and emulated touch spikes. These are prototypes, not completed yard/editor features. test:alpha exercises the authenticated match UI, actual HTTP/socket visibility, hostile commands, Clanker, bot management and real Python/TypeScript processes against a human. test:recovery kills and restarts real game processes, verifies committed hidden human/bot moves, controller fencing, bot-process reconnection and singleton exclusion.
 
-lint checks new source formatting; typecheck checks TypeScript. Real mobile devices, media authorization, human playtests, full load/soak and backup restore are still pending.
+lint checks new source formatting; typecheck checks TypeScript. test:yard verifies real keyboard/touch movement, circle admission/capacity, malicious teleport/controller packets, direct challenge completion/expiry, a roaming external-bot owner, spectators, markup-safe proximity text, bidirectional blocks, durable reports, resize and alias-preserving reload.
+
+Real mobile devices, media authorization, human playtests, full load/soak and backup restore are still pending.
 
 ## Legacy data and demo
 
@@ -78,7 +83,9 @@ legacy:archive leaves the source untouched and writes a versioned export, copied
 | server/matches/ | Durable state, normalized seats/moves/pairings/results and outbox |
 | domain/match/ | Deterministic rules, scoring, lifecycle and projections |
 | shared/protocol/ | Runtime-validated command contracts and snapshot types |
-| app/play/ | Playable match screen |
+| app/yard/, client/yard/ | Shared Phaser yard and accessible React social/match overlays |
+| server/yards/, domain/yard/, shared/yard/ | Presence, movement, circles, proximity recipients, challenges, block/report |
+| app/play/ | Standalone match regression screen when FEATURE_YARD=false |
 | app/lab/ | Renderer/editor lifecycle prototypes |
 | tests/ | Domain, PostgreSQL, browser and physical-recovery checks |
 | legacy-server.ts, lib/game.ts | Isolated original MVP |

@@ -20,6 +20,16 @@ Match create/join accepts optional botId, authenticated against the browser owne
 
 GET observations add events/cursor/hasMore/reset and accept after. state.sync accepts optional after and returns the equivalent filtered scan. Public and own-seat private events have a monotonic durable sequence separate from match state version. Invalid/out-of-retention cursors receive a current snapshot/reset cursor. Private entries advance the scan without exposing their payload. The socket publisher also filters private entries.
 
+Stage 3 adds yard.enter({controllerEpoch}), yard.leave({}), yard.input({controllerEpoch,payload:{seq,axisX,axisY}}), yard.sync({}) and chat.send({controllerEpoch,text}) events to /game-v1. Each uses {ok,result?,error?} acknowledgements. Positions carry yard epoch/tick/serverTime plus public avatars and circle summaries. The server owns positions; absolute-position fields are rejected. Controller takeovers fence old socket/epoch input and old metadata reads cannot downgrade the current epoch.
+
+Circle-backed match creation requires circleId and current authoritative proximity; ordinary joining also rechecks distance. With the yard enabled, a standalone non-circle create/join path is rejected. Human seating anchors the avatar; bot seats do not move or anchor their owners. Match subscriptions retain yard membership, and reconnect resynchronizes both.
+
+GET /yards, GET /yard, GET/POST /blocks, DELETE /blocks/:ownerId and POST /reports are implemented. Block/report mutations carry controllerEpoch; POST block/report takes ownerId and reports also take reason. Blocks suppress delivery in both directions. Chat recipients are frozen at send time and its bounded history lasts 30 seconds; moving later cannot unlock earlier conversations.
+
+GET/POST /challenges and POST /challenges/:id/accept or /decline are implemented. Creation uses the resource envelope with payload {ownerId,circleId,settings?,botId?}; target and inviter must be nearby, and circle proximity is rechecked at admission. Acceptance uses the same envelope with payload {botId?}; decline uses {}. Invites expire after 30 seconds and require both owners to remain eligible. Admission is serialized across circles to enforce owner/bot caps and the configured active-match limit. A challenge creates exactly two frozen entrant slots and repeated opponents. The initial challenge quota is five invitations/minute per owner.
+
+FEATURE_YARD defaults true; FEATURE_YARD=false retains isolated standalone match/bot regression paths. Viewer-facing bot rows include the owning alias, with public-ID fallback for older checkpoint records.
+
 All other endpoints and commands below remain implementation targets. Health routes /health/live and /health/ready are outside the versioned API. The legacy demo's handlers are not mounted by the new server.
 
 ## Credentials

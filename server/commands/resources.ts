@@ -28,6 +28,8 @@ export async function resource(
       .update(JSON.stringify({ target, ...c }))
       .digest("hex");
   return transaction(async (db) => {
+    if (target.startsWith("challenge."))
+      await db.query("SELECT pg_advisory_xact_lock(724102)");
     const p = await authenticate(req, db);
     await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
       p.id,

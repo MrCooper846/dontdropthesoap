@@ -7,7 +7,12 @@ if (!["localhost", "127.0.0.1"].includes(url.hostname) || url.port !== "55432")
   );
 const pool = new Pool({ connectionString: config.DATABASE_URL });
 async function run() {
-  for (const name of ["soap_test", "soap_browser", "soap_recovery"]) {
+  for (const name of [
+    "soap_test",
+    "soap_browser",
+    "soap_recovery",
+    "soap_yard_browser",
+  ]) {
     if (
       !(await pool.query("SELECT 1 FROM pg_database WHERE datname=$1", [name]))
         .rowCount

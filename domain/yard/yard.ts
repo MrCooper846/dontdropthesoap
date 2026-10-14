@@ -27,6 +27,7 @@ type Presence = {
   lastInputAt: number;
   processedSeq: number;
   anchor: Point | null;
+  disconnectedAt: number | null;
 };
 export type YardSnapshot = {
   epoch: string;
@@ -38,6 +39,7 @@ export type YardSnapshot = {
     x: number;
     y: number;
     seated: boolean;
+    connected: boolean;
     processedSeq: number;
   }[];
 };
@@ -55,6 +57,9 @@ export class Yard {
   ) {
     const existing = this.people.get(ownerId);
     if (existing) {
+      if (controllerEpoch < existing.controllerEpoch)
+        throw new RuleError("CONTROLLER_STALE");
+      existing.disconnectedAt = null;
       existing.socketId = socketId;
       existing.controllerEpoch = controllerEpoch;
       existing.name = name;
@@ -74,6 +79,7 @@ export class Yard {
       lastInputAt: now,
       processedSeq: -1,
       anchor: null,
+      disconnectedAt: null,
     });
     return this.snapshot();
   }
@@ -82,12 +88,28 @@ export class Yard {
     if (p && (!socketId || socketId === p.socketId))
       this.people.delete(ownerId);
   }
+  disconnect(ownerId: string, socketId: string, now: number) {
+    const p = this.people.get(ownerId);
+    if (p && p.socketId === socketId) {
+      p.socketId = "";
+      p.disconnectedAt = now;
+      p.input = { axisX: 0, axisY: 0 };
+    }
+  }
+  prune(now: number) {
+    for (const [id, p] of this.people)
+      if (p.disconnectedAt !== null && now - p.disconnectedAt >= 30000)
+        this.people.delete(id);
+  }
+  active(ownerId: string) {
+    return !!this.people.get(ownerId)?.socketId;
+  }
   has(ownerId: string) {
     return this.people.has(ownerId);
   }
   setController(ownerId: string, epoch: number) {
     const p = this.people.get(ownerId);
-    if (p) {
+    if (p && epoch > p.controllerEpoch) {
       p.controllerEpoch = epoch;
       p.input = { axisX: 0, axisY: 0 };
       p.processedSeq = -1;
@@ -134,6 +156,11 @@ export class Yard {
   anchor(ownerId: string, point: Point | null) {
     const p = this.people.get(ownerId);
     if (p) {
+      if (
+        (!p.anchor && !point) ||
+        (p.anchor && point && p.anchor.x === point.x && p.anchor.y === point.y)
+      )
+        return;
       p.anchor = point ? { ...point } : null;
       p.input = { axisX: 0, axisY: 0 };
     }
@@ -152,6 +179,7 @@ export class Yard {
     return [...this.people.values()]
       .filter(
         (p) =>
+          !!p.socketId &&
           distance(sender.position, p.position) <= 8 * TILE &&
           !blocked(ownerId, p.ownerId),
       )
@@ -168,6 +196,7 @@ export class Yard {
         x: p.position.x,
         y: p.position.y,
         seated: !!p.anchor,
+        connected: p.disconnectedAt === null,
         processedSeq: p.processedSeq,
       })),
     };
