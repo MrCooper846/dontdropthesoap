@@ -1,3 +1,4 @@
+import { serviceWork } from "../lifecycle/work";
 import type { Namespace, Socket } from "socket.io";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
@@ -37,15 +38,21 @@ export function attachYard(socket: Socket, game: Namespace) {
     work: (input: unknown) => Promise<unknown> | unknown,
   ) {
     socket.on(name, (input: unknown, ack: (data: unknown) => void) => {
-      void Promise.resolve()
-        .then(() => {
-          if (!config.FEATURE_YARD || socket.data.principal.kind !== "browser")
-            throw new RuleError("FORBIDDEN");
-          return work(input);
-        })
-        .then((result) => {
-          if (typeof ack === "function") ack({ ok: true, result });
-        })
+      void serviceWork
+        .run(() =>
+          Promise.resolve()
+            .then(() => {
+              if (
+                !config.FEATURE_YARD ||
+                socket.data.principal.kind !== "browser"
+              )
+                throw new RuleError("FORBIDDEN");
+              return work(input);
+            })
+            .then((result) => {
+              if (typeof ack === "function") ack({ ok: true, result });
+            }),
+        )
         .catch((e) => {
           if (typeof ack === "function") ack(failure(e));
         });
@@ -127,6 +134,7 @@ export function attachYard(socket: Socket, game: Namespace) {
   );
 }
 export function startYard(game: Namespace) {
+  let refreshWork: Promise<void> | undefined;
   let refreshPending = false,
     lastBroadcast = 0;
   const movement = setInterval(() => {
@@ -141,7 +149,7 @@ export function startYard(game: Namespace) {
   const refresh = setInterval(() => {
     if (!config.FEATURE_YARD || refreshPending) return;
     refreshPending = true;
-    void refreshWorld()
+    refreshWork = refreshWorld()
       .then(async () => {
         const peers = [...game.sockets.values()].filter((s) => s.data.yard);
         if (!peers.length) return;
@@ -162,11 +170,13 @@ export function startYard(game: Namespace) {
       .catch(() => {})
       .finally(() => {
         refreshPending = false;
+        refreshWork = undefined;
       });
   }, 250);
-  void refreshBlocks().catch(() => {});
-  return () => {
+  const initialBlocks = refreshBlocks().catch(() => {});
+  return async () => {
     clearInterval(movement);
     clearInterval(refresh);
+    await Promise.allSettled([refreshWork, initialBlocks]);
   };
 }

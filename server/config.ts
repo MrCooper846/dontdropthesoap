@@ -25,6 +25,12 @@ export function readConfig(
       .string()
       .min(32)
       .default("local-development-signing-change-before-deploying"),
+    SHUTDOWN_GRACE_MS: z.coerce
+      .number()
+      .int()
+      .min(1000)
+      .max(60000)
+      .default(30000),
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
     MAX_ACTIVE_LEAGUE_FIXTURES: z.coerce
       .number()
