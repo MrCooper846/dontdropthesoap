@@ -252,7 +252,7 @@ Commit checkpoints at meaningful boundaries and before handing off. Do not gener
 
 ### Stage 2 checkpoint — external identity layer
 
-- Active branch: codex/external-bot-api, based on 60fc8bc. The stage-1 review branch remains frozen for draft PR #4; pending merge does not block this descendant stage.
+- Active branch: codex/external-bot-api, based on 60fc8bc. Last committed implementation SHA: d4ed714. The stage-1 review branch remains frozen for draft PR #4; pending merge does not block this descendant stage.
 - Implemented server/bots/identity.ts against real PostgreSQL: owned external bot/version registration, owner-only listing, 256-bit scoped bearer credentials stored as hashes, credential revocation, durable controller epochs, a five-second heartbeat contract and fifteen-second ephemeral lease expiry.
 - Verified separate owners cannot mint/revoke another owner's credentials; takeover fences earlier controllers; revocation invalidates the active credential and clears its lease. Per-owner credential issuance is serialized for cap enforcement.
 - Checks: npm run typecheck, npm run lint and npm run test:integration all pass (five PostgreSQL tests total, including the three match-persistence tests).
