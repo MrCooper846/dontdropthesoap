@@ -17,6 +17,7 @@
     "test:alpha": "playwright test -c playwright.alpha.config.ts",
     "test:integration": "npm run build:workers && FEATURE_LEAGUE=true FEATURE_VISUAL_BOTS=true FEATURE_YARD=false DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
     "operator": "tsx scripts/operator.ts",
+    "test:overload": "tsx tests/runtime/overload.ts",
     "test:shutdown": "npm run build:workers && tsx tests/runtime/shutdown.ts",
     "test:database-outage": "npm run build:workers && tsx tests/runtime/database-outage.ts",
     "test:recovery": "tsx tests/runtime/recovery.ts",

@@ -31,6 +31,7 @@ export function readConfig(
       .min(1000)
       .max(60000)
       .default(30000),
+    MAX_PENDING_WORK: z.coerce.number().int().min(32).max(4096).default(256),
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
     MAX_ACTIVE_LEAGUE_FIXTURES: z.coerce
       .number()

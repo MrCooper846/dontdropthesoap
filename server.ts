@@ -1,3 +1,4 @@
+import { startMetrics } from "./server/observability/metrics";
 import { startOperatorEffects } from "./server/operators/effects";
 import { dropCredentialLease } from "./server/bots/identity";
 import { serviceWork } from "./server/lifecycle/work";
@@ -48,6 +49,15 @@ async function main() {
   enforceCoordinatorLease();
   await recoverMatches();
   const http = createServer((req, res) => {
+    if (req.url === "/health/live") {
+      if (serviceWork.draining) res.setHeader("Connection", "close");
+      json(
+        res,
+        200,
+        serviceWork.draining ? { live: true, draining: true } : { live: true },
+      );
+      return;
+    }
     if (serviceWork.draining) {
       res.setHeader("Connection", "close");
       if (req.url === "/health/live")
@@ -95,10 +105,24 @@ async function main() {
           if (!handled) return app.getRequestHandler()(req, res);
         }),
       )
-      .catch(() => {
+      .catch((error) => {
         if (!res.headersSent) {
-          res.writeHead(500);
-          res.end("Request failed");
+          const retryable =
+            error instanceof RuleError && error.code === "SERVICE_UNAVAILABLE";
+          if (retryable) {
+            res.setHeader("Connection", "close");
+            res.setHeader("Retry-After", "1");
+            json(res, 503, {
+              error: {
+                code: "SERVICE_UNAVAILABLE",
+                message: error.message,
+                retryable: true,
+              },
+            });
+          } else {
+            res.writeHead(500);
+            res.end("Request failed");
+          }
         }
       });
   });
@@ -131,15 +155,17 @@ async function main() {
             next();
           }),
         )
-        .catch(() =>
+        .catch((error) =>
           next(
             new Error(
-              serviceWork.draining ? "SERVICE_UNAVAILABLE" : "AUTH_REQUIRED",
+              error instanceof RuleError && error.code === "SERVICE_UNAVAILABLE"
+                ? "SERVICE_UNAVAILABLE"
+                : "AUTH_REQUIRED",
             ),
           ),
         );
-    } catch {
-      next(new Error("FORBIDDEN"));
+    } catch (error) {
+      next(new Error(error instanceof RuleError ? error.code : "FORBIDDEN"));
     }
   });
   const voice = config.FEATURE_VOICE ? await startVoice(game) : null;
@@ -205,6 +231,14 @@ async function main() {
         });
     });
   });
+  const stopMetrics = startMetrics(() => ({
+    pendingWork: serviceWork.pendingCount,
+    connectedSockets: game.sockets.size,
+    ready: ready && coordinatorAvailable(),
+    draining: serviceWork.draining,
+    dbWaiting: pool.waitingCount,
+    dbConnections: pool.totalCount,
+  }));
   const stopOperators = startOperatorEffects((effect) => {
     if (effect.action === "credential.revoke")
       dropCredentialLease(effect.targetId);
@@ -331,6 +365,7 @@ async function main() {
       tickWork,
     ]);
     await serviceWork.wait();
+    stopMetrics();
     await closeVisualPreview();
     // Preserve queued ACKs on both polling and WebSocket transports.
     await Promise.all(
