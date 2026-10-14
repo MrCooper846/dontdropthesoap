@@ -10,7 +10,7 @@ The planned game is a cartoon 2D prison yard where people hang out, talk, challe
 
 Start with the [game vision](docs/game-vision.md) for the intended experience, design principles, core gameplay and open questions.
 
-This is the first part of the documentation rewrite. Detailed architecture, protocol and implementation milestones will follow after their decisions are made.
+The [technical plan](docs/README.md) covers architecture, data, gameplay rules, the bot protocol, yard/voice, testing, operations and implementation milestones. It describes the proposed next version; the implementation below remains the original MVP.
 
 ## What the current MVP does
 

@@ -1,0 +1,65 @@
+# Deployment, security and operations
+
+Status: proposed alpha deployment. No infrastructure is provisioned by these docs.
+
+## Deployment shape
+
+One game-service process with the existing web app, one PostgreSQL instance and a separate media service. Start with Docker Compose for local integration and a single host or equivalent services for a private alpha. Choose the actual host after checking available resources. Managed LiveKit versus self-hosted remains a cost/operations decision after the voice spike.
+
+Expose only HTTPS/WSS publicly through a reverse proxy. Keep PostgreSQL on a private network. Configure WebSocket upgrades, proxy timeouts and secure cookies. Keep media network requirements separate; HTTPS reachability alone does not prove WebRTC or TURN connectivity.
+
+Proposed environment:
+- NODE_ENV, PORT, PUBLIC_ORIGIN
+- DATABASE_URL
+- SESSION_SECRET_PEPPER, COMMAND_KEY_SIGNING_SECRET
+- LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+- MAX_YARD_PLAYERS, MAX_ACTIVE_MATCHES, LOG_LEVEL
+- FEATURE_YARD, FEATURE_EXTERNAL_BOTS, FEATURE_VOICE, FEATURE_LEAGUE
+
+Validate required variables at startup. Secrets live in deployment secret storage, never NEXT_PUBLIC variables, Git or logs. Browser bundles receive only public origins and short-lived participant tokens. Rotate with an explicit overlap/revocation plan.
+
+## Boot and deployment
+
+1. Back up and verify database access.
+2. Run migrations once; stop if they fail.
+3. Start singleton service and obtain exclusive writer lease.
+4. Recover matches and outbox; only then pass readiness.
+5. Enable admissions and check synthetic noncompetitive match.
+
+Health endpoints: /health/live means process alive; /health/ready requires database, writer ownership and successful recovery. Voice failure degrades voice without making scoring unsafe.
+
+Graceful shutdown stops new admissions, emits restart notice, commits in-flight work, disconnects media participants and exits. Deployments should prefer finishing active matches; if interrupted use documented recovery rather than clearing them. Use additive schemas so the previous binary can run during rollback; otherwise restore with an explicit downtime plan.
+
+## Abuse boundaries
+
+Authenticate every action, validate every input and check ownership server-side. Rate-limit resource creation as well as messages, expire empty waiting rooms after 15 minutes, and remove stale presences. Default bot credential cap: five active credentials per owner; bot registration cap: twenty bots per owner in alpha.
+
+Bound pending commands, active tasks, HTTP bodies, observation pages and memory. Do not run uploaded code. No arbitrary bot webhooks. Render player text as text. Use restrictive allowed origins and content-security policy appropriate for the canvas/editor/media integration; test rather than disabling it to fix one dependency.
+
+Guests and one-owner-per-league limits do not stop determined multi-accounting. Initial competition has no prizes; account upgrades and stronger abuse controls are a later public-league requirement.
+
+Operator moderation is separate from gameplay guards. Provide documented owner disable, session/token revocation, voice removal and report review controls with audit records. The whimsical guard idea does not replace these operations.
+
+## Logs and monitoring
+
+Structured logs: request/command ID, match ID, event type, latency and error code. Never log session/bot secrets, unrevealed moves, raw audio or arbitrary bot prompts. Keep private gameplay debug logging off in production.
+
+Measure active presences/seats, commands rejected, ACK latency, event-loop lag, DB transaction latency, outbox age, timeout fraction, worker failures, reconnects and voice policy failures. Alert on repeated resolver failures, growing outbox backlog, disk pressure and loss of writer ownership.
+
+If database writes fail, stop accepting moves and report service unavailable; do not ACK in-memory moves. If degraded beyond a decision window, mark affected active matches for abort as soon as the database returns rather than awarding timeout wins caused by infrastructure failure. Record the incident for league fixture retry.
+
+If voice authorization updates fail, remove or suspend the affected media participants until permissions reconcile. Client volume is not a fallback access control.
+
+## Backup and rollback
+
+Daily encrypted PostgreSQL backup, seven-day retention initially, off-host copy. Alpha recovery point objective: up to 24 hours under catastrophic DB loss; routine process restart should lose no acknowledged durable commands. Target restore time: under one hour, to be tested, not promised.
+
+Run a restore drill before public alpha. Record backup timestamp, checksums, restore steps and observed recovery time. Do not delete the legacy SQLite archive. Never overwrite a live database with a backup without an explicit maintenance plan.
+
+## Costs and limits
+
+Budget separately for application compute, PostgreSQL, backups and voice bandwidth/participant minutes. External model costs belong to bot owners. No provider pricing is assumed in this plan. Set spending alerts and hard admission caps before sharing broadly; inspect real usage after each playtest.
+
+## Launch gates
+
+A private alpha can ship rough art and basic UI. It must pass hidden-move, identity, deadline, settlement and reconnect tests. Voice requires the media authorization gate. Public sharing additionally needs workable mute/block/report, operational rollback, a restore drill and clear guest-account limitations.
