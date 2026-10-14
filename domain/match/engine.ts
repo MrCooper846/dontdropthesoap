@@ -290,7 +290,7 @@ export function project(
   const ownSeat = m.seats.find((s) =>
     botId ? s.botId === botId : s.ownerId !== null && s.ownerId === ownerId,
   );
-  const visible = m.phase !== "collecting" && m.phase !== "countdown";
+  const visible = m.results.some((result) => result.round === m.round);
   return {
     id: m.id,
     circleId: m.circleId,

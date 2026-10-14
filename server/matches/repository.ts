@@ -1,3 +1,4 @@
+import { reconcileLeagueMatch } from "../league/settlement";
 import type { PoolClient } from "pg";
 import type { Match } from "../../domain/match/model";
 import { RuleError } from "../../domain/match/model";
@@ -83,6 +84,7 @@ export async function saveMatch(
           "INSERT INTO balance_entries(id,owner_id,match_id,delta) VALUES($1,$2,$3,$4) ON CONFLICT(owner_id,match_id) DO NOTHING",
           [randomUUID(), s.ownerId, m.id, s.score],
         );
+  await reconcileLeagueMatch(db, m);
   await db.query(
     "INSERT INTO match_events(match_id,sequence,type,visibility,payload) VALUES($1,$2,$3,'public',$4) ON CONFLICT DO NOTHING",
     [

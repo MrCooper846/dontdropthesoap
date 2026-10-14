@@ -218,6 +218,13 @@ export function startVisualRuntime() {
                 });
                 if (!stopped) await acceptVisual(job, outcome);
               } catch (e) {
+                if (
+                  e &&
+                  typeof e === "object" &&
+                  "code" in e &&
+                  e.code === "BOT_BUSY"
+                )
+                  return;
                 if (!stopped)
                   await recordError(
                     job,

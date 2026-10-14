@@ -26,6 +26,12 @@ export function readConfig(
       .min(32)
       .default("local-development-signing-change-before-deploying"),
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
+    MAX_ACTIVE_LEAGUE_FIXTURES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(4),
     MAX_ACTIVE_MATCHES: z.coerce.number().int().min(1).max(16).default(4),
     FEATURE_YARD: z
       .enum(["true", "false"])
