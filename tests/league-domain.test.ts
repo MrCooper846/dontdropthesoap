@@ -86,3 +86,17 @@ it("standings use points then mutual cooperation and preserve shared ranks witho
     ]),
   ).toThrow();
 });
+
+it("alternates the same bot pairs even when a new batch has new registration IDs", () => {
+  const previous = entries.slice(0, 4);
+  const renewed = previous.map((e, i) => ({ ...e, id: "new" + (10 - i) }));
+  const first = schedule(previous, 1).map((p) => [
+    previous.find((e) => e.id === p.a)!.botId,
+    previous.find((e) => e.id === p.b)!.botId,
+  ]);
+  const second = schedule(renewed, 2).map((p) => [
+    renewed.find((e) => e.id === p.a)!.botId,
+    renewed.find((e) => e.id === p.b)!.botId,
+  ]);
+  expect(second).toEqual(first.map(([a, b]) => [b, a]));
+});

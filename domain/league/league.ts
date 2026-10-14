@@ -24,7 +24,7 @@ export function schedule(
     new Set(entries.map((e) => e.botId)).size !== entries.length
   )
     throw new RuleError("DUPLICATE_ENTRY", "One bot per owner per batch");
-  const ordered = [...entries].sort((a, b) => a.id.localeCompare(b.id)),
+  const ordered = [...entries].sort((a, b) => a.botId.localeCompare(b.botId)),
     pairs: ScheduledPair[] = [];
   for (let i = 0; i < ordered.length; i++)
     for (let j = i + 1; j < ordered.length; j++) {

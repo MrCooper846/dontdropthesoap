@@ -6,7 +6,7 @@
     "dev": "npm run build:workers && tsx server.ts",
     "build": "npm run build:workers && next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "prettier --check \"server/**/*.{ts,mjs}\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.{ts,mjs}\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.{ts,tsx}\" components/YardMatchPanel.tsx components/YardVoicePanel.tsx components/MediaProbe.tsx components/VoiceProbe.tsx \"examples/**/*.ts\" server.ts",
+    "lint": "prettier --check \"server/**/*.{ts,mjs}\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.{ts,mjs}\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"app/leagues/**/*.tsx\" \"client/**/*.{ts,tsx}\" components/YardMatchPanel.tsx components/YardVoicePanel.tsx components/MediaProbe.tsx components/VoiceProbe.tsx \"examples/**/*.ts\" server.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run build:workers && vitest run",
     "test:browser": "playwright test",
@@ -23,6 +23,7 @@
     "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts",
     "test:voice": "playwright test -c playwright.voice.config.ts",
     "build:workers": "esbuild server/bots/visual-worker.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/workers/visual-worker.mjs",
+    "test:league": "playwright test -c playwright.league.config.ts",
     "test:visual": "playwright test -c playwright.visual.config.ts",
     "test:migrations": "tsx scripts/check-migrations.ts"
   },

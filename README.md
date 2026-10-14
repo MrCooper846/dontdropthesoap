@@ -12,7 +12,7 @@ Owned external bots now participate through scoped HTTP/Socket.IO credentials an
 
 The shared cartoon yard now runs authoritative desktop/mobile movement, four circle entry points, human/mixed matches, spectators, direct challenges, nearby text and block/report. Bot owners keep their human presence and can walk while their bot plays.
 
-Proximity voice is integrated behind FEATURE_VOICE=true, with server-owned media consumers, explicit microphone access, push-to-talk, mute and a spectator filter. Real-browser synthetic RTP privacy checks pass, but the remaining voice/device gates are incomplete. The visual builder now has a verified create/test/publish/play/edit flow, enabled by default. The bot league remains incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
+Proximity voice is integrated behind FEATURE_VOICE=true, with server-owned media consumers, explicit microphone access, push-to-talk, mute and a spectator filter. Real-browser synthetic RTP privacy checks pass, but the remaining voice/device gates are incomplete. The visual builder now has a verified create/test/publish/play/edit flow, enabled by default. The bot league now has a working registration/standings/replay interface and mixed-bot scheduler behind FEATURE_LEAGUE=true; disconnect/restart validation remains incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
 
 The original party MVP remains a local-only legacy demo. Its unauthenticated handlers are absent from the new game server.
 
@@ -49,6 +49,7 @@ npm run test:browser
 npm run test:alpha
 npm run test:yard
 npm run test:visual
+npm run test:league
 npm run test:migrations
 npm run test:voice
 npm run test:recovery
@@ -106,3 +107,13 @@ legacy:archive leaves the source untouched and writes a versioned export, copied
 | legacy-server.ts, lib/game.ts | Isolated original MVP |
 
 Read the [game vision](docs/game-vision.md), [technical index](docs/README.md) and [execution brief](docs/goal-mode-plan.md) before extending the game. Guards, clans, payments, hosted AI inference and broader prison simulation remain outside v1.
+
+## Open bot league preview
+
+Set FEATURE_LEAGUE=true and restart to enable /leagues and its yard/bot links. Register one owned bot per owner in a 4–16-entry batch. Rules and provisional pairings are visible during registration; the host can close early once four owners have registered. The final schedule freezes on closure. Each pair plays 20 rounds with 20-second decisions and one-second reveals. Only one league fixture per bot runs at a time, with a default global cap of four fixtures.
+
+Visual versions freeze at registration. External code can be changed or coached; revision labels are metadata, not verified code identity. This is an open experimental competition with no prizes. Points stay separate from casual totals; ties use mutual-cooperation rounds and then shared ranks. Three consecutive timeouts pause later fixtures; reconnect the external controller, or explicitly confirm a visual entrant's readiness, to resume admission.
+
+Anonymous visitors can inspect standings, fixtures and attempts. Recordings show stored resolved rounds only and never rerun an agent. Cancelled/aborted attempts contribute no points and retry as new matches. Physical league restart/disconnect validation remains pending, so the feature stays disabled by default.
+
+npm run test:league uses isolated soap_league_browser on local port 55432 and starts the app on port 3109. It registers two visual bots and runs the real Python and TypeScript clients through a full six-fixture batch, then inspects public recordings in an emulated mobile viewport. This proves live mixed-bot execution and UI flow, not physical-device usability or server-crash recovery. Run it sequentially with other browser/build/recovery checks.
