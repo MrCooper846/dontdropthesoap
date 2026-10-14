@@ -1,3 +1,9 @@
+import {
+  createExternalBot,
+  mintCredential,
+  acquireBot,
+  heartbeatBot,
+} from "../../server/bots/identity";
 import { beforeAll, afterAll, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
@@ -10,6 +16,7 @@ import {
   registerEntry,
   closeRegistration,
   tickLeague,
+  resumeEntry,
 } from "../../server/league/service";
 import {
   batchDetails,
@@ -74,6 +81,20 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
   expect((await listBatches()).batches.some((b) => b.id === batch.id)).toBe(
     true,
   );
+  const frozen = provisional.entries[0];
+  await expect(
+    pool.query("UPDATE league_batches SET rules_json='{}' WHERE id=$1", [
+      batch.id,
+    ]),
+  ).rejects.toThrow();
+  await expect(
+    pool.query("UPDATE league_entries SET name='Disguised' WHERE id=$1", [
+      frozen.id,
+    ]),
+  ).rejects.toThrow("immutable");
+  await expect(
+    pool.query("DELETE FROM league_entries WHERE id=$1", [frozen.id]),
+  ).rejects.toThrow("closed");
   await tickLeague();
   let details = await batchDetails(batch.id, 0);
   expect(details.fixtures.filter((f) => f.state === "active")).toHaveLength(2);
@@ -137,6 +158,22 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
   expect(replay.seats).toHaveLength(2);
   expect(replay.storedResultsOnly).toBe(true);
   expect((await fixtureReplay(first.id, 1)).results).toEqual([]);
+  await expect(
+    pool.query("UPDATE league_fixtures SET entry_a_id=entry_b_id WHERE id=$1", [
+      first.id,
+    ]),
+  ).rejects.toThrow("immutable");
+  await expect(
+    pool.query("UPDATE league_settlements SET a_points=0 WHERE fixture_id=$1", [
+      first.id,
+    ]),
+  ).rejects.toThrow("immutable");
+  await expect(
+    pool.query("DELETE FROM league_attempts WHERE fixture_id=$1", [first.id]),
+  ).rejects.toThrow("immutable");
+  const page = await fixtureReplay(first.id, undefined, 2);
+  expect(page.attempts.map((a) => a.attempt)).toEqual([1]);
+  expect(page.attempt).toBe(2); // attempt history cursor does not change the selected replay
   const counts = await pool.query(
     "SELECT count(*) FROM league_settlements s JOIN league_fixtures f ON f.id=s.fixture_id WHERE f.batch_id=$1",
     [batch.id],
@@ -153,4 +190,109 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
       )
     ).rowCount,
   ).toBe(0);
+});
+
+it("three timeouts pause later admission until a genuinely new external controller reconnects", async () => {
+  const owners: IncomingMessage[] = [],
+    bots: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const g = await createGuest("Offline league " + i);
+    const req = {
+      headers: { cookie: "dds_session=" + g.secret },
+    } as IncomingMessage;
+    owners.push(req);
+    const b =
+      i === 0
+        ? await createExternalBot(req, {
+            name: "Reconnect bot",
+            controllerEpoch: 0,
+          })
+        : await transaction((db) =>
+            publishVisual(
+              req,
+              { name: "Healthy " + i, workspace: starter("cooperate") },
+              db,
+              0,
+            ),
+          );
+    bots.push(String(b.id));
+  }
+  const credential = await mintCredential(owners[0], bots[0], {
+    controllerEpoch: 0,
+  });
+  const ext = {
+    headers: { authorization: "Bearer " + credential.secret },
+  } as IncomingMessage;
+  const lease = await acquireBot(ext);
+  const batch = await transaction((db) =>
+    createBatch(owners[0], { name: "Offline readiness" }, db),
+  );
+  for (let i = 0; i < 4; i++)
+    await transaction((db) =>
+      registerEntry(owners[i], batch.id, { botId: bots[i] }, db),
+    );
+  await transaction((db) => closeRegistration(owners[0], batch.id, {}, db));
+  await tickLeague();
+  let details = await batchDetails(batch.id, 0);
+  const entry = details.entries.find((e) => e.botId === bots[0])!;
+  const fixture = details.fixtures.find(
+    (f) => f.state === "active" && (f.a === entry.id || f.b === entry.id),
+  )!;
+  expect(fixture).toBeDefined();
+  await transaction(async (db) => {
+    const m = await loadMatch(db, fixture.currentMatchId, true);
+    advance(m, m.deadline!);
+    for (let i = 0; i < 3; i++) {
+      const visual = m.seats.find((s) => s.kind === "visual")!;
+      submit(m, visual.id, m.round, "C", m.deadline! - 1);
+      advance(m, m.deadline!);
+      await saveMatch(db, m);
+      advance(m, m.deadline!);
+      await saveMatch(db, m);
+    }
+  });
+  details = await batchDetails(batch.id, 0);
+  expect(
+    details.entries.find((e) => e.id === entry.id)!.offlineAt,
+  ).not.toBeNull();
+  await heartbeatBot(ext, { controllerEpoch: lease.controllerEpoch });
+  await tickLeague();
+  expect(
+    (await batchDetails(batch.id, 0)).entries.find((e) => e.id === entry.id)!
+      .offlineAt,
+  ).not.toBeNull();
+  await expect(
+    transaction((db) => resumeEntry(owners[0], batch.id, {}, db)),
+  ).rejects.toThrow("Reconnect");
+  await acquireBot(ext);
+  await tickLeague();
+  expect(
+    (await batchDetails(batch.id, 0)).entries.find((e) => e.id === entry.id)!
+      .offlineAt,
+  ).toBeNull();
+  expect(
+    (await batchDetails(batch.id, 0)).fixtures.filter(
+      (f) => f.state === "active" && (f.a === entry.id || f.b === entry.id),
+    ),
+  ).toHaveLength(1);
+  // Complete with direct engine moves so no active fixture pollutes subsequent integration runs.
+  for (let wave = 0; wave < 8; wave++) {
+    await tickLeague();
+    details = await batchDetails(batch.id, 0);
+    if (details.batch.state === "finished") break;
+    for (const f of details.fixtures.filter((f) => f.state === "active"))
+      await transaction(async (db) => {
+        const m = await loadMatch(db, f.currentMatchId, true);
+        if (m.phase === "countdown") advance(m, m.deadline!);
+        while (m.phase !== "finished") {
+          if (m.phase === "collecting")
+            for (const seat of m.seats)
+              submit(m, seat.id, m.round, "C", m.deadline! - 1);
+          else advance(m, m.deadline!);
+          await saveMatch(db, m);
+        }
+      });
+  }
+  await tickLeague();
+  expect((await batchDetails(batch.id, 0)).batch.state).toBe("finished");
 });

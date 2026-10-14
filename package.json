@@ -23,6 +23,7 @@
     "test:voice-spike": "playwright test -c playwright.voice-spike.config.ts",
     "test:voice": "playwright test -c playwright.voice.config.ts",
     "build:workers": "esbuild server/bots/visual-worker.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/workers/visual-worker.mjs",
+    "test:league-recovery": "npm run build:workers && tsx tests/runtime/league-recovery.ts",
     "test:league": "playwright test -c playwright.league.config.ts",
     "test:visual": "playwright test -c playwright.visual.config.ts",
     "test:migrations": "tsx scripts/check-migrations.ts"

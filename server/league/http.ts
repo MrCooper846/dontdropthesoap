@@ -52,10 +52,19 @@ export async function publicLeagueHttp(
       raw === null
         ? undefined
         : z.coerce.number().int().min(1).max(2147483647).parse(raw);
+    const cursor = url.searchParams.get("beforeAttempt");
+    const beforeAttempt =
+      cursor === null
+        ? undefined
+        : z.coerce.number().int().min(1).max(2147483647).parse(cursor);
     json(
       res,
       200,
-      await fixtureReplay(z.string().uuid().parse(replay[1]), attempt),
+      await fixtureReplay(
+        z.string().uuid().parse(replay[1]),
+        attempt,
+        beforeAttempt,
+      ),
     );
     return true;
   }

@@ -62,15 +62,21 @@ export async function batchDetails(id: string, after: number) {
     };
   });
 }
-export async function fixtureReplay(id: string, attempt?: number) {
+export async function fixtureReplay(
+  id: string,
+  attempt?: number,
+  beforeAttempt?: number,
+) {
   return transaction(async (db) => {
     await db.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     const attempts = (
       await db.query(
-        'SELECT a.attempt_number AS attempt,a.match_id AS "matchId",m.phase FROM league_attempts a JOIN matches m ON m.id=a.match_id WHERE a.fixture_id=$1 ORDER BY a.attempt_number LIMIT 100',
-        [id],
+        'SELECT a.attempt_number AS attempt,a.match_id AS "matchId",m.phase FROM league_attempts a JOIN matches m ON m.id=a.match_id WHERE a.fixture_id=$1 AND ($2::integer IS NULL OR a.attempt_number<$2) ORDER BY a.attempt_number DESC LIMIT 101',
+        [id, beforeAttempt ?? null],
       )
     ).rows;
+    const attemptPage = attempts.slice(0, 100);
+    const nextAttempts = attempts.length > 100 ? attempts[99].attempt : null;
     const fixture = (
       await db.query(
         'SELECT id,batch_id AS "batchId",ordinal,state,attempt_number AS attempts FROM league_fixtures WHERE id=$1',
@@ -87,7 +93,14 @@ export async function fixtureReplay(id: string, attempt?: number) {
     ).rows[0];
     if (!selected) {
       if (attempt !== undefined) throw new RuleError("NOT_FOUND");
-      return { fixture, attempts, match: null, seats: [], results: [] };
+      return {
+        fixture,
+        attempts: attemptPage,
+        nextAttempts,
+        match: null,
+        seats: [],
+        results: [],
+      };
     }
     const seats = (
       await db.query(
@@ -103,7 +116,8 @@ export async function fixtureReplay(id: string, attempt?: number) {
     ).rows.map((r) => r.result_json);
     return {
       fixture,
-      attempts,
+      attempts: attemptPage,
+      nextAttempts,
       attempt: chosen,
       match: selected,
       seats,

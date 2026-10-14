@@ -46,7 +46,10 @@ export function readConfig(
       .default("true")
       .transform((v) => v === "true"),
     FEATURE_VOICE: flag,
-    FEATURE_LEAGUE: flag,
+    FEATURE_LEAGUE: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
     VOICE_LISTEN_IP: z.string().default("127.0.0.1"),
     VOICE_ANNOUNCED_ADDRESS: z.string().min(1).optional(),
     VOICE_MIN_PORT: z.coerce.number().int().min(1024).max(65535).default(18000),
