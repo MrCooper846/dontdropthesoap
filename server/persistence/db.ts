@@ -29,6 +29,11 @@ export async function transaction<T>(
         "SERVICE_UNAVAILABLE",
         "Game service is recovering. Please retry.",
       );
+    if (e && typeof e === "object" && "code" in e && e.code === "P0A01")
+      throw new RuleError(
+        "ADMISSIONS_PAUSED",
+        "New games are paused for maintenance. Existing games can finish.",
+      );
     throw e;
   } finally {
     db.release();

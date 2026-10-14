@@ -1,3 +1,5 @@
+import { applyOperator } from "../../server/operators/service";
+import { SERVICE_CONTROL_ID } from "../../server/operators/maintenance";
 import {
   createExternalBot,
   mintCredential,
@@ -95,6 +97,28 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
   await expect(
     pool.query("DELETE FROM league_entries WHERE id=$1", [frozen.id]),
   ).rejects.toThrow("closed");
+  const admission = (open: boolean) =>
+    applyOperator("league-maintenance-fixture", {
+      commandId: randomUUID(),
+      action: open ? "matches.resume" : "matches.pause",
+      targetId: SERVICE_CONTROL_ID,
+      reason: "Synthetic league pause",
+    });
+  await admission(false);
+  try {
+    await tickLeague();
+    expect(
+      (await batchDetails(batch.id, 0)).fixtures.every(
+        (f) => f.state === "queued",
+      ),
+    ).toBe(true);
+    expect(
+      (await pool.query("SELECT count(*)::int AS n FROM league_attempts"))
+        .rows[0].n,
+    ).toBe(0);
+  } finally {
+    await admission(true);
+  }
   await tickLeague();
   let details = await batchDetails(batch.id, 0);
   expect(details.fixtures.filter((f) => f.state === "active")).toHaveLength(2);
@@ -137,6 +161,20 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
         }
         await saveMatch(db, m); // repeated persistence cannot double credit
       });
+    }
+    if (
+      (await batchDetails(batch.id, 0)).fixtures.every(
+        (f) => f.state === "settled",
+      )
+    ) {
+      await admission(false);
+      try {
+        await tickLeague();
+        expect((await batchDetails(batch.id, 0)).batch.state).toBe("finished");
+      } finally {
+        await admission(true);
+      }
+      break;
     }
   }
   await tickLeague();

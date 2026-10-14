@@ -1,3 +1,4 @@
+import { matchesOpen } from "./operators/maintenance";
 import { publicLeagueHttp, leagueHttp } from "./league/http";
 import { visualHttp } from "./bots/visual-http";
 import { ProgramError } from "../domain/bots/program";
@@ -92,6 +93,10 @@ export async function api(
     if (!isReady()) throw new RuleError("SERVICE_UNAVAILABLE");
     const path = pathname.slice(7),
       method = req.method ?? "GET";
+    if (path === "/service" && method === "GET") {
+      json(res, 200, { matchesOpen: await matchesOpen() });
+      return true;
+    }
     if (await publicLeagueHttp(req, res, path, method, url)) return true;
     if (path === "/session/guest" && method === "POST") {
       assertOrigin(req);
@@ -262,11 +267,13 @@ export async function api(
           ? 403
           : code === "NOT_FOUND"
             ? 404
-            : code === "RATE_LIMITED"
-              ? 429
-              : code === "SERVICE_UNAVAILABLE"
-                ? 503
-                : 400;
+            : code === "ADMISSIONS_PAUSED"
+              ? 409
+              : code === "RATE_LIMITED"
+                ? 429
+                : code === "SERVICE_UNAVAILABLE"
+                  ? 503
+                  : 400;
     if (code === "SERVICE_UNAVAILABLE")
       console.error(
         JSON.stringify({
