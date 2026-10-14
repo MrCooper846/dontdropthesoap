@@ -218,7 +218,7 @@ Update this section during development. These initial statuses mean no implement
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
 | 4 Voice | IMPLEMENTED_PENDING_VALIDATION | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Actual-device audio/interruption, public-network/TURN and human playtest |
-| 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
+| 5 Visual bots | IN_PROGRESS | Canonical language, real Blockly round-trip and isolated worker foundation | Publication, atomic runtime/move persistence, complete builder/match flow |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
 
@@ -361,3 +361,15 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Final source verification: expanded voice lint coverage, typecheck and 50 unit/native checks pass; seven PostgreSQL regressions pass. Production build passed; npm audit reports zero advisories. Voice is IMPLEMENTED_PENDING_VALIDATION, not VERIFIED, because physical-device audio and the human playtest remain open. Media join/restriction latency under load remains part of release validation. Next independent stage: visual bots.
 
 - Reviewed implementation checkpoint: 29e0157. Draft PR #7: https://github.com/MrCooper846/dontdropthesoap/pull/7 (base codex/playable-yard). No merge or deployment occurred. Next concrete work: canonical visual program validation/interpreter, bounded worker execution, immutable publication and the Blockly create/test/publish/watch/edit flow.
+
+
+### Stage 5 checkpoint — visual execution foundation
+
+- Branch codex/visual-bot-builder, based on 07fc44b; stage 4 remains reviewable in draft PR #7.
+- Implemented a strictly typed canonical AST with explicit structural/byte limits, declared scalar memory, deterministic RNG, bounded interpreter steps and trace. Programs cannot execute JavaScript or perform I/O.
+- Added actual Blockly block definitions and starter workspaces plus deterministic saved-workspace compilation. Real headless Blockly serialization/field-edit tests establish correspondence with executed decisions; the browser editor remains unfinished.
+- Added a real worker-thread pool with bounded admission, startup/execution deadlines, queued/late-result expiry, memory/stack limits, bounded restarts and checked outcomes. Native fault fixtures prove an infinite worker is terminated while the parent event loop keeps ticking; malformed responses reject.
+- Loader attempts failed with extension resolution / require-ESM cycles on Node 24/tsx. Replaced them with an explicitly pinned esbuild compiler for trusted worker source, called by dev/build/test. The generated worker is ignored, reproducibly built and must be shipped with the release.
+- Verification: npm run typecheck, npm test (67 passing, including nine visual-language, four real Blockly and four real worker/fault tests), npm run lint. Production build passed (including the generated worker); npm audit reports zero advisories.
+- These are execution foundations, not a completed builder. Next concrete action: immutable visual publication and owner preview through the shared compiler; wire visual entrant/version freezing and atomic state/RNG/move acceptance against PostgreSQL; mount the real Blockly create/test/publish/watch/edit flow and run browser/touch/hostile-input gates.
+- Voice physical-device/playtest validation remains pending; league and final release gates remain required.
