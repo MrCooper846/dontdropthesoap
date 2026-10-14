@@ -244,3 +244,8 @@ export async function revokeCredential(
 export function clearBotLeases() {
   leases.clear();
 }
+
+export function dropCredentialLease(credentialId: string) {
+  for (const [botId, lease] of leases)
+    if (lease.credentialId === credentialId) leases.delete(botId);
+}

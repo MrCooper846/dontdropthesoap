@@ -138,3 +138,7 @@ With the completed integration/league-recovery fixtures and a production build, 
 SIGTERM/SIGINT fence new requests and commands, send service.restarting on /game-v1, and finish admitted HTTP/socket work plus background coordinators. Visual previews can finish before their pool closes; voice is removed while pending policy refreshes drain. Polling and WebSocket acknowledgements flush before transport closure. The independent PostgreSQL writer connection stays owned through application-pool and framework cleanup.
 
 SHUTDOWN_GRACE_MS defaults to 30000 (valid range 1000–60000). Give the host supervisor a longer stop timeout. A normal drain exits 0; a timeout or cleanup failure exits 1 and uses the existing crash-recovery policy. npm run test:shutdown requires Ubuntu, local soap_shutdown from test:setup and a production build. It blocks real row locks, checks HTTP/socket/preview completion and second-writer exclusion, tests native voice closure behind a policy lock, and exercises an unfinished-body timeout with a two-second test grace.
+
+## Local moderation
+
+Audited host-side operator controls support owner disable/enable, individual session and bot credential revocation, current voice removal and report review. Set SOAP_OPERATOR_ID and use npm run operator with the private deployment database configuration. See [the operator procedure](docs/operations.md#audited-local-operator-controls) for target checks, input format, retry semantics and access boundaries. No public administration route is provided. Admission maintenance remains pending.
