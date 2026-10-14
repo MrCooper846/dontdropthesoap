@@ -2,89 +2,83 @@
 
 A social betrayal game about humans, bots and questionable noodle-related decisions.
 
-The planned game is a cartoon 2D prison yard where people hang out, talk, challenge one another and enter bots into matches. The competitive core stays simple: cooperate or betray. Players supply the complexity through bluffing, simple visual bot programs or externally operated agents.
+The target is a cartoon 2D prison yard where people hang out, talk, challenge one another and enter bots into matches. Keep the rules predictable and let the participants be unpredictable.
 
-**Current status:** the code is a mobile-first multiplayer party MVP. The yard, proximity voice, visual bot builder, external bot API and bot league are planned features, not implemented capabilities.
+## Actual implementation status
 
-## Documentation
+The integration branch now contains a playable authenticated match foundation. PostgreSQL owns guest sessions, matches, accepted moves, round results, command receipts and social score settlement. Players ready up, play simultaneous cooperate/betray rounds, see results and leave or create a new match. Odd tables use the system Clanker.
 
-Start with the [game vision](docs/game-vision.md) for the intended experience, design principles, core gameplay and open questions.
+The yard, proximity voice, external bot participation, visual builder and bot league are still incomplete. This is **not a release candidate**. The execution record in [docs/goal-mode-plan.md](docs/goal-mode-plan.md) is the canonical progress checkpoint.
 
-The [technical plan](docs/README.md) covers architecture, data, gameplay rules, the bot protocol, yard/voice, testing, operations and implementation milestones. It describes the proposed next version; the implementation below remains the original MVP.
+The original party MVP remains a local-only legacy demo. Its unauthenticated handlers are absent from the new game server.
 
-## What the current MVP does
+## Run the current match foundation
 
-- Creates and lists lobbies, with room-code, link and QR joining.
-- Supports 2–12 players and 3–10 rounds.
-- Randomly pairs connected players each round.
-- Runs 20-second decision windows and defaults missing moves to cooperate.
-- Uses The Clanker as an odd-player opponent, copying the last human move played against it within that lobby.
-- Calculates results, noodle balances, player statistics and end-of-game awards.
-- Stores player identity in browser local storage, with no account authentication.
-- Persists noodle balances and finished-game score entries in `data/leaderboard.sqlite`.
-
-Live lobbies and match history are in memory. Restarting the server clears them. Deleting the database file resets persisted balances and score records.
-
-## Current implementation boundaries
-
-The prototype is not ready to act as a fair open bot competition:
-
-- Lobby broadcasts include submitted moves before reveal.
-- Actions trust client-supplied player IDs without verifying ownership.
-- Move locking is enforced by the interface, not the server.
-- Active-match departures and delayed submissions need stronger lifecycle rules.
-
-These are known gaps in the existing implementation, not intended game mechanics. The planned version must protect hidden moves, authenticate control of entrants and enforce match rules on the server.
-
-## Code map
-
-| Path | Responsibility today |
-| --- | --- |
-| `server.ts` | Custom Next.js/Socket.IO server, lobby events and timers |
-| `lib/game.ts` | Pairing, payoff rules, round resolution, bot behaviour and awards |
-| `lib/types.ts` | Shared player, lobby and round types |
-| `lib/leaderboard.ts` | Balance and score persistence using sql.js |
-| `components/SocketProvider.tsx` | Browser socket connection and reconnect greeting |
-| `app/lobby/[code]/page.tsx` | Waiting room, move selection and results interface |
-| `app/api/leaderboard/route.ts` | Global leaderboard response |
-
-The current stack is Next.js, React, TypeScript, Socket.IO and sql.js. This documents the existing implementation; it does not settle the future yard rendering, voice or persistence architecture.
-
-## Run locally
+Prerequisites: Node.js 22 or newer, npm, Docker with Compose, and a browser.
 
 ```bash
-npm install
+npm ci
+cp .env.example .env
+npm run services:up
+npm run db:migrate
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open http://localhost:3000. Enter a guest alias, create a table, copy its invite, and open it in another browser profile. Each participant readies up before the host starts. A new browser tab can explicitly take controller authority; earlier controller epochs cannot write.
 
-For phone testing, connect devices to the same Wi-Fi network and open `http://YOUR_COMPUTER_LAN_IP:3000`.
+Defaults are 10 rounds, 20-second decisions, five-second reveals and at most eight entrants. The first accepted move locks. Missing moves become C at the deadline. Leaving an active match retains the seat and accepted move; future moves become timeout C. Match scores start at zero; completed social scores settle to a separate lifetime ledger.
 
-Create a lobby in one browser and join from other browsers or phones using its code, link or QR code.
+Guest access depends on the HttpOnly session cookie. Losing that cookie loses access; account recovery is not implemented.
 
-## Production build
+Compose binds local PostgreSQL to 127.0.0.1:55432. Its sample credentials and development secrets are local-only. Production validates HTTPS and requires unique secrets. Hosting/media setup and public deployment remain separate gates.
 
-```bash
-npm run build
-npm start
-```
-
-The app uses a custom long-running Node server for Socket.IO. Hosting must support that process and WebSocket connections. The default port is `3000`; set `PORT` to override it.
-
-Persist the `data` directory if balances and recorded scores should survive deployment. Doing so does not preserve live lobbies.
-
-## Development checks
+## Verification
 
 ```bash
+npx playwright install --with-deps chromium
+npm run test:setup
+npm test
 npm run typecheck
+npm run lint
+npm run test:integration
+npm run test:browser
+npm run test:alpha
+npm run test:recovery
 npm run build
+npm audit
 ```
 
-These are available checks, not a claim that this documentation change ran them. There is currently no automated test suite in the repository. Future implementation work needs behavioural verification of hidden moves, identity, scoring, retries, timeouts and reconnects.
+Run browser, physical-recovery and production-build checks sequentially: their Next.js processes share the checkout's .next directory. test:integration uses the isolated soap_test database; test:alpha uses soap_browser; test:recovery uses soap_recovery. The integration suite refuses another database and truncates only that test database.
 
-## Contributing to the next version
+test:browser exercises the local legacy baseline and Phaser/Blockly lifecycle and emulated touch spikes. These are prototypes, not completed yard/editor features. test:alpha exercises the authenticated match UI, actual HTTP/socket visibility, hostile commands and Clanker. test:recovery kills and restarts real game processes, verifies a committed hidden move and controller fencing, and rejects a second writer.
 
-Read the [game vision](docs/game-vision.md) before extending the prototype. Keep implemented behaviour, planned direction and speculative ideas explicitly separated in documentation.
+lint checks new source formatting; typecheck checks TypeScript. Real mobile devices, media authorization, human playtests, full load/soak and backup restore are still pending.
 
-The guiding principle is: **keep the rules predictable and let the participants be unpredictable.**
+## Legacy data and demo
+
+```bash
+npm run dev:legacy
+npm run legacy:archive
+```
+
+The legacy demo binds only to localhost and refuses production mode. Run it with a distinct port if the new server is running. It uses browser localStorage identities and the old SQLite ledger; these IDs never authenticate new guests.
+
+legacy:archive leaves the source untouched and writes a versioned export, copied SQLite file, row counts and SHA-256 under ignored data/legacy-archives. Private archives must not be committed. The initial checkout had no legacy ledger; the first archived ledger contains synthetic baseline-browser records.
+
+## Code map
+
+| Path | Responsibility |
+| --- | --- |
+| server.ts | Authenticated HTTP/Socket.IO composition, singleton ownership, recovery and deadlines |
+| server/auth/ | Guest cookies, CSRF, session validation and controller fencing |
+| server/commands/ | Common command service, receipts, admission and match transitions |
+| server/persistence/ | PostgreSQL pool, migrations, transactions and writer lock |
+| server/matches/ | Durable state, normalized seats/moves/pairings/results and outbox |
+| domain/match/ | Deterministic rules, scoring, lifecycle and projections |
+| shared/protocol/ | Runtime-validated command contracts and snapshot types |
+| app/play/ | Playable match screen |
+| app/lab/ | Renderer/editor lifecycle prototypes |
+| tests/ | Domain, PostgreSQL, browser and physical-recovery checks |
+| legacy-server.ts, lib/game.ts | Isolated original MVP |
+
+Read the [game vision](docs/game-vision.md), [technical index](docs/README.md) and [execution brief](docs/goal-mode-plan.md) before extending the game. Guards, clans, payments, hosted AI inference and broader prison simulation remain outside v1.

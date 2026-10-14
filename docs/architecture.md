@@ -15,6 +15,8 @@ Status: proposed implementation baseline, 14 October 2026. These choices are rec
 | Voice | LiveKit behind a narrow voice adapter; feasibility gate required | Keep WebRTC/media outside the game loop |
 | Verification | Vitest, real PostgreSQL integration tests, Playwright, scripted socket clients | Cover rules, persistence, UI and hostile clients |
 
+Foundation decision, 14 October 2026: tested Node 24.18.0, Next 15.5.27, Socket.IO 4.8.3, Phaser 4.2.1, Blockly 13.4.0, pg 8.23.1, Zod 4.6.7, Vitest 5.0.4 and Playwright 1.64.1. New direct packages are pinned. Compatible existing dependency patches were applied because npm audit reported concrete advisories; postcss 8.5.30 and esbuild 0.28.2 overrides remove remaining vulnerable transitive copies. The unused broken Next lint setup was replaced by explicit formatting and TypeScript checks. npm audit reports no advisories at this checkpoint.
+
 Do not automatically upgrade existing dependencies as part of this plan. Select supported compatible releases and pin them when each component is introduced. No Redis, microservices, Kafka, Kubernetes or multiple game writers for the first alpha.
 
 ## Proposed source layout

@@ -6,28 +6,53 @@
     "dev": "tsx server.ts",
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "services:up": "docker compose up -d --wait",
+    "services:down": "docker compose stop",
+    "db:migrate": "tsx server/persistence/migrate.ts",
+    "dev:legacy": "cross-env SOAP_LEGACY=true tsx legacy-server.ts",
+    "test:alpha": "playwright test -c playwright.alpha.config.ts",
+    "test:integration": "DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_test vitest run --config vitest.integration.config.mts",
+    "test:recovery": "tsx tests/runtime/recovery.ts",
+    "test:setup": "tsx scripts/init-test-dbs.ts",
+    "legacy:archive": "tsx scripts/archive-legacy.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",
     "@types/sql.js": "^1.4.11",
+    "blockly": "13.4.0",
     "cross-env": "^7.0.3",
+    "dotenv": "18.0.8",
     "next": "^15.3.2",
+    "pg": "8.23.1",
+    "phaser": "4.2.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "sql.js": "^1.14.1"
+    "sql.js": "^1.14.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "^22.15.17",
+    "@types/pg": "8.23.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "eslint": "^9.26.0",
-    "eslint-config-next": "^15.3.2",
+    "prettier": "3.9.10",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "5.0.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "overrides": {
+    "postcss": "8.5.30",
+    "esbuild": "0.28.2"
   }
 }

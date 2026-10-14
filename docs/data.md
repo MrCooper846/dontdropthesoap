@@ -34,6 +34,12 @@ For visual seats require a visual bot version; human seats have owner but no bot
 
 Indexes: sessions(secret_hash), credentials(secret_hash), matches(state,deadline), events(match_id,sequence), unpublished events, bots(owner_id), fixtures(batch_id,state), receipts(created_at), balances(owner_id). Use a partial unique index for active circle matches. Cap public history pages at 100 rows with cursor pagination.
 
+## Implemented match-state representation
+
+The first integration slice keeps a versioned internal JSON checkpoint in matches.state_json alongside normalized seats, rounds, pairings, immutable moves, results, receipts and ledger rows. Both are written in the same locked transaction. The checkpoint is the engine/recovery input; uniqueness and membership constraints on normalized records independently protect accepted decisions and settlement. It contains private RNG and decisions and is never a wire DTO.
+
+This is a deliberate implementation adjustment: it preserves deterministic state-machine recovery without rebuilding the current domain object from many joins on every command. Fresh-install/upgrade migrations and physical crash tests cover the representation. Future schema changes must migrate the checkpoint version and normalized data together. The remaining entity tables in this document are still targets until their features land.
+
 ## Ephemeral state
 
 Positions, velocities, input sequences, current socket IDs, controller epochs, voice track IDs, audio subscription sets and presence heartbeat live in memory. Reconstruct them on reconnect. Keep a bounded 30-second text-chat buffer per yard with recipient sets; no automatic transcript persistence.

@@ -213,9 +213,9 @@ Update this section during development. These initial statuses mean no implement
 
 | Stage | Status | Evidence / commit | Remaining gate |
 | --- | --- | --- | --- |
-| 0 Foundation | NOT_STARTED | — | Baseline and spikes |
-| 1 Match core | NOT_STARTED | — | Authority and hidden-move checks |
-| 2 Persistence/API | NOT_STARTED | — | Recovery and external bot |
+| 0 Foundation | IMPLEMENTED_PENDING_VALIDATION | Baseline/domain tests, real browsers, renderer/editor lifecycle and emulated touch | Voice authorization spike and real devices |
+| 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
+| 2 Persistence/API | IN_PROGRESS | PostgreSQL transactions, receipts, outbox, ledger, sessions, singleton and recovery pulled forward | External bots/clients, cursor delivery and full fault matrix |
 | 3 Yard | NOT_STARTED | — | Complete social/mixed loop |
 | 4 Voice | NOT_STARTED | — | Enforced routing and devices |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
@@ -233,6 +233,22 @@ At each checkpoint append or update:
 - Location of safe screenshots/log summaries when useful.
 
 Commit checkpoints at meaningful boundaries and before handing off. Do not generate separate status files unless this section becomes unwieldy; if moved, keep one canonical linked record.
+
+### Checkpoint — 14 October 2026, foundation and match core
+
+- Integration branch: codex/playable-alpha; started from clean 6258d78. Implementation commit is recorded after this verification checkpoint.
+- Added a deterministic match domain with explicit deadlines, private/public projections, immutable first decisions, system Clanker, frozen seats, timeout/leave rules and terminal recovery.
+- Added server-issued HttpOnly guest sessions, origin/CSRF checks, durable controller epochs with transaction locks, runtime schemas and exact round/seat targets.
+- Pulled PostgreSQL persistence forward: migrations, normalized constraints, internal checkpoint, receipts, single-use creation keys, outbox, social ledger and exclusive writer ownership. Durable decisions commit before success ACK.
+- New entry point /play is a real multiplayer match UI. The legacy server is isolated on localhost; renderer/editor /lab is explicitly a spike.
+- Evidence so far: 35 domain/configuration checks; three isolated PostgreSQL checks; two-browser original loop; Phaser/Blockly mount/unmount/remount and actual Chromium-emulated touch drag; hostile HTTP and actual Socket.IO payload inspection; three humans plus Clanker complete via the real protocol; physical process kill/restart retains an accepted hidden move, fences old epochs, rejects another writer and aborts a second interruption.
+- Initial checkout contained no SQLite ledger. Baseline tests created synthetic rows; the available ledger was preserved by legacy:archive with SHA-256 1a119a284e803418e4172edc794c90d4c12cad9a8b36c228d22ed6c15217bd62 and four balance/four finished-score rows. Private files remain ignored.
+- Fixed observed failures: Blockly module locale interop; distinguished its shared measurement canvas from Phaser resource cleanup; separated read/write rate budgets; locked controller checks against takeover races; waited for actual seat admission before readiness; used a final-results assertion window that includes the five-second reveal; isolated legacy route prerendering after removing the default legacy socket provider.
+- A build was accidentally overlapped with a dev-browser run, causing a shared .next build artifact failure. Verification now serializes browser, recovery and build processes; the failed overlapping build is not evidence of a pass.
+- npm audit now reports zero advisories. New package choices are recorded in architecture.md. The checkpoint representation adjustment is in data.md; implemented API subset and opaque creation keys are recorded in protocol.md.
+- External validation pending: real iOS/Android touch/audio, browser microphone/device interruption, enforced media-audience proof, 4–8-person playtest, load/soak and backup restore. No voice or release validation is claimed.
+- Final verification: npm test (35 pass); npm run typecheck; npm run lint; npm run test:browser (2 pass); npm run test:integration (3 pass); npm run test:alpha (3 pass); npm run test:recovery (physical crash/restart pass); npm run build (pass after legacy-route prerender repair); npm audit (zero advisories). Environment: Ubuntu WSL, Node 24.18.0, PostgreSQL 17.11 via Docker, Chromium 156.
+- Next concrete work: stage 2 external bot principals, scoped credentials, leases, examples and cursor recovery. Continue independent stages while voice/device gates remain pending.
 
 ## Resume procedure
 

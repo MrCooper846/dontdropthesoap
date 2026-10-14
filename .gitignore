@@ -9,3 +9,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+!.env.example
+*.tsbuildinfo
+playwright-report/
+test-results/
+data/legacy-archives/
