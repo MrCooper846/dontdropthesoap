@@ -217,7 +217,7 @@ Update this section during development. These initial statuses mean no implement
 | 1 Match core | VERIFIED | 35 rule/configuration checks, three PostgreSQL checks, real HTTP/socket and browser games, physical restart, typecheck/format/build | Maintain regressions while extending bots/yard |
 | 2 Persistence/API | VERIFIED | Real Python/TypeScript games, browser credential UI, seven PostgreSQL checks, filtered cursors and physical external recovery | Maintain regressions through yard/league integration |
 | 3 Yard | VERIFIED | Six real yard scenarios, seven PostgreSQL regressions, 45 domain/protocol checks, standalone games/recovery, build/typecheck/format | Actual-device/playtest/load evidence remains a final release gate |
-| 4 Voice | IN_PROGRESS | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Republish, takeover/revocation, table routing, device/playtest gates |
+| 4 Voice | IMPLEMENTED_PENDING_VALIDATION | LiveKit design rejected; native SFU and browser controls integrated, four real-browser voice scenarios pass | Actual-device audio/interruption, public-network/TURN and human playtest |
 | 5 Visual bots | NOT_STARTED | — | Builder and execution limits |
 | 6 League | NOT_STARTED | — | Complete recoverable batch |
 | 7 Release candidate | NOT_STARTED | — | Integration and launch validation |
@@ -347,3 +347,15 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - Screenshot test-results/voice-controls.png was copied to the shared Windows workspace and visually inspected. The voice panel remains readable alongside yard/circle/text controls.
 - Remaining gates: track republish/rejoin, bot exclusion and controller/session revocation, same-table/spectator behavior through real media, additional browser/device interruption checks, real iOS/Android/desktop devices and a 4–8-person playtest. Voice remains IN_PROGRESS and disabled by default.
 - Next concrete action: finish the remaining hostile-client/lifecycle scenarios and tighten signaling ordering/reconnect behavior before declaring automated voice gates passed. Visual builder and league remain independent required stages.
+
+### Stage 4 checkpoint — lifecycle and browser-engine evidence
+
+- Branch codex/proximity-voice; last committed integration implementation 48b7adb. This checkpoint adds bounded FIFO signaling, exact native-peer callback fencing and forced post-entry join refresh.
+- Caught and repaired a join-cache race, a delayed old-transport callback that could remove a replacement peer, and a client consume-race cleanup gap. Added a queue regression that proves ordering, backlog rejection and recovery after failure.
+- Added real-media scenarios for track republish, denied rejoin, controller takeover/reentry, session expiry/revocation/owner disable, bot principal exclusion and same-table/spectator routing.
+- Strengthened movement evidence: fixed-duration input under development-server load did not always reach the claimed location, so privacy/lifecycle checks now wait for acknowledged coordinates. First-route compilation can deliberately stale voice authorization; the controls test prepares pages before establishing the call rather than treating development compilation as a media benchmark.
+- Chromium lifecycle scenarios and WebKit privacy passed. Firefox's loopback ICE setup failed; a targeted test on the actual local interface passed. No test was skipped or removed to claim compatibility. The shared media test configuration now uses that local interface; combined final-network run passed ten scenarios and timed out on WebKit reentry under its five-second window. A targeted WebKit run with a fifteen-second bounded ICE negotiation window passed; the two-repeat WebKit check also passed (38.4 seconds). All eleven scenarios have passing attributable evidence across the final combined/targeted runs; the earlier failed combined result remains recorded.
+- Source checks so far: npm run test:integration (seven PostgreSQL checks), npm run typecheck, npm test (50), npm run lint all pass. Production build remains to run after browser processes finish. No full-suite green result is claimed from the earlier failed combined run.
+- Physical-device audio and 4–8-person playtest evidence remains unavailable. Those gates cannot be satisfied with synthetic tracks or browser emulation. Continue visual-builder/league work while retaining pending validation.
+
+- Final source verification: expanded voice lint coverage, typecheck and 50 unit/native checks pass; seven PostgreSQL regressions pass. Production build passed; npm audit reports zero advisories. Voice is IMPLEMENTED_PENDING_VALIDATION, not VERIFIED, because physical-device audio and the human playtest remain open. Media join/restriction latency under load remains part of release validation. Next independent stage: visual bots.

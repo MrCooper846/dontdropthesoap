@@ -1,6 +1,6 @@
 # Technical plan
 
-Status: proposed v1 design, 14 October 2026. The code remains the original party MVP. This documentation is a concrete implementation recommendation based on the [game vision](game-vision.md), not a claim that the systems exist.
+Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots and playable yard are implemented. Voice is integrated behind a feature flag with validation still pending; the visual builder and league remain incomplete. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
 
 ## Read in this order
 
@@ -27,7 +27,7 @@ Status: proposed v1 design, 14 October 2026. The code remains the original party
 | Data | PostgreSQL transactions; movement in memory | Recommended |
 | Rendering | Phaser with React overlays | Recommended; mobile spike |
 | Editor | Blockly → restricted JSON interpreter | Recommended; mobile spike |
-| Voice | LiveKit candidate, server-enforced audience | Conditional on hostile-client proof |
+| Voice | mediasoup native worker with server-owned consumers | Integrated; device/playtest validation pending |
 | Identity | Server-issued guest session; scoped bot tokens | Recommended; recovery/account upgrade deferred |
 | Economy | Per-match net score, separate casual totals and league rankings | Proposed gameplay default |
 | League | Small round-robin batches; open external compute | Proposed gameplay default |

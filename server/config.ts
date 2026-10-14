@@ -41,9 +41,6 @@ export function readConfig(
     VOICE_ANNOUNCED_ADDRESS: z.string().min(1).optional(),
     VOICE_MIN_PORT: z.coerce.number().int().min(1024).max(65535).default(18000),
     VOICE_MAX_PORT: z.coerce.number().int().min(1024).max(65535).default(18127),
-    LIVEKIT_URL: z.string().url().optional(),
-    LIVEKIT_API_KEY: z.string().optional(),
-    LIVEKIT_API_SECRET: z.string().optional(),
   });
   const c = schema.parse(env);
   if (c.NODE_ENV === "production") {

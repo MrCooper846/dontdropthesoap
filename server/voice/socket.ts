@@ -1,6 +1,7 @@
 import type { Namespace, Socket } from "socket.io";
 import type { types } from "mediasoup";
 import { z } from "zod";
+import { VoiceQueue } from "./queue";
 import { VoiceMedia, type VoiceIdentity } from "./media";
 import { authenticate } from "../auth/sessions";
 import { config } from "../config";
@@ -87,8 +88,13 @@ export async function startVoice(game: Namespace) {
     },
   );
   await media.start();
-  async function refresh() {
-    if (refreshing) return refreshing;
+  async function refresh(force = false) {
+    if (refreshing) {
+      await refreshing;
+      if (force) return refresh(true);
+      return;
+    }
+    if (!force && Date.now() - freshAt < 100) return;
     refreshing = (async () => {
       const sockets = [...game.sockets.values()].filter(
         (s) => s.data.yard && s.data.principal.kind === "browser",
@@ -122,98 +128,100 @@ export async function startVoice(game: Namespace) {
       });
     return refreshing;
   }
-  const routing = setInterval(() => void refresh(), 200);
+  const routing = setInterval(() => void refresh(true), 200);
   // Independently invalidate stale routing while a database request is stalled.
   const watchdog = setInterval(() => media.reconcile(), 50);
   function attach(socket: Socket) {
+    const queue = new VoiceQueue();
     socket.on(
       "voice.command",
       (input: unknown, ack: (result: unknown) => void) => {
-        void (async () => {
-          if (
-            !config.FEATURE_VOICE ||
-            !config.FEATURE_YARD ||
-            socket.data.principal.kind !== "browser"
-          )
-            throw new RuleError("FORBIDDEN");
-          rateLimit("voice:" + socket.data.principal.ownerId, 24);
-          const { controllerEpoch, payload } = z
-            .object({
-              controllerEpoch: z.number().int().nonnegative(),
-              payload: action,
-            })
-            .strict()
-            .parse(input);
-          const p = await authenticate(socket.request);
-          if (
-            p.epoch !== controllerEpoch ||
-            !yard.controls(p.ownerId, socket.id, p.epoch)
-          )
-            throw new RuleError("CONTROLLER_STALE");
-          const identity = {
-            ownerId: p.ownerId,
-            connectionId: socket.id,
-            epoch: p.epoch,
-          };
-          if (payload.op === "leave") {
-            media.remove(p.ownerId, socket.id);
-            return { left: true };
-          }
-          await refresh();
-          if (!valid(identity)) throw new RuleError("SERVICE_UNAVAILABLE");
-          switch (payload.op) {
-            case "join": {
-              const result = media.join(identity);
-              identities.set(p.ownerId, identity);
-              settings.set(p.ownerId, false);
-              return result;
+        void queue
+          .run(async () => {
+            if (
+              !config.FEATURE_VOICE ||
+              !config.FEATURE_YARD ||
+              socket.data.principal.kind !== "browser"
+            )
+              throw new RuleError("FORBIDDEN");
+            rateLimit("voice:" + socket.data.principal.ownerId, 24);
+            const { controllerEpoch, payload } = z
+              .object({
+                controllerEpoch: z.number().int().nonnegative(),
+                payload: action,
+              })
+              .strict()
+              .parse(input);
+            const p = await authenticate(socket.request);
+            if (
+              p.epoch !== controllerEpoch ||
+              !yard.controls(p.ownerId, socket.id, p.epoch)
+            )
+              throw new RuleError("CONTROLLER_STALE");
+            const identity = {
+              ownerId: p.ownerId,
+              connectionId: socket.id,
+              epoch: p.epoch,
+            };
+            if (payload.op === "leave") {
+              media.remove(p.ownerId, socket.id);
+              return { left: true };
             }
-            case "transport":
-              return media.transport(identity, payload.direction);
-            case "connect":
-              await media.connect(
-                identity,
-                payload.transportId,
-                payload.dtlsParameters as unknown as types.DtlsParameters,
-              );
-              return {};
-            case "produce":
-              return media.produce(
-                identity,
-                payload.rtpParameters as unknown as types.RtpParameters,
-              );
-            case "speaking":
-              await media.speaking(identity, payload.enabled);
-              return {};
-            case "consume":
-              return media.consume(
-                identity,
-                payload.producerId,
-                payload.rtpCapabilities as unknown as types.RtpCapabilities,
-              );
-            case "resume":
-              await media.resume(identity, payload.consumerId);
-              return {};
-            case "settings":
-              settings.set(p.ownerId, payload.muteSpectators);
-              media.reconcile();
-              return {};
-            case "poll":
-              return {
-                publishers: media.publishers(identity).map((p) => ({
-                  ...p,
-                  gain:
-                    audience(
-                      snapshot(),
-                      matches,
-                      identity.ownerId,
-                      blocked,
-                      settings.get(identity.ownerId),
-                    ).find((a) => a.ownerId === p.ownerId)?.gain ?? 0,
-                })),
-              };
-          }
-        })()
+            await refresh(payload.op === "join");
+            if (!valid(identity)) throw new RuleError("SERVICE_UNAVAILABLE");
+            switch (payload.op) {
+              case "join": {
+                const result = media.join(identity);
+                identities.set(p.ownerId, identity);
+                settings.set(p.ownerId, false);
+                return result;
+              }
+              case "transport":
+                return media.transport(identity, payload.direction);
+              case "connect":
+                await media.connect(
+                  identity,
+                  payload.transportId,
+                  payload.dtlsParameters as unknown as types.DtlsParameters,
+                );
+                return {};
+              case "produce":
+                return media.produce(
+                  identity,
+                  payload.rtpParameters as unknown as types.RtpParameters,
+                );
+              case "speaking":
+                await media.speaking(identity, payload.enabled);
+                return {};
+              case "consume":
+                return media.consume(
+                  identity,
+                  payload.producerId,
+                  payload.rtpCapabilities as unknown as types.RtpCapabilities,
+                );
+              case "resume":
+                await media.resume(identity, payload.consumerId);
+                return {};
+              case "settings":
+                settings.set(p.ownerId, payload.muteSpectators);
+                media.reconcile();
+                return {};
+              case "poll":
+                return {
+                  publishers: media.publishers(identity).map((p) => ({
+                    ...p,
+                    gain:
+                      audience(
+                        snapshot(),
+                        matches,
+                        identity.ownerId,
+                        blocked,
+                        settings.get(identity.ownerId),
+                      ).find((a) => a.ownerId === p.ownerId)?.gain ?? 0,
+                  })),
+                };
+            }
+          })
           .then((result) => {
             if (typeof ack === "function") ack({ ok: true, result });
           })

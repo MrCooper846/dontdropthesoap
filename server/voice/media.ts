@@ -122,7 +122,10 @@ export class VoiceMedia {
       }
       p[direction] = t;
       t.on("dtlsstatechange", (state) => {
-        if (state === "closed" || state === "failed")
+        if (
+          this.peers.get(identity.ownerId) === p &&
+          (state === "closed" || state === "failed")
+        )
           this.remove(identity.ownerId, identity.connectionId);
       });
       return {
@@ -203,6 +206,8 @@ export class VoiceMedia {
   }
   private allowed(p: Peer, sender: Peer) {
     return (
+      this.peers.get(p.identity.ownerId) === p &&
+      this.peers.get(sender.identity.ownerId) === sender &&
       this.policy.valid(p.identity) &&
       this.policy.valid(sender.identity) &&
       p !== sender &&

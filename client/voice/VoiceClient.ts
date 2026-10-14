@@ -236,12 +236,14 @@ export class VoiceClient {
           (r) => r.consumer.producerId === p.producerId,
         );
         if (!remote) {
+          let allocatedId: string | undefined;
           try {
             const parameters = await this.rpc({
               op: "consume",
               producerId: p.producerId,
               rtpCapabilities: this.device.rtpCapabilities,
             });
+            allocatedId = parameters.id;
             const consumer = await this.recv!.consume(parameters);
             if (this.closed) {
               consumer.close();
@@ -264,6 +266,7 @@ export class VoiceClient {
               });
             });
           } catch (e) {
+            if (allocatedId) this.remove(allocatedId);
             if (this.closed) return;
             if (
               e instanceof Error &&

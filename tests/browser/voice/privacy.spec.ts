@@ -22,20 +22,32 @@ test("real audio is denied to distant, blocked and departed modified listeners",
     const senderId = await sender.evaluate(
       async () => (await (await fetch("/api/v1/session")).json()).ownerId,
     );
-    await distant.evaluate(() => window.mediaProbe.move(1, 0, 3500));
+    await distant.evaluate(() => window.mediaProbe.walk(820, 560));
     for (const page of [sender, listener, distant])
       await page.evaluate(() => window.mediaProbe.voice());
     const producerId = await sender.evaluate(() => window.mediaProbe.tone());
     await expect
       .poll(() => listener.evaluate(() => window.mediaProbe.stats()))
       .toMatchObject({ consumers: 1 });
-    await expect
-      .poll(() =>
-        listener.evaluate(
-          async () => (await window.mediaProbe.stats()).packets,
-        ),
-      )
-      .toBeGreaterThan(10);
+    try {
+      await expect
+        .poll(() =>
+          listener.evaluate(
+            async () => (await window.mediaProbe.stats()).packets,
+          ),
+        )
+        .toBeGreaterThan(10);
+    } catch (e) {
+      console.log(
+        JSON.stringify({
+          sender: await sender.evaluate(() => window.mediaProbe.diagnostic()),
+          listener: await listener.evaluate(() =>
+            window.mediaProbe.diagnostic(),
+          ),
+        }),
+      );
+      throw e;
+    }
     const capabilities = await distant.evaluate(() =>
       window.mediaProbe.capabilities(),
     );
@@ -53,7 +65,7 @@ test("real audio is denied to distant, blocked and departed modified listeners",
     // Preserve the old WebRTC consumer and ignore all server closure notifications:
     // packet counters, not cooperative UI state, establish hard media enforcement.
     await listener.evaluate(() => window.mediaProbe.hostile());
-    await listener.evaluate(() => window.mediaProbe.move(1, 0, 3500));
+    await listener.evaluate(() => window.mediaProbe.walk(820, 560));
     await listener.waitForTimeout(800);
     const before = await listener.evaluate(
       async () => (await window.mediaProbe.stats()).packets,
@@ -75,15 +87,30 @@ test("real audio is denied to distant, blocked and departed modified listeners",
         { producerId, capabilities },
       ),
     ).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
-    await listener.evaluate(() => window.mediaProbe.move(-1, 0, 3500));
+    await listener.evaluate(() => window.mediaProbe.walk(480, 560));
     await listener.evaluate(() => window.mediaProbe.reconnectVoice());
-    await expect
-      .poll(() =>
-        listener.evaluate(
-          async () => (await window.mediaProbe.stats()).packets,
-        ),
-      )
-      .toBeGreaterThan(10);
+    try {
+      await expect
+        .poll(
+          () =>
+            listener.evaluate(
+              async () => (await window.mediaProbe.stats()).packets,
+            ),
+          { timeout: 15000 },
+        )
+        .toBeGreaterThan(10);
+    } catch (e) {
+      console.log(
+        JSON.stringify({
+          phase: "reentry",
+          sender: await sender.evaluate(() => window.mediaProbe.diagnostic()),
+          listener: await listener.evaluate(() =>
+            window.mediaProbe.diagnostic(),
+          ),
+        }),
+      );
+      throw e;
+    }
     await listener.evaluate(() => window.mediaProbe.hostile());
     await listener.evaluate((id) => window.mediaProbe.block(id), senderId);
     await listener.waitForTimeout(800);

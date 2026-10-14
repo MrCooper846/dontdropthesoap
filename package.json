@@ -6,7 +6,7 @@
     "dev": "tsx server.ts",
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
-    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.tsx\" components/YardMatchPanel.tsx \"examples/**/*.ts\" server.ts",
+    "lint": "prettier --check \"server/**/*.ts\" \"domain/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"app/play/**/*.tsx\" \"app/bots/**/*.tsx\" \"app/yard/**/*.tsx\" \"client/**/*.{ts,tsx}\" components/YardMatchPanel.tsx components/YardVoicePanel.tsx components/MediaProbe.tsx components/VoiceProbe.tsx \"examples/**/*.ts\" server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "playwright test",

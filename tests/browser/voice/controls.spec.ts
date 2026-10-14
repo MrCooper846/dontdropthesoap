@@ -13,8 +13,8 @@ test("yard voice uses explicit microphone permission, keyboard push-to-talk, mut
     await listener.goto("/lab/media");
     await listener.waitForFunction(() => !!window.mediaProbe);
     await listener.evaluate(() => window.mediaProbe.enter("Control listener"));
-    await listener.evaluate(() => window.mediaProbe.voice());
     await enter(talker, "Control talker");
+    await listener.evaluate(() => window.mediaProbe.voice());
     const panel = talker.getByRole("region", { name: "Nearby voice" });
     await panel.getByRole("button", { name: "Join nearby voice" }).click();
     await panel.getByRole("button", { name: "Enable microphone" }).click();
