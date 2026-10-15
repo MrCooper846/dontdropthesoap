@@ -15,6 +15,7 @@ Status: v1 specifications and implementation references, 14 October 2026. The au
 | [Yard and voice](yard-and-voice.md) | Rendering, movement, social UI and media routing |
 | [Testing](testing.md) | Correctness, hostile clients, playtests and performance gates |
 | [Operations](operations.md) | Deployment, credentials, observability and recovery |
+| [Physical-device and human acceptance](playtest.md) | Procedure and result form for the remaining real-device/playtest gates |
 | [Implementation](implementation.md) | Milestones and migration from current code |
 | [Goal Mode execution](goal-mode-plan.md) | Paste-ready goal, stage gates, checkpoint record and resume instructions |
 

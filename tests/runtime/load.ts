@@ -1,7 +1,8 @@
+import { runSoak } from "./soak";
 import assert from "node:assert/strict";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 import { io, type Socket } from "socket.io-client";
@@ -13,6 +14,33 @@ const local = "http://127.0.0.1:3117",
   origin = "https://soap-load.invalid";
 assert.equal(new URL(database).pathname, "/soap_load");
 const scale = process.argv.includes("--twice") ? 2 : 1;
+const soakDurationMs = process.argv.includes("--soak")
+  ? 3600000
+  : process.argv.includes("--soak-smoke")
+    ? 60000
+    : 0;
+assert.ok(
+  !(soakDurationMs && scale === 2),
+  "Run sustained soak at the public nominal capacity",
+);
+assert.ok(
+  !(process.argv.includes("--soak") && process.argv.includes("--soak-smoke")),
+);
+const evidenceId = Date.now() + "-" + randomUUID();
+const source = {
+  revision: execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim(),
+  dirty:
+    execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim()
+      .length > 0,
+  buildId: existsSync(".next/BUILD_ID")
+    ? readFileSync(".next/BUILD_ID", "utf8").trim()
+    : null,
+  node: process.version,
+};
+const serviceSamples: any[] = [];
+let metricsTruncated = false;
 const env: NodeJS.ProcessEnv = {
   ...process.env,
   NODE_ENV: "production",
@@ -267,15 +295,14 @@ async function stop() {
   }
 }
 function metricSamples(): any[] {
-  return output.split("\n").flatMap((line) => {
-    try {
-      const sample = JSON.parse(line);
-      return sample.event === "service.metrics" ? [sample] : [];
-    } catch {
-      return [];
-    }
-  });
+  assert.equal(
+    metricsTruncated,
+    false,
+    "Metric evidence exceeded its declared bound",
+  );
+  return serviceSamples;
 }
+
 async function run() {
   assert.ok(existsSync(".next/BUILD_ID"), "Build before production load test");
   const migrated = spawn(
@@ -298,10 +325,27 @@ async function run() {
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  for (const stream of [service.stdout!, service.stderr!])
+  for (const stream of [service.stdout!, service.stderr!]) {
+    let fragment = "";
     stream.on("data", (chunk) => {
       output = (output + chunk).slice(-500000);
+      fragment += chunk.toString();
+      const lines = fragment.split("\n");
+      fragment = lines.pop()!.slice(-100000);
+      for (const line of lines) {
+        try {
+          const value = JSON.parse(line);
+          if (value.event === "service.metrics") {
+            if (serviceSamples.length >= 1000) {
+              serviceSamples.shift();
+              metricsTruncated = true;
+            }
+            serviceSamples.push(value);
+          }
+        } catch {}
+      }
     });
+  }
   await until(async () => {
     try {
       return (await fetch(local + "/health/ready")).ok;
@@ -535,8 +579,23 @@ async function run() {
   assert.equal(resolutionLags.length, 4);
   assert.ok(
     resolutionLags.every((ms) => ms >= 0 && ms < 1000),
-    "Deliberately silent rounds resolve within one second of deadline",
+    "Deliberately silent rounds resolve within one second of deadline: " +
+      JSON.stringify(resolutionLags),
   );
+  const soak = soakDurationMs
+    ? await runSoak({
+        clients,
+        rpc,
+        guest,
+        samples: metricSamples,
+        healthy: () =>
+          service?.exitCode === null && bots.every((b) => b.exitCode === null),
+        failures,
+        source,
+        evidenceId,
+        durationMs: soakDurationMs,
+      })
+    : undefined;
   const returning = clients[0];
   returning.socket.disconnect();
   await delay(100);
@@ -592,8 +651,8 @@ async function run() {
   const allSamples = metricSamples();
   assert.equal(
     allSamples.reduce((n, s) => n + s.counters["yard.reconnected"], 0),
-    1,
-    "Actual retained-presence reconnect is counted once",
+    1 + (soak?.reconnects ?? 0),
+    "Actual retained-presence reconnects agree with the workload",
   );
   const measuredMoves = allSamples.reduce(
     (n, s) => n + s.counters["move.recorded"],
@@ -625,6 +684,7 @@ async function run() {
     "Production gauges observe the real four-table workload",
   );
   const report = {
+    source,
     profile: scale === 1 ? "nominal" : "2x-presence-and-command-traffic",
     workloadComplete: true,
     committedDecisionMetrics: "PASS",
@@ -656,7 +716,8 @@ async function run() {
     metrics,
     voiceLoad: "NOT_TESTED",
     physicalMobileFPS: "NOT_TESTED",
-    soak60Minutes: "NOT_RUN",
+    soak60Minutes: soak?.mode === "FULL_HOUR" ? "PASS" : "NOT_RUN",
+    soak,
   };
   mkdirSync("data/load-runs", { recursive: true, mode: 0o700 });
   writeFileSync(
@@ -668,6 +729,27 @@ async function run() {
 }
 run()
   .catch((error) => {
+    mkdirSync("data/load-runs", { recursive: true, mode: 0o700 });
+    writeFileSync(
+      "data/load-runs/" + evidenceId + ".failure.json",
+      JSON.stringify(
+        {
+          source,
+          soakDurationMs,
+          criteria: soakDurationMs ? "tests/runtime/soak.ts" : null,
+          error:
+            error instanceof Error
+              ? error.message.slice(0, 1000)
+              : "Load test failed",
+          resolutionLagsMs: resolutionLags,
+          metrics: serviceSamples,
+          metricsTruncated,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
     console.error(error instanceof Error ? error.message : "Load test failed");
     process.exitCode = 1;
   })

@@ -546,6 +546,138 @@ async function forced() {
     }),
   );
 }
+async function outboxFairness() {
+  await reset();
+  await start();
+  const a = await guest("Outbox A"),
+    b = await guest("Outbox B");
+  const { id } = await resource(a, "/matches", {
+    mode: "human",
+    settings: { rounds: 5, decisionMs: 5000, revealMs: 1000, maxSeats: 2 },
+  });
+  await resource(b, "/matches/" + id + "/join", {});
+  for (const c of [a, b]) {
+    const state = await request(c, "/matches/" + id);
+    const seat = state.seats.find(
+      (s: { ownerId: string }) => s.ownerId === c.ownerId,
+    );
+    assert.equal(
+      (
+        await request(c, "/commands", {
+          v: 1,
+          commandId: randomUUID(),
+          controllerEpoch: c.epoch,
+          type: "seat.ready",
+          matchId: id,
+          seatId: seat.id,
+          payload: { ready: true },
+        })
+      ).ok,
+      true,
+    );
+  }
+  const state = await request(a, "/matches/" + id);
+  assert.equal(
+    (
+      await request(a, "/commands", {
+        v: 1,
+        commandId: randomUUID(),
+        controllerEpoch: a.epoch,
+        type: "match.start",
+        matchId: id,
+        matchVersion: state.version,
+        payload: {},
+      })
+    ).ok,
+    true,
+  );
+  await waitFor(
+    async () => (await request(a, "/matches/" + id)).phase === "collecting",
+    "outbox fixture collecting",
+  );
+  await stop();
+  const sequence = (
+    await db.query(
+      "SELECT min(sequence) AS sequence FROM match_events WHERE match_id=$1",
+      [id],
+    )
+  ).rows[0].sequence;
+  await db.query(
+    "UPDATE match_events SET published_at=NULL WHERE match_id=$1 AND sequence=$2",
+    [id, sequence],
+  );
+  const locker = await db.connect();
+  try {
+    await locker.query("BEGIN");
+    await locker.query(
+      "SELECT 1 FROM match_events WHERE match_id=$1 AND sequence=$2 FOR UPDATE",
+      [id, sequence],
+    );
+    await start();
+    await waitFor(
+      async () =>
+        Number(
+          (
+            await db.query(
+              "SELECT count(*) FROM pg_stat_activity WHERE datname='soap_shutdown' AND wait_event_type='Lock' AND query LIKE 'UPDATE match_events SET published_at%'",
+            )
+          ).rows[0].count,
+        ) > 0,
+      "real publisher blocked on its event row",
+    );
+    await waitFor(
+      async () =>
+        Number(
+          (
+            await db.query(
+              "SELECT count(*) FROM moves WHERE match_id=$1 AND round_number=1 AND source='timeout'",
+              [id],
+            )
+          ).rows[0].count,
+        ) === 2,
+      "deadlines resolve while delivery is blocked",
+      8000,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "SELECT published_at FROM match_events WHERE match_id=$1 AND sequence=$2",
+          [id, sequence],
+        )
+      ).rows[0].published_at,
+      null,
+    );
+    const child = service!;
+    process.kill(-child.pid!, "SIGTERM");
+    await delay(200);
+    assert.equal(
+      child.exitCode,
+      null,
+      "Drain must await the independently admitted publisher",
+    );
+    assert.equal(
+      (await locker.query("SELECT pg_try_advisory_lock(724101) AS locked"))
+        .rows[0].locked,
+      false,
+      "Writer stays held through publisher completion",
+    );
+    await locker.query("COMMIT");
+    assert.equal(await exited(child), 0, output);
+    await stop();
+    console.log(
+      JSON.stringify({
+        blockedOutboxDoesNotDelayDeadlines: "PASS",
+        independentPublisherDrained: "PASS",
+        writerHeldThroughPublisher: "PASS",
+      }),
+    );
+  } finally {
+    await locker.query("ROLLBACK");
+    locker.release();
+    await stop();
+  }
+}
+
 async function run() {
   assert.ok(
     existsSync(".next/BUILD_ID"),
@@ -554,6 +686,7 @@ async function run() {
   await nominal("websocket");
   await nominal("polling");
   await voiceDrain();
+  await outboxFairness();
   await forced();
 }
 run()

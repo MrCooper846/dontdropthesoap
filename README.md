@@ -173,3 +173,7 @@ Production pages use fresh script nonces and dynamic rendering. The editor's pin
 ## Aggregate release diagnostics
 
 Service metric windows now expose failed request/lifecycle counts, confirmed committed decisions and timeouts, native worker/policy failures, active matches/seats and oldest unpublished-event age with explicit freshness. The real resource/load fixtures verify these against actual requests and durable rows. See [metric definitions and limits](docs/operations.md#aggregate-release-diagnostics). Hosted collection/alerts and the required sustained reconnect soak remain separate gates.
+
+## Sustained reconnect verification
+
+After a production build and test database setup, npm run test:soak runs the real nominal mixed-bot batch followed by a full hour of 32-player movement/chat and join/leave/reconnect churn. npm run test:soak:smoke checks only sixty seconds and cannot pass the hour/memory gate. Fixed memory criteria and evidence limits are in [the sustained test contract](docs/testing.md#sustained-presencereconnect-soak). The test uses only local soap_load and stores private ignored progress/failure reports; run it sequentially with other workload/build/recovery commands.
