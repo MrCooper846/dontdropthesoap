@@ -2,7 +2,7 @@
 
 Overall result: NOT YET VALIDATED. This audit preserves the full [goal](goal-mode-plan.md), rather than treating implemented code as physical/human/deployment evidence.
 
-Candidate: clean ffeb04b028c4c6800d3c47b375a3debe08b4c4b8; application files match 72aa79a. Final private production-only package: /tmp/soap-release-59322452d65147279a49987a87a37b23, build LXgsLT4m8oGYlRsLpXMxM. The completed full-hour workload used the same source and root build hafeLDvQmndyldUBWUZ8-. Subsequent documentation commits do not change measured application code.
+Candidate: clean 3b8235c90488dc156b7dc97e2683713b28c5bec1; relative to the earlier ffeb04b candidate, runtime changes add aggregate timing/clock diagnostics and test evidence capture, without changing game rules. Current private production-only package: /tmp/soap-release-0852116d2b6b4f76a6b3e77f196783da, build 49BiR5c997xouTKaJY4qs. Fresh production smoke and exact-package restore/previous-binary rollback pass. The completed full-hour workload belongs to ffeb04b/root build hafeLDvQmndyldUBWUZ8-; no full hour is claimed for the diagnostic revision. Subsequent documentation commits do not change packaged application code.
 
 ## User-visible requirements
 
@@ -24,7 +24,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 | Requirement / named artifact or command | Authoritative evidence | Status |
 | --- | --- | --- |
 | Fresh setup/runtime/dependencies | services:up/db:migrate development baseline; clean prepare:release archive, locked installs/build, runtime-only test:production boot; measured Node 24.18.0 | PASS locally; hosting compatibility separate |
-| Pure rules, validation and bounded workers | npm test: 95 checks; typecheck/format; real interpreter workers and failure termination | PASS |
+| Pure rules, validation and bounded workers | npm test: 97 checks; typecheck/format; real interpreter workers and failure termination | PASS |
 | Durable state, privacy, retries and scopes | test:integration: 48 real PostgreSQL checks including public/private cursors, result pages, external revisions, owner/epoch/credential guards and ledgers | PASS |
 | Fresh and repeated migrations | test:migrations: all sixteen migrations; schema-16 restore/old-binary/roll-forward checks | PASS |
 | Original baseline and renderer/editor lifecycle | Corrected test:browser: two tests; dedicated feature configs retain all feature tests | PASS |
@@ -38,7 +38,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 | Resource admission and overload | test:resources and test:overload actual limits/recovery; tested low fixture caps distinguished from production defaults | PASS |
 | Nominal and doubled traffic | Clean 3be47a6/build cu1hrACOOu8b7Ah0kE5zm; exact 320 moves/four timeouts/160 results/32 credits per profile; measured ACK/deadline targets pass | PASS for stated game workload; 2x is 64 presences/two command copies with four tables/32 seats/six bots |
 | Required full-hour memory/churn | Actual exec 55849 exited 0 on clean ffeb04b; complete report and independently recomputed memory/sample criteria | PASS for the recorded presence/reconnect workload; subsequent deadline smoke failure remains open |
-| Encrypted restore and actual rollback | Final package ffeb04b through previous 26d38b3 and forward, both 33-table fixtures, schema/data/session/admission/ledger equality, authenticated tamper failure and owned cleanup | PASS locally; strict test:rollback includes the restore gate |
+| Encrypted restore and actual rollback | Current package 3b8235c through previous 26d38b3 and forward, both 33-table fixtures, schema/data/session/admission/ledger equality, authenticated tamper failure and owned cleanup | PASS locally; strict test:rollback includes the restore gate |
 | Production release artifact and notes | Clean archive marker, build manifests, matching compiled visual worker, native binary, runtime-only npm start, normal shutdown; [candidate notes](release-notes.md) | PASS local artifact; no validated tag/deployment |
 | Real devices, 30 FPS, audio/editor/background | [Physical acceptance procedure and result form](playtest.md) | NOT_TESTED; actual devices/evidence required |
 | 4–8 humans, including visual/external bot owners | Same playtest procedure; automation is not human evidence | NOT_TESTED; people required |
