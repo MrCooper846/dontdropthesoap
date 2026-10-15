@@ -806,3 +806,6 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 
 
 - The unchanged, confirmed-live exec 55849 reaches 1,501 measured seconds: 696 cycles, 957,776 accepted movement inputs and 43,621 chats. All 151 unique phase samples remain ready/current; max sample gap 10,009 ms, max event-loop p95 11.314 ms, tracked failures zero. Three full windows each contain 30 samples; third heap/RSS floors are 156.981/656.531 MiB. Seven windows and final terminal duration/ledger/metric/memory checks remain. No hour or stability PASS is claimed; source/worker/build stay frozen.
+
+
+- The same confirmed-live exec 55849 reaches the actual midpoint at 1,801 measured seconds: 835 churn cycles, 1,149,304 accepted movement inputs and 52,350 chats. All 181 unique samples are ready/current, maximum sample gap remains 10,009 ms, event-loop p95 at most 11.314 ms and tracked failures zero. Four complete windows each have 30 samples; fourth heap/RSS floors are 167.140/649.500 MiB. Six windows and final terminal duration/ledger/metric/memory verification remain. This is a verified running midpoint, not a full-hour/stability pass.
