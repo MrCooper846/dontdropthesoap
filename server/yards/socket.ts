@@ -39,19 +39,21 @@ export function attachYard(socket: Socket, game: Namespace) {
   ) {
     socket.on(name, (input: unknown, ack: (data: unknown) => void) => {
       void serviceWork
-        .run(() =>
-          Promise.resolve()
-            .then(() => {
-              if (
-                !config.FEATURE_YARD ||
-                socket.data.principal.kind !== "browser"
-              )
-                throw new RuleError("FORBIDDEN");
-              return work(input);
-            })
-            .then((result) => {
-              if (typeof ack === "function") ack({ ok: true, result });
-            }),
+        .run(
+          () =>
+            Promise.resolve()
+              .then(() => {
+                if (
+                  !config.FEATURE_YARD ||
+                  socket.data.principal.kind !== "browser"
+                )
+                  throw new RuleError("FORBIDDEN");
+                return work(input);
+              })
+              .then((result) => {
+                if (typeof ack === "function") ack({ ok: true, result });
+              }),
+          ownerId,
         )
         .catch((e) => {
           if (typeof ack === "function") ack(failure(e));

@@ -1,3 +1,5 @@
+import { prepareVoiceTls } from "./tests/runtime/voice-tls";
+prepareVoiceTls();
 import { defineConfig } from "@playwright/test";
 import { networkInterfaces } from "node:os";
 const mediaAddress =
@@ -5,6 +7,7 @@ const mediaAddress =
     .flat()
     .find((i) => i?.family === "IPv4" && !i.internal)?.address ?? "127.0.0.1";
 export default defineConfig({
+  globalTeardown: "./tests/runtime/voice-tls-teardown.ts",
   testDir: "tests/browser/voice",
   projects: [
     { name: "chromium", use: { browserName: "chromium" } },
@@ -31,7 +34,8 @@ export default defineConfig({
   workers: 1,
   timeout: 120000,
   use: {
-    baseURL: "http://127.0.0.1:3107",
+    baseURL: "https://127.0.0.1:3107",
+    ignoreHTTPSErrors: true,
     headless: true,
     launchOptions: {
       args: [
@@ -44,8 +48,9 @@ export default defineConfig({
   webServer: {
     env: { VOICE_LISTEN_IP: mediaAddress },
     command:
-      "FEATURE_VOICE=true FEATURE_YARD=true VOICE_MIN_PORT=19300 VOICE_MAX_PORT=19427 PORT=3107 PUBLIC_ORIGIN=http://127.0.0.1:3107 DATABASE_URL=postgresql://soap:soap_local_only@localhost:55432/soap_yard_browser npm run dev",
-    url: "http://127.0.0.1:3107/health/ready",
+      "VOICE_MIN_PORT=19300 VOICE_MAX_PORT=19427 node --import tsx tests/runtime/voice-server.ts",
+    url: "https://127.0.0.1:3107/health/ready",
+    ignoreHTTPSErrors: true,
     reuseExistingServer: false,
     timeout: 120000,
   },

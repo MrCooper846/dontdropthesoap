@@ -1,3 +1,4 @@
+import { voiceTlsOptions } from "../../runtime/voice-tls";
 import { test, expect, type Page } from "@playwright/test";
 import { Pool } from "pg";
 import { io } from "socket.io-client";
@@ -114,8 +115,9 @@ for (const mode of ["expiry", "revocation", "disable"] as const)
             window.mediaProbe.resource("/bots/" + id + "/credentials", {}),
           bot.id,
         );
-        botSocket = io("http://127.0.0.1:3107/game-v1", {
+        botSocket = io("https://127.0.0.1:3107/game-v1", {
           transports: ["websocket"],
+          ...voiceTlsOptions(),
           extraHeaders: { Authorization: "Bearer " + credential.secret },
         });
         await new Promise<void>((resolve, reject) => {

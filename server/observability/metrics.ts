@@ -46,8 +46,13 @@ export class DurationHistogram {
 const durations = {
   "command.accepted": new DurationHistogram(),
   "db.transaction": new DurationHistogram(),
+  "voice.policy.refresh": new DurationHistogram(),
 };
-const counters = { "command.rejected": 0, "work.overload": 0 };
+const counters = {
+  "command.rejected": 0,
+  "work.overload": 0,
+  "connection.rejected": 0,
+};
 export function duration(name: keyof typeof durations, ms: number) {
   durations[name].observe(ms);
 }

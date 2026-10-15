@@ -1,8 +1,14 @@
+import { OwnerAdmission } from "./owners";
 import { config } from "../config";
 import { increment } from "../observability/metrics";
 import { RuleError } from "../../domain/match/model";
 export class WorkDrain {
-  constructor(private readonly capacity = 256) {
+  private owners: OwnerAdmission;
+  constructor(
+    private readonly capacity = 256,
+    ownerCapacity = 8,
+  ) {
+    this.owners = new OwnerAdmission(ownerCapacity);
     if (!Number.isSafeInteger(capacity) || capacity < 1)
       throw new Error("Invalid work capacity");
   }
@@ -17,7 +23,7 @@ export class WorkDrain {
   begin() {
     this.closing = true;
   }
-  run<T>(work: () => T | Promise<T>): Promise<T> {
+  run<T>(work: () => T | Promise<T>, ownerId?: string): Promise<T> {
     if (this.closing)
       return Promise.reject(
         new RuleError(
@@ -33,7 +39,7 @@ export class WorkDrain {
     }
     // Reserve capacity before executing user work, including reentrant arrivals.
     const task = Promise.resolve()
-      .then(work)
+      .then(() => this.owners.scope(work, ownerId))
       .finally(() => this.pending.delete(task));
     this.pending.add(task);
     return task;
@@ -42,4 +48,7 @@ export class WorkDrain {
     while (this.pending.size) await Promise.allSettled([...this.pending]);
   }
 }
-export const serviceWork = new WorkDrain(config.MAX_PENDING_WORK);
+export const serviceWork = new WorkDrain(
+  config.MAX_PENDING_WORK,
+  config.MAX_PENDING_PER_OWNER,
+);

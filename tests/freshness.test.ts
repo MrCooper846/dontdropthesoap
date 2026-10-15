@@ -1,0 +1,21 @@
+import { it, expect } from "vitest";
+import { FreshnessLease } from "../server/lifecycle/freshness";
+it("expires at the elapsed boundary and does not renew an already stale query result", () => {
+  let now = 0;
+  const lease = new FreshnessLease(600, () => now);
+  expect(lease.fresh).toBe(false);
+  lease.confirm();
+  now = 599;
+  expect(lease.fresh).toBe(true);
+  now = 600;
+  expect(lease.fresh).toBe(false);
+  const queryStarted = now;
+  now = 1201;
+  lease.confirm(queryStarted);
+  expect(lease.fresh).toBe(false);
+  lease.confirm();
+  expect(lease.fresh).toBe(true);
+  lease.invalidate();
+  expect(lease.ageMs).toBeNull();
+  expect(lease.fresh).toBe(false);
+});

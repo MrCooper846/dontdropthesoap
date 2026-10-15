@@ -1,3 +1,5 @@
+import { OwnerConnections } from "./server/lifecycle/owner-connections";
+import { limitConnections } from "./server/lifecycle/connections";
 import { startMetrics } from "./server/observability/metrics";
 import { startOperatorEffects } from "./server/operators/effects";
 import { dropCredentialLease } from "./server/bots/identity";
@@ -29,6 +31,21 @@ import {
   tickMatches,
   recoverMatches,
 } from "./server/commands/matches";
+function connectionFailure(error: unknown, fallback = "AUTH_REQUIRED") {
+  const code = error instanceof RuleError ? error.code : fallback;
+  const failure = new Error(code) as Error & { data: unknown };
+  failure.data = {
+    code,
+    retryable: code === "SERVICE_UNAVAILABLE",
+    message:
+      error instanceof RuleError && error.message !== error.code
+        ? error.message
+        : code === "SERVICE_UNAVAILABLE"
+          ? "Game service is unavailable. Please retry."
+          : "Connection unavailable. Check your session and retry.",
+  };
+  return failure;
+}
 async function main() {
   await migrate();
   let ready = false,
@@ -48,84 +65,102 @@ async function main() {
   await maintainCoordinator();
   enforceCoordinatorLease();
   await recoverMatches();
-  const http = createServer((req, res) => {
-    if (req.url === "/health/live") {
-      if (serviceWork.draining) res.setHeader("Connection", "close");
-      json(
-        res,
-        200,
-        serviceWork.draining ? { live: true, draining: true } : { live: true },
-      );
-      return;
-    }
-    if (serviceWork.draining) {
-      res.setHeader("Connection", "close");
-      if (req.url === "/health/live")
-        json(res, 200, { live: true, draining: true });
-      else if (req.url === "/health/ready")
-        json(res, 503, { ready: false, draining: true });
-      else
-        json(res, 503, {
-          error: {
-            code: "SERVICE_UNAVAILABLE",
-            message: "Service restarting. Please retry.",
-            retryable: true,
-          },
-        });
-      return;
-    }
-    if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
-      res.writeHead(302, { Location: config.FEATURE_YARD ? "/yard" : "/play" });
-      res.end();
-      return;
-    }
-    if (config.FEATURE_YARD && /^\/play(?:\?|$)/.test(req.url ?? "")) {
-      const query = new URL(req.url!, config.PUBLIC_ORIGIN).search;
-      res.writeHead(302, { Location: "/yard" + query });
-      res.end();
-      return;
-    }
-    void serviceWork
-      .run(() =>
-        api(
-          req,
+  const http = createServer(
+    {
+      requestTimeout: config.HTTP_REQUEST_TIMEOUT_MS,
+      headersTimeout: Math.min(10000, config.HTTP_REQUEST_TIMEOUT_MS),
+      connectionsCheckingInterval: 1000,
+    },
+    (req, res) => {
+      if (req.url === "/health/live") {
+        if (serviceWork.draining) res.setHeader("Connection", "close");
+        json(
           res,
-          () => ready && coordinatorAvailable(),
-          (sessionId) => {
-            for (const socket of game.sockets.values())
-              if (socket.data.principal.sessionId === sessionId)
-                socket.disconnect(true);
-          },
-          (credentialId) => {
-            for (const socket of game.sockets.values())
-              if (socket.data.principal.credentialId === credentialId)
-                socket.disconnect(true);
-          },
-        ).then((handled) => {
-          if (!handled) return app.getRequestHandler()(req, res);
-        }),
-      )
-      .catch((error) => {
-        if (!res.headersSent) {
-          const retryable =
-            error instanceof RuleError && error.code === "SERVICE_UNAVAILABLE";
-          if (retryable) {
-            res.setHeader("Connection", "close");
-            res.setHeader("Retry-After", "1");
-            json(res, 503, {
-              error: {
-                code: "SERVICE_UNAVAILABLE",
-                message: error.message,
-                retryable: true,
-              },
-            });
-          } else {
-            res.writeHead(500);
-            res.end("Request failed");
+          200,
+          serviceWork.draining
+            ? { live: true, draining: true }
+            : { live: true },
+        );
+        return;
+      }
+      if (serviceWork.draining) {
+        res.setHeader("Connection", "close");
+        if (req.url === "/health/live")
+          json(res, 200, { live: true, draining: true });
+        else if (req.url === "/health/ready")
+          json(res, 503, { ready: false, draining: true });
+        else
+          json(res, 503, {
+            error: {
+              code: "SERVICE_UNAVAILABLE",
+              message: "Service restarting. Please retry.",
+              retryable: true,
+            },
+          });
+        return;
+      }
+      if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
+        res.writeHead(302, {
+          Location: config.FEATURE_YARD ? "/yard" : "/play",
+        });
+        res.end();
+        return;
+      }
+      if (config.FEATURE_YARD && /^\/play(?:\?|$)/.test(req.url ?? "")) {
+        const query = new URL(req.url!, config.PUBLIC_ORIGIN).search;
+        res.writeHead(302, { Location: "/yard" + query });
+        res.end();
+        return;
+      }
+      void serviceWork
+        .run(() =>
+          api(
+            req,
+            res,
+            () => ready && coordinatorAvailable(),
+            (sessionId) => {
+              for (const socket of game.sockets.values())
+                if (socket.data.principal.sessionId === sessionId)
+                  socket.disconnect(true);
+            },
+            (credentialId) => {
+              for (const socket of game.sockets.values())
+                if (socket.data.principal.credentialId === credentialId)
+                  socket.disconnect(true);
+            },
+          ).then((handled) => {
+            if (!handled) return app.getRequestHandler()(req, res);
+          }),
+        )
+        .catch((error) => {
+          if (!res.headersSent) {
+            const retryable =
+              error instanceof RuleError &&
+              error.code === "SERVICE_UNAVAILABLE";
+            if (retryable) {
+              res.setHeader("Connection", "close");
+              res.setHeader("Retry-After", "1");
+              json(res, 503, {
+                error: {
+                  code: "SERVICE_UNAVAILABLE",
+                  message: error.message,
+                  retryable: true,
+                },
+              });
+            } else {
+              res.writeHead(500);
+              res.end("Request failed");
+            }
           }
-        }
-      });
-  });
+        });
+    },
+  );
+  const connections = limitConnections(
+    http,
+    config.MAX_TCP_CONNECTIONS,
+    config.MAX_TCP_PER_IP,
+    Math.min(10000, config.HTTP_REQUEST_TIMEOUT_MS),
+  );
   const io = new Server(http, {
     maxHttpBufferSize: 16384,
     allowRequest: (req, done) =>
@@ -139,6 +174,7 @@ async function main() {
   });
   io.of("/").use((_socket, next) => next(new Error("Use /game-v1")));
   const game = io.of("/game-v1");
+  const ownerConnections = new OwnerConnections(config.MAX_SOCKETS_PER_OWNER);
   game.use((socket, next) => {
     try {
       if (!ready || !coordinatorAvailable())
@@ -151,21 +187,28 @@ async function main() {
           actor(socket.request).then((p) => {
             if (serviceWork.draining)
               throw new RuleError("SERVICE_UNAVAILABLE");
-            socket.data.principal = p;
-            next();
+            if (socket.conn.readyState !== "open")
+              throw new RuleError("SERVICE_UNAVAILABLE");
+            const release = ownerConnections.acquire(p.ownerId);
+            const forget = () => {
+              socket.off("disconnect", forget);
+              socket.conn.off("close", forget);
+              release();
+            };
+            socket.once("disconnect", forget);
+            socket.conn.once("close", forget);
+            try {
+              socket.data.principal = p;
+              next();
+            } catch (error) {
+              forget();
+              throw error;
+            }
           }),
         )
-        .catch((error) =>
-          next(
-            new Error(
-              error instanceof RuleError && error.code === "SERVICE_UNAVAILABLE"
-                ? "SERVICE_UNAVAILABLE"
-                : "AUTH_REQUIRED",
-            ),
-          ),
-        );
+        .catch((error) => next(connectionFailure(error)));
     } catch (error) {
-      next(new Error(error instanceof RuleError ? error.code : "FORBIDDEN"));
+      next(connectionFailure(error, "FORBIDDEN"));
     }
   });
   const voice = config.FEATURE_VOICE ? await startVoice(game) : null;
@@ -197,7 +240,7 @@ async function main() {
               hasMore: sync.hasMore,
               reset: sync.reset,
             });
-        })
+        }, socket.data.principal.ownerId)
         .catch(() => {
           if (typeof ack === "function") ack({ ok: false });
         });
@@ -210,12 +253,18 @@ async function main() {
           rateLimit("socket:" + socket.data.principal.id);
           const result = await command(socket.request, input);
           if (typeof ack === "function") ack(result);
-        })
+        }, socket.data.principal.ownerId)
         .catch((e) => {
           if (typeof ack === "function")
             ack({
               ok: false,
               error: {
+                message:
+                  e instanceof RuleError
+                    ? e.message
+                    : e instanceof z.ZodError
+                      ? "Invalid command"
+                      : "Game service is unavailable. Please retry.",
                 code:
                   e instanceof RuleError
                     ? e.code
@@ -234,6 +283,8 @@ async function main() {
   const stopMetrics = startMetrics(() => ({
     pendingWork: serviceWork.pendingCount,
     connectedSockets: game.sockets.size,
+    tcpConnections: connections.current,
+    connectionSources: connections.addressCount,
     ready: ready && coordinatorAvailable(),
     draining: serviceWork.draining,
     dbWaiting: pool.waitingCount,

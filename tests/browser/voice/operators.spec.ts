@@ -1,3 +1,4 @@
+import { voiceTlsOptions } from "../../runtime/voice-tls";
 import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -121,7 +122,7 @@ test("ordinary browser has no operator authority; real report review and session
     const unauthorized = await page.request.post("/api/v1/operator", {
       headers: {
         "x-csrf-token": current.csrfToken,
-        Origin: "http://127.0.0.1:3107",
+        Origin: "https://127.0.0.1:3107",
       },
       data: command,
     });
@@ -143,7 +144,7 @@ test("ordinary browser has no operator authority; real report review and session
     const report = await page.request.post("/api/v1/reports", {
       headers: {
         "x-csrf-token": current.csrfToken,
-        Origin: "http://127.0.0.1:3107",
+        Origin: "https://127.0.0.1:3107",
       },
       data: {
         ownerId: subject,
@@ -212,8 +213,9 @@ test("operator credential revocation closes the real connected bot and denies re
       (id) => window.mediaProbe.resource("/bots/" + id + "/credentials", {}),
       bot.id,
     );
-    socket = io("http://127.0.0.1:3107/game-v1", {
+    socket = io("https://127.0.0.1:3107/game-v1", {
       transports: ["websocket"],
+      ...voiceTlsOptions(),
       extraHeaders: { Authorization: "Bearer " + credential.secret },
     });
     await new Promise<void>((resolve, reject) => {
@@ -238,8 +240,9 @@ test("operator credential revocation closes the real connected bot and denies re
         })
       ).status(),
     ).toBe(401);
-    const retry = io("http://127.0.0.1:3107/game-v1", {
+    const retry = io("https://127.0.0.1:3107/game-v1", {
       transports: ["websocket"],
+      ...voiceTlsOptions(),
       extraHeaders: { Authorization: "Bearer " + credential.secret },
       reconnection: false,
     });

@@ -1,3 +1,4 @@
+import { bindOwnerWork } from "../lifecycle/owners";
 import { config } from "../config";
 import { randomBytes, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
@@ -30,6 +31,7 @@ export async function botPrincipal(
   );
   if (!result.rowCount) throw new RuleError("AUTH_REQUIRED");
   const row = result.rows[0];
+  bindOwnerWork(row.owner_id);
   return {
     id: row.id,
     ownerId: row.owner_id,
