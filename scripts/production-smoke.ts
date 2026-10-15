@@ -14,6 +14,7 @@ let createdDatabase = false;
 const origin = "https://soap-smoke.invalid",
   local = "http://127.0.0.1:3111";
 let service: ChildProcess | undefined;
+let serverPid: number | undefined;
 async function run() {
   assert.ok(
     existsSync(".next/BUILD_ID"),
@@ -96,6 +97,27 @@ async function run() {
     await delay(250);
   }
   assert.ok(ready, "Production process readiness: " + output);
+  const readyRecord = output
+    .split("\n")
+    .flatMap((line) => {
+      try {
+        const record = JSON.parse(line);
+        return record.event === "service.ready" ? [record] : [];
+      } catch {
+        return [];
+      }
+    })
+    .at(-1);
+  assert.ok(
+    Number.isSafeInteger(readyRecord?.pid) && readyRecord.pid > 1,
+    "Server process identity missing",
+  );
+  serverPid = readyRecord.pid;
+  // Verify the trusted startup PID belongs to this npm-start process group.
+  const stat = readFileSync("/proc/" + serverPid + "/stat", "utf8");
+  const fields = stat.slice(stat.lastIndexOf(") ") + 2).split(" ");
+  assert.equal(Number(fields[2]), service.pid);
+
   for (const path of ["/yard", "/bots/build", "/leagues"]) {
     const r = await fetch(local + path);
     assert.equal(r.status, 200, path);
@@ -152,6 +174,7 @@ async function run() {
   console.log(
     JSON.stringify({
       revision,
+      fixtureDatabase: databaseName,
       buildId: readFileSync(".next/BUILD_ID", "utf8").trim(),
       legacyIsolation: "PASS",
       requestCorrelation: "PASS",
@@ -173,38 +196,44 @@ run()
     process.exitCode = 1;
   })
   .finally(async () => {
-    if (
-      service?.pid &&
-      service.exitCode === null &&
-      service.signalCode === null
-    ) {
-      const child = service;
-      const exited = new Promise<number | null>((resolve) =>
-        child.once("exit", resolve),
-      );
-      process.kill(-child.pid!, "SIGTERM");
-      const timer = setTimeout(() => {
-        try {
-          process.kill(-child.pid!, "SIGKILL");
-        } catch {}
-      }, 10000);
-      try {
-        assert.equal(
-          await exited,
-          0,
-          "Production smoke service must drain normally",
+    try {
+      if (
+        service?.pid &&
+        service.exitCode === null &&
+        service.signalCode === null
+      ) {
+        const child = service;
+        const exited = new Promise<number | null>((resolve) =>
+          child.once("exit", resolve),
         );
-      } finally {
-        clearTimeout(timer);
+        // Signal only the real game process; signaling npm's whole group makes
+        // its wrapper exit by signal before it can report the application's status.
+        if (serverPid) process.kill(serverPid, "SIGTERM");
+        else process.kill(-child.pid!, "SIGTERM");
+        const timer = setTimeout(() => {
+          try {
+            process.kill(-child.pid!, "SIGKILL");
+          } catch {}
+        }, 10000);
+        try {
+          assert.equal(
+            await exited,
+            0,
+            "Production smoke service must drain normally",
+          );
+        } finally {
+          clearTimeout(timer);
+        }
       }
-    }
-    if (createdDatabase) {
-      assert.match(databaseName, /^soap_release_smoke_[a-f0-9]{32}$/);
-      const admin = new Pool({ connectionString: adminURL });
-      try {
-        await admin.query('DROP DATABASE "' + databaseName + '"');
-      } finally {
-        await admin.end();
+    } finally {
+      if (createdDatabase) {
+        assert.match(databaseName, /^soap_release_smoke_[a-f0-9]{32}$/);
+        const admin = new Pool({ connectionString: adminURL });
+        try {
+          await admin.query('DROP DATABASE "' + databaseName + '"');
+        } finally {
+          await admin.end();
+        }
       }
     }
   });

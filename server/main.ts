@@ -451,7 +451,7 @@ export async function main() {
   );
   ready = true;
   http.listen(config.PORT, "0.0.0.0", () =>
-    console.log(JSON.stringify({ event: "service.ready" })),
+    console.log(JSON.stringify({ event: "service.ready", pid: process.pid })),
   );
   async function shutdown() {
     if (stopping) return;
