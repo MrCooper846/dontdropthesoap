@@ -85,3 +85,8 @@ The live scheduler reads the frozen admitted version. It initializes private per
 The visual vocabulary's history facts refer to revealed encounters between this seat and its current opponent. A first encounter has no last move and zero counts. Current accepted hidden moves are never part of that observation. Match-scoped memory still spans successive opponents; memory resets only when a new match starts.
 
 GET /matches/:matchId/seats/:seatId/visual-feedback is owner-only. Other spectators see ordinary public outcomes and bot status, never program memory, random state or private execution traces. Editing an owned bot cannot rewrite the strategy of an existing seat.
+
+
+### External revision management
+
+Your bot stable displays each external bot's current declared label and provides a labelled input and Publish revision control. Publishing creates immutable metadata for later admissions; it does not interrupt the bot, rotate its credential, rewrite an existing seat/league entry or host any code. Existing external clients keep their scoped controller/heartbeat contract. The version routes and retry semantics are documented in protocol.md.

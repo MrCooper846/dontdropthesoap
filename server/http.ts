@@ -1,3 +1,4 @@
+import { externalVersionsHttp } from "./bots/external-versions";
 import { resultsPage } from "./matches/results";
 import { beginRequest, httpFailure } from "./observability/diagnostics";
 import { increment } from "./observability/metrics";
@@ -152,6 +153,7 @@ export async function api(
     );
     if (method !== "GET") assertCsrf(req, principal);
     if (await leagueHttp(req, res, path, method)) return true;
+    if (await externalVersionsHttp(req, res, path, method)) return true;
     if (await visualHttp(req, res, path, method)) return true;
     if (await ownedBotHttp(req, res, path, method, onRevoke)) return true;
     if (await yardHttp(req, res, path, method)) return true;

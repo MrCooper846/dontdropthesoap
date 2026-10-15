@@ -118,3 +118,8 @@ Each metadata table contributes at most 100 rows per transaction, with locked ro
 ## Bounded metadata indexes
 
 Migration 015 indexes credential expiry/UUID pagination, reverse block lookup and unfinished social match admission. It validates queued deferred constraints before index DDL, then restores deferred mode. This permits a populated pre-014 database to apply the terminal backfill and following indexes in the same migration transaction without disabling integrity guards.
+
+
+## Immutable external declarations
+
+Migration 016 adds a database trigger rejecting changes/deletion of external bot_versions rows (those without visual programs). Publication inserts a new label-only revision under a bot row lock, with the existing bot/revision uniqueness constraint. Current seats and league entries keep their original foreign keys; later admissions select the newest revision. Visual immutability and executable payload constraints remain independently enforced. This protects stored labels and references, not externally running code.

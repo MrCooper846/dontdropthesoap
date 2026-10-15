@@ -175,6 +175,47 @@ async function run() {
   assert.equal(preview.status, 200);
   assert.equal((await preview.json()).move, "C");
   assert.equal((await fetch(local + "/api/v1/leagues")).status, 200);
+  const ownerHeaders = {
+    Origin: origin,
+    Cookie: cookie,
+    "x-csrf-token": session.csrfToken,
+    "Content-Type": "application/json",
+  };
+  async function publishResource(path: string, payload: unknown) {
+    const keyResponse = await fetch(local + "/api/v1/command-keys", {
+      method: "POST",
+      headers: ownerHeaders,
+      body: "{}",
+    });
+    assert.equal(keyResponse.status, 201);
+    const { key } = await keyResponse.json();
+    const response = await fetch(local + "/api/v1" + path, {
+      method: "POST",
+      headers: ownerHeaders,
+      body: JSON.stringify({
+        key,
+        commandId: randomUUID(),
+        controllerEpoch: session.controllerEpoch,
+        payload,
+      }),
+    });
+    assert.equal(response.status, 201);
+    return response.json();
+  }
+  const external = await publishResource("/bots", {
+    name: "Production external",
+  });
+  const declared = await publishResource("/bots/" + external.id + "/versions", {
+    externalLabel: "package revision",
+  });
+  assert.equal(declared.revision, 2);
+  const metadata = await fetch(
+    local + "/api/v1/bots/" + external.id + "/versions/latest",
+    { headers: ownerHeaders },
+  );
+  assert.equal(metadata.status, 200);
+  assert.equal((await metadata.json()).external_label, "package revision");
+
   console.log(
     JSON.stringify({
       revision,
@@ -189,6 +230,7 @@ async function run() {
       builtPages: "PASS",
       secureCookie: "PASS",
       compiledVisualWorker: "PASS",
+      externalRevisionPublication: "PASS",
       nativeMediaBinary: "PASS",
       publicTLS: "NOT_TESTED",
     }),

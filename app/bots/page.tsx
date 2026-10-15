@@ -24,11 +24,13 @@ type Bot = {
   kind: string;
   online: boolean;
   revision: number;
+  external_label?: string;
 };
 export default function Bots() {
   const [session, setSession] = useState<Session | null>(null),
     [bots, setBots] = useState<Bot[]>([]),
     [name, setName] = useState(""),
+    [labels, setLabels] = useState<Record<string, string>>({}),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [secret, setSecret] = useState(""),
@@ -222,6 +224,42 @@ export default function Bots() {
                 </>
               ) : (
                 <>
+                  <p>Declared label: {bot.external_label ?? "initial"}</p>
+                  <label className="stack">
+                    New revision label for {bot.name}
+                    <input
+                      className="input"
+                      maxLength={100}
+                      value={labels[bot.id] ?? ""}
+                      onChange={(e) =>
+                        setLabels((old) => ({
+                          ...old,
+                          [bot.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button
+                    className="button"
+                    disabled={busy || !labels[bot.id]?.trim()}
+                    onClick={() =>
+                      void run(async (epoch) => {
+                        await resource(
+                          "/bots/" + bot.id + "/versions",
+                          { externalLabel: labels[bot.id] },
+                          epoch,
+                        );
+                        setLabels((old) => ({ ...old, [bot.id]: "" }));
+                      })
+                    }
+                  >
+                    Publish revision for {bot.name}
+                  </button>
+                  <p className="muted">
+                    Labels describe your external bot. They do not verify or
+                    freeze its code. Existing match and league entries retain
+                    their declared revision.
+                  </p>
                   <button
                     className="button"
                     disabled={busy}

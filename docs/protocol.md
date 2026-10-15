@@ -186,3 +186,12 @@ GET /matches/:id/results returns {results,historyExpired,cursor,nextAfterResult,
 Pages contain at most 100 results in append order. Omit afterResult for the first page; pass nextAfterResult to fetch the next. cursor is the number of revealed results consumed, and nextAfterResult is null when the current snapshot has no further page. A client following an ongoing match may poll again from cursor for later appended results even when hasMore was false. Cursor values are unsigned canonical decimal integers; malformed or beyond-current-history cursors return INVALID_PAYLOAD. Once history is archived, a valid cursor resets to zero with empty results, historyExpired/reset true and hasMore false.
 
 afterResult is independent of the after event-replay cursor. Normal observations and state.sync retain their full bounded revealed history (at most 200 pair results under the current 50-round/eight-seat social limits), so bot decisions and ordinary match rendering do not silently lose earlier encounters.
+
+
+## External revision declarations
+
+With FEATURE_EXTERNAL_BOTS enabled, an owner can POST /bots/:id/versions using the normal {commandId,key,controllerEpoch,payload:{externalLabel}} resource envelope. The label is trimmed, 1–100 characters, and the payload accepts no executable program/code fields. The response contains {id,kind,versionId,revision,externalLabel}. Retries retain the same version; changed payloads under a reused command ID reject. Publication serializes on the owned bot to allocate consecutive revisions. FEATURE_VISUAL_BOTS does not control external declarations.
+
+GET /bots/:id/versions/latest or /versions/:versionId returns owned external metadata only: {version_id,bot_id,revision,external_label}. Unknown, archived or other-owned bots/versions return NOT_FOUND. Bot credentials cannot publish or manage versions. Visual publication/read schemas remain unchanged.
+
+New admissions select the latest declared revision; existing social seats and registered league entries retain their stored version IDs. Migration 016 protects external declarations from UPDATE/DELETE, just as published visual versions are immutable. A declaration is metadata, never proof of frozen code, autonomy, hosted execution or reproducibility of an external model. Owners may still alter or coach the actual external process under the open competition rules.

@@ -274,6 +274,23 @@ test("owner registers a bot, issues and revokes its credential through the brows
   await expect(
     page.getByRole("heading", { name: "Studio snake" }),
   ).toBeVisible();
+  await page
+    .getByLabel("New revision label for Studio snake")
+    .fill("my revised strategy");
+  await page
+    .getByRole("button", { name: "Publish revision for Studio snake" })
+    .click();
+  await expect(
+    page.getByText("Declared label: my revised strategy"),
+  ).toBeVisible();
+  await expect(page.getByText(/External · revision 2/)).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByText("Declared label: my revised strategy"),
+  ).toBeVisible();
+  // Publication plus the automated credential workflow exceeds ten writes/sec
+  // without a human pause; keep the real server budget unchanged.
+  await page.waitForTimeout(1100);
   await page.getByRole("button", { name: "Issue credential" }).click();
   await expect(page.getByLabel("Bot credential")).toHaveValue(/^[a-f0-9]{64}$/);
   await page.getByRole("button", { name: "Hide credential" }).click();
