@@ -100,3 +100,6 @@ Migration 011 stores atomic, immutable operator action responses and separate id
 ## Waiting-room absence
 
 Migration 013 adds matches.waiting_empty_since and an indexed non-league waiting-room scan. The durable timestamp is independent of private game choices and the JSON checkpoint. The singleton derives current presence from browser connections/external controller leases, clears the timestamp on return and atomically cancels deserted rooms after fifteen minutes. A trigger clears stale absence on later phases, including additive-schema binary rollback. Cancellation retains seats/history and never settles points. Detailed semantics are in operations.md.
+
+
+Ephemeral owner limiter/controller maps have hard capacities and monotonic expiry with an independent one-second prune; nearby chat also expires during idle periods. These controls do not implement the persistent retention defaults above. Round/checkpoint/event/feedback cleanup, receipt/session/report cleanup and deployment backup expiry remain separate release requirements until their actual jobs and tests land.

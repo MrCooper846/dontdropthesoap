@@ -15,6 +15,7 @@ import {
   clearBotLeases,
 } from "../../server/bots/identity";
 import { config } from "../../server/config";
+import { setTimeout as delay } from "node:timers/promises";
 if (!config.DATABASE_URL.endsWith("/soap_test"))
   throw new Error("Bot integration tests require soap_test");
 beforeAll(migrate);
@@ -87,4 +88,29 @@ it("does not let another owner inspect, mint or revoke an owned bot", async () =
   ).rejects.toThrow("NOT_FOUND");
   const p = await authenticate(a);
   expect((await botPrincipal(external(token.secret))).ownerId).toBe(p.ownerId);
+});
+
+it("an actually expired lease cannot be revived by heartbeat and reacquisition fences its old epoch", async () => {
+  const req = await owner("Expired bot owner");
+  const bot = await createExternalBot(req, {
+    name: "Expired bot",
+    controllerEpoch: 0,
+  });
+  const token = await mintCredential(req, bot.id, { controllerEpoch: 0 });
+  const remote = external(token.secret);
+  const first = await acquireBot(remote);
+  await delay(15100);
+  expect(isBotOnline(bot.id)).toBe(false);
+  await expect(
+    heartbeatBot(remote, { controllerEpoch: first.controllerEpoch }),
+  ).rejects.toThrow("CONTROLLER_STALE");
+  const next = await acquireBot(remote);
+  expect(next.controllerEpoch).toBe(first.controllerEpoch + 1);
+  await expect(
+    heartbeatBot(remote, { controllerEpoch: first.controllerEpoch }),
+  ).rejects.toThrow("CONTROLLER_STALE");
+  expect(
+    (await heartbeatBot(remote, { controllerEpoch: next.controllerEpoch })).ok,
+  ).toBe(true);
+  clearBotLeases();
 });

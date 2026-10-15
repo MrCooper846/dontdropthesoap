@@ -18,7 +18,15 @@ let circles: CircleView[] = YARD_MAP.circles.map((c) => ({
   settings: { rounds: 10, decisionMs: 20000, revealMs: 5000, maxSeats: 8 },
 }));
 let blocks = new Set<string>();
-const chats: { message: ChatMessage; recipients: Set<string> }[] = [];
+const chats: {
+  message: ChatMessage;
+  recipients: Set<string>;
+  retainedAt: number;
+}[] = [];
+export function pruneChat() {
+  const now = performance.now();
+  while (chats.length && now - chats[0].retainedAt >= 30000) chats.shift();
+}
 export function blocked(a: string, b: string) {
   return blocks.has(a + ":" + b) || blocks.has(b + ":" + a);
 }
@@ -54,8 +62,7 @@ export function snapshot(): YardView {
   };
 }
 export function chatHistory(ownerId: string) {
-  const now = Date.now();
-  while (chats.length && now - chats[0].message.sentAt > 30000) chats.shift();
+  pruneChat();
   return chats
     .filter(
       (c) => c.recipients.has(ownerId) && !blocked(c.message.ownerId, ownerId),
@@ -63,7 +70,12 @@ export function chatHistory(ownerId: string) {
     .map((c) => ({ ...c.message }));
 }
 export function retainChat(message: ChatMessage, recipients: string[]) {
-  chats.push({ message, recipients: new Set(recipients) });
+  pruneChat();
+  chats.push({
+    message,
+    recipients: new Set(recipients),
+    retainedAt: performance.now(),
+  });
   while (chats.length > 256) chats.shift();
 }
 export async function refreshWorld() {

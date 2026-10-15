@@ -1,3 +1,9 @@
+import { boundOutbound } from "./server/lifecycle/outbound";
+import { pruneBotLeases } from "./server/bots/identity";
+import { pruneHttpBudgets } from "./server/http";
+import { pruneChatBudgets } from "./server/yards/socket";
+import { pruneInvitationBudgets } from "./server/yards/challenges";
+import { pruneChat } from "./server/yards/world";
 import { sweepWaitingRooms } from "./server/matches/waiting";
 import { isBotOnline } from "./server/bots/identity";
 import { OwnerConnections } from "./server/lifecycle/owner-connections";
@@ -175,6 +181,15 @@ async function main() {
     serveClient: false,
   });
   io.of("/").use((_socket, next) => next(new Error("Use /game-v1")));
+  const stopOutbound = boundOutbound(io);
+  const ephemeralTimer = setInterval(() => {
+    pruneBotLeases();
+    pruneHttpBudgets();
+    pruneChatBudgets();
+    pruneInvitationBudgets();
+    pruneChat();
+  }, 1000);
+  ephemeralTimer.unref();
   const game = io.of("/game-v1");
   const ownerConnections = new OwnerConnections(config.MAX_SOCKETS_PER_OWNER);
   game.use((socket, next) => {
@@ -428,6 +443,7 @@ async function main() {
     );
     game.emit("service.restarting");
     clearInterval(timer);
+    clearInterval(ephemeralTimer);
     await Promise.all([
       stopOperators(),
       stopYard(),
@@ -452,6 +468,7 @@ async function main() {
       ),
     );
     await new Promise<void>((resolve) => io.close(() => resolve()));
+    stopOutbound();
     await pool.end();
     await app.close();
     // The independent writer connection is released after all other work closes.

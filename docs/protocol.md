@@ -106,7 +106,7 @@ Initial limits: one human active seat per owner; at most two total active seats 
 
 All routes are under /api/v1. Unlisted management operations should be specified before implementation, not improvised by clients.
 
-HTTP observation polling starts at once per second; heartbeat every five seconds; offline after fifteen seconds. Socket clients receive push observations but use the same heartbeat semantics. Server rate limits apply equally.
+HTTP observation polling starts at once per second; heartbeat every five seconds; offline after fifteen seconds. An expired controller lease cannot be renewed by a late heartbeat; reacquire explicitly after CONTROLLER_STALE (reference clients already handle this), which advances the durable epoch. Socket clients receive push observations but use the same heartbeat semantics. Server rate limits apply equally.
 
 ## Event envelope and visibility
 
@@ -165,3 +165,6 @@ Connection admission can return connect_error.message=SERVICE_UNAVAILABLE plus d
 
 
 Deserted pregame rooms can publish match.waiting-expired with phase cancelled and cancelReason empty after fifteen minutes without connected participants. This additive terminal reason explains expiry; it does not expose private state or alter active-match leave/deadline semantics. Reconnect/observation returns the stored cancelled snapshot. League waiting fixtures are exempt.
+
+
+Browser yard.input requires a connected socket, uses volatile delivery and expires its acknowledgement after one second. A later input frame replaces dropped intent; server input freshness still stops movement. Yard position snapshots are volatile latest-state updates: backpressure can drop an intermediate snapshot, and a later snapshot/yard.sync restores current state. Durable match commands, receipts and events retain their acknowledgement/recovery semantics. A client that does not drain reliable output can be disconnected at the bounded Engine.IO queue limit; it reconnects and synchronizes through the existing snapshot/cursor protocol.
