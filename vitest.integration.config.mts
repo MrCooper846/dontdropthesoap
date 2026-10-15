@@ -3,6 +3,7 @@ export default defineConfig({
   test: {
     include: ["tests/integration/**/*.test.ts"],
     fileParallelism: false,
+    setupFiles: ["tests/integration/cleanup.ts"],
     testTimeout: 30000,
   },
 });

@@ -160,3 +160,8 @@ Idle limiter/controller state is bounded and pruned; expired external bot contro
 ## Persistent history retention
 
 Terminal round details expire after ninety days while final scores and league standings remain. Match panels and recorded replay explain the archived state. The singleton also removes old receipts, expired keys/sessions/credentials, reports and invitations in bounded batches; retries and score uniqueness remain protected. See [retention rules and producer scope](docs/data.md#implemented-persistent-retention). Deployment backup expiry, remaining privacy/CSP/bounded-read checks, sustained soak and actual-device/human gates remain pending.
+
+
+## Bounded metadata and social admission
+
+Credential management shows at most 100 metadata records at a time with an Older credentials control. Outgoing block history is paginated; current-yard controls use only current presences and recent authorized chat senders. Live routing fails closed for unknown members or failed block refreshes. All unfinished non-league tables, including standalone matches, share the configured table cap. See [metadata contracts](docs/protocol.md#bounded-credential-and-block-metadata). These bounds do not replace the remaining privacy/CSP, sustained-soak, actual-device and human playtest gates.

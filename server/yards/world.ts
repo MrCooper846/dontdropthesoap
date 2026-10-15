@@ -1,3 +1,4 @@
+import { BlockRouting } from "./block-routing";
 import { Yard } from "../../domain/yard/yard";
 import { YARD_MAP, distance } from "../../shared/yard/map";
 import type {
@@ -17,7 +18,9 @@ let circles: CircleView[] = YARD_MAP.circles.map((c) => ({
   seatCount: 0,
   settings: { rounds: 10, decisionMs: 20000, revealMs: 5000, maxSeats: 8 },
 }));
-let blocks = new Set<string>();
+const routing = new BlockRouting(config.MAX_YARD_PLAYERS);
+export const invalidateBlocks = () => routing.invalidate();
+export const blockRoutingSize = () => routing.size;
 const chats: {
   message: ChatMessage;
   recipients: Set<string>;
@@ -27,14 +30,17 @@ export function pruneChat() {
   const now = performance.now();
   while (chats.length && now - chats[0].retainedAt >= 30000) chats.shift();
 }
-export function blocked(a: string, b: string) {
-  return blocks.has(a + ":" + b) || blocks.has(b + ":" + a);
-}
+export const blocked = (a: string, b: string) => routing.blocked(a, b);
 export async function refreshBlocks() {
-  blocks = new Set(
-    (
-      await pool.query("SELECT owner_id,blocked_owner_id FROM owner_blocks")
-    ).rows.map((r) => r.owner_id + ":" + r.blocked_owner_id),
+  await routing.refresh(
+    yard.snapshot().players.map((p) => p.ownerId),
+    async (ids) =>
+      (
+        await pool.query(
+          "SELECT owner_id,blocked_owner_id FROM owner_blocks WHERE owner_id=ANY($1::uuid[]) AND blocked_owner_id=ANY($1::uuid[])",
+          [ids],
+        )
+      ).rows,
   );
 }
 export function requireYard(ownerId: string) {
@@ -61,11 +67,37 @@ export function snapshot(): YardView {
     circles: circles.map((c) => ({ ...c, settings: { ...c.settings } })),
   };
 }
-export function chatHistory(ownerId: string) {
+// Include original recipients even after a block: clients may retain messages
+// received before blocking. This set is bounded by the expiring chat buffer.
+export function chatSenderIds(ownerId: string) {
   pruneChat();
-  return chats
+  return [
+    ...new Set(
+      chats
+        .filter((c) => c.recipients.has(ownerId))
+        .map((c) => c.message.ownerId),
+    ),
+  ];
+}
+export async function chatHistory(ownerId: string) {
+  pruneChat();
+  const candidates = chats.filter((c) => c.recipients.has(ownerId));
+  if (!candidates.length) return [];
+  const senders = [...new Set(candidates.map((c) => c.message.ownerId))];
+  const rows = (
+    await pool.query(
+      "SELECT owner_id,blocked_owner_id FROM owner_blocks WHERE (owner_id=$1 AND blocked_owner_id=ANY($2::uuid[])) OR (blocked_owner_id=$1 AND owner_id=ANY($2::uuid[]))",
+      [ownerId, senders],
+    )
+  ).rows;
+  const denied = new Set(
+    rows.map((r) => (r.owner_id === ownerId ? r.blocked_owner_id : r.owner_id)),
+  );
+  return candidates
     .filter(
-      (c) => c.recipients.has(ownerId) && !blocked(c.message.ownerId, ownerId),
+      (c) =>
+        performance.now() - c.retainedAt < 30000 &&
+        !denied.has(c.message.ownerId),
     )
     .map((c) => ({ ...c.message }));
 }

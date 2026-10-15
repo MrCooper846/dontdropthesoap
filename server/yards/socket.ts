@@ -73,8 +73,16 @@ export function attachYard(socket: Socket, game: Namespace) {
     yard.enter(p.ownerId, p.name, socket.id, p.epoch, Date.now());
     socket.data.yard = true;
     await socket.join("yard");
-    await refreshWorld();
-    return { snapshot: snapshot(), chat: chatHistory(ownerId) };
+    try {
+      await refreshWorld();
+      await refreshBlocks();
+      return { snapshot: snapshot(), chat: await chatHistory(ownerId) };
+    } catch (error) {
+      yard.leave(ownerId, socket.id);
+      socket.data.yard = false;
+      await socket.leave("yard");
+      throw error;
+    }
   });
   route("yard.leave", async (input) => {
     z.object({}).strict().parse(input);
@@ -102,10 +110,10 @@ export function attachYard(socket: Socket, game: Namespace) {
       ),
     };
   });
-  route("yard.sync", (input) => {
+  route("yard.sync", async (input) => {
     z.object({}).strict().parse(input);
     requireYard(ownerId);
-    return { snapshot: snapshot(), chat: chatHistory(ownerId) };
+    return { snapshot: snapshot(), chat: await chatHistory(ownerId) };
   });
   route("chat.send", async (input) => {
     const p = await authenticate(socket.request);
@@ -161,6 +169,7 @@ export function startYard(game: Namespace) {
     refreshPending = true;
     refreshWork = refreshWorld()
       .then(async () => {
+        await refreshBlocks();
         const peers = [...game.sockets.values()].filter((s) => s.data.yard);
         if (!peers.length) return;
         const ids = peers.map((s) => s.data.principal.sessionId);
