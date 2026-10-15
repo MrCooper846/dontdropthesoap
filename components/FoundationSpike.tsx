@@ -38,6 +38,7 @@ export default function FoundationSpike() {
         });
         destroyGame = () => game.destroy(true);
         const workspace = B.inject(editor.current, {
+          media: "/blockly/",
           toolbox: {
             kind: "flyoutToolbox",
             contents: [

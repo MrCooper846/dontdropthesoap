@@ -298,7 +298,10 @@ async function nominal(transport: "websocket" | "polling") {
       error += c;
     });
     assert.equal(await exited(competitor), 1);
-    assert.match(error, /Another game writer/);
+    assert.deepEqual(JSON.parse(error.trim()), {
+      event: "service.startup.failed",
+      code: "WRITER_ALREADY_RUNNING",
+    });
     assert.equal(
       child.exitCode,
       null,

@@ -1,3 +1,4 @@
+import { WriterConflict } from "../security/failures";
 import { duration } from "../observability/metrics";
 import { coordinatorLeaseEnforced } from "./coordinator-lease";
 import { RuleError } from "../../domain/match/model";
@@ -83,7 +84,7 @@ export async function acquireWriter(onLost: () => void) {
   ).rows[0].locked;
   if (!acquired) {
     await db.end();
-    throw new Error("Another game writer owns this database");
+    throw new WriterConflict();
   }
   db.on("error", onLost);
   const timer = setInterval(

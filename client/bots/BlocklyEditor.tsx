@@ -148,6 +148,7 @@ export default function BlocklyEditor({
         registerBlocks(B);
         api.current = B;
         const w = B.inject(container.current, {
+          media: "/blockly/",
           toolbox,
           horizontalLayout: window.matchMedia("(max-width:760px)").matches,
           theme: B.Theme.defineTheme("soapBot", {

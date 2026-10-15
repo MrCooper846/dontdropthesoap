@@ -35,7 +35,9 @@
     "prepare:rollback": "tsx scripts/prepare-rollback.ts",
     "test:rollback": "tsx scripts/restore-drill.ts --require-rollback",
     "test:restore": "tsx scripts/restore-drill.ts",
-    "test:migrations": "tsx scripts/check-migrations.ts"
+    "test:migrations": "tsx scripts/check-migrations.ts",
+    "test:startup-privacy": "tsx tests/runtime/startup-privacy.ts",
+    "test:security": "npm run build && playwright test -c playwright.security.config.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",
