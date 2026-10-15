@@ -264,19 +264,23 @@ async function stop() {
   if (chatting) clearInterval(chatting);
   for (const c of clients) c.socket.disconnect();
   for (const child of bots) {
-    if (child.exitCode === null) child.kill("SIGTERM");
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGTERM");
   }
   for (const child of bots)
     await Promise.race([
       new Promise((resolve) =>
-        child.exitCode !== null ? resolve(null) : child.once("exit", resolve),
+        child.exitCode !== null || child.signalCode !== null
+          ? resolve(null)
+          : child.once("exit", resolve),
       ),
       delay(5000, undefined, { ref: false }).then(() => {
-        if (child.exitCode === null) child.kill("SIGKILL");
+        if (child.exitCode === null && child.signalCode === null)
+          child.kill("SIGKILL");
       }),
     ]);
   const child = service;
-  if (child?.pid && child.exitCode === null) {
+  if (child?.pid && child.exitCode === null && child.signalCode === null) {
     const exited = new Promise<number | null>((resolve) =>
       child.once("exit", resolve),
     );
@@ -589,7 +593,9 @@ async function run() {
         guest,
         samples: metricSamples,
         healthy: () =>
-          service?.exitCode === null && bots.every((b) => b.exitCode === null),
+          service?.exitCode === null &&
+          service.signalCode === null &&
+          bots.every((b) => b.exitCode === null && b.signalCode === null),
         failures,
         source,
         evidenceId,

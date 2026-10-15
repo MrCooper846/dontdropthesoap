@@ -1,3 +1,4 @@
+import { commandFailure } from "./observability/diagnostics";
 import { startOutbox } from "./matches/outbox";
 import { DurableMetrics } from "./observability/durable";
 import { securityHeaders } from "./security/headers";
@@ -117,7 +118,23 @@ export async function main() {
           });
         return;
       }
-      if (/^\/(create|join|nickname|lobby)(\/|$)/.test(req.url ?? "")) {
+      let pathname: string;
+      try {
+        pathname = decodeURIComponent(
+          new URL(req.url ?? "/", config.PUBLIC_ORIGIN).pathname,
+        );
+      } catch {
+        json(res, 400, {
+          error: { code: "INVALID_PAYLOAD", message: "Invalid request path." },
+        });
+        return;
+      }
+      // The current server never exposes the local legacy demo's API.
+      if (pathname.startsWith("/api/") && !pathname.startsWith("/api/v1/")) {
+        json(res, 404, { error: { code: "NOT_FOUND", message: "Not found." } });
+        return;
+      }
+      if (/^\/(create|join|nickname|lobby)(\/|$)/.test(pathname)) {
         res.writeHead(302, {
           Location: config.FEATURE_YARD ? "/yard" : "/play",
         });
@@ -281,17 +298,27 @@ export async function main() {
         });
     });
     socket.on("command", (input: unknown, ack: (data: unknown) => void) => {
+      const started = performance.now();
+      let attempted = false;
       void serviceWork
         .run(async () => {
           if (!ready || !coordinatorAvailable())
             throw new RuleError("SERVICE_UNAVAILABLE");
           rateLimit("socket:" + socket.data.principal.id);
+          attempted = true;
           const result = await command(socket.request, input);
           if (!result.ok) increment("socket.rejected");
           if (typeof ack === "function") ack(result);
         }, socket.data.principal.ownerId)
         .catch((e) => {
           increment("socket.rejected");
+          if (!attempted)
+            commandFailure(
+              socket.request,
+              input,
+              started,
+              e instanceof RuleError ? e.code : "SERVICE_UNAVAILABLE",
+            );
           if (typeof ack === "function")
             ack({
               ok: false,

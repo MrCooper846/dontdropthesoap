@@ -6,7 +6,18 @@ import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 async function run() {
-  const requested = process.argv[2] ?? "26d38b3";
+  const current = process.argv[2] === "--current";
+  if (current)
+    assert.equal(
+      execFileSync("git", ["status", "--porcelain"], {
+        encoding: "utf8",
+      }).trim(),
+      "",
+      "Commit candidate source before preparing a release",
+    );
+  const requested = current
+    ? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim()
+    : (process.argv[2] ?? "26d38b3");
   assert.match(requested, /^[a-f0-9]{7,40}$/);
   const revision = execFileSync("git", ["rev-parse", requested + "^{commit}"], {
     encoding: "utf8",
@@ -14,10 +25,11 @@ async function run() {
   execFileSync("git", ["merge-base", "--is-ancestor", revision, "HEAD"], {
     stdio: "pipe",
   });
-  assert.notEqual(
-    revision,
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
-  );
+  if (!current)
+    assert.notEqual(
+      revision,
+      execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    );
   const modes = execFileSync(
     "git",
     ["ls-tree", "-rz", "--full-tree", revision],
@@ -34,7 +46,8 @@ async function run() {
   // The drill intentionally accepts only /tmp packages on this Ubuntu host.
   const directory = path.join(
     "/tmp",
-    "soap-rollback-" + randomUUID().replaceAll("-", ""),
+    (current ? "soap-release-" : "soap-rollback-") +
+      randomUUID().replaceAll("-", ""),
   );
   assert.equal(os.platform(), "linux", "Prepare rollback packages in Ubuntu");
   mkdirSync(directory, { mode: 0o700 });
@@ -76,13 +89,15 @@ async function run() {
         child.once("exit", resolve);
       }),
       0,
-      "Rollback package command failed",
+      "Production package command failed",
     );
   }
   assertProductionArtifacts(directory);
   console.log(
     JSON.stringify({
-      rollbackPackage: directory,
+      ...(current
+        ? { releasePackage: directory }
+        : { rollbackPackage: directory }),
       revision,
       cleanInstallAndBuild: "PASS",
       productionOnlyInstall: "PASS",

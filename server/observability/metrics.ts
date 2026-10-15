@@ -51,6 +51,7 @@ const durations = {
 };
 const counters = {
   "command.rejected": 0,
+  "logging.dropped": 0,
   "work.overload": 0,
   "connection.rejected": 0,
   "connection.backpressure": 0,

@@ -1,3 +1,4 @@
+import { commandFailure } from "../observability/diagnostics";
 import { requireTableCapacity } from "../matches/capacity";
 import { duration, increment } from "../observability/metrics";
 import { config } from "../config";
@@ -57,10 +58,28 @@ export async function command(
   try {
     const result = await executeCommand(req, input);
     if (result.ok) duration("command.accepted", performance.now() - started);
-    else increment("command.rejected");
+    else {
+      increment("command.rejected");
+      commandFailure(
+        req,
+        input,
+        started,
+        result.error?.code ?? "INTERNAL_ERROR",
+      );
+    }
     return result;
   } catch (error) {
     increment("command.rejected");
+    commandFailure(
+      req,
+      input,
+      started,
+      error instanceof RuleError
+        ? error.code
+        : error instanceof z.ZodError
+          ? "INVALID_PAYLOAD"
+          : "SERVICE_UNAVAILABLE",
+    );
     throw error;
   }
 }

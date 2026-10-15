@@ -30,14 +30,23 @@ let service: ChildProcess | undefined,
 const sockets: NetSocket[] = [];
 type Client = { cookie: string; csrf: string; epoch: number };
 async function until(check: () => Promise<boolean>, label: string, ms = 15000) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (service?.exitCode !== null && service?.exitCode !== undefined)
+  const wallStarted = Date.now(),
+    monotonicStarted = performance.now();
+  const end = monotonicStarted + ms;
+  while (performance.now() < end) {
+    if (service && (service.exitCode !== null || service.signalCode !== null))
       throw Error("Resource fixture exited");
     if (await check()) return;
     await delay(50);
   }
-  throw Error("Timed out: " + label);
+  throw Error(
+    "Timed out: " +
+      label +
+      "; wallMs=" +
+      (Date.now() - wallStarted) +
+      "; monotonicMs=" +
+      (performance.now() - monotonicStarted),
+  );
 }
 async function request(
   path: string,
@@ -136,7 +145,8 @@ async function start(overrides: Record<string, string> = {}) {
 async function stop() {
   for (const socket of sockets) socket.destroy();
   const child = service;
-  if (!child?.pid || child.exitCode !== null) return;
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null)
+    return;
   const exited = new Promise<number | null>((resolve) =>
     child.once("exit", resolve),
   );

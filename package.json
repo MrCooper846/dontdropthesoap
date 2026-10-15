@@ -39,7 +39,9 @@
     "test:startup-privacy": "tsx tests/runtime/startup-privacy.ts",
     "test:security": "npm run build && playwright test -c playwright.security.config.ts",
     "test:soak": "tsx tests/runtime/load.ts --soak",
-    "test:soak:smoke": "tsx tests/runtime/load.ts --soak-smoke"
+    "test:soak:smoke": "tsx tests/runtime/load.ts --soak-smoke",
+    "prepare:release": "tsx scripts/prepare-rollback.ts --current",
+    "test:production": "tsx scripts/production-smoke.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

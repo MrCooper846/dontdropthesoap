@@ -2,6 +2,13 @@ import { test, expect } from "@playwright/test";
 test("two browsers play the baseline and reveal scores", async ({
   browser,
 }) => {
+  const legacyApi = await browser.newContext();
+  const leaderboard = await legacyApi.request.get(
+    "http://127.0.0.1:3100/api/leaderboard",
+  );
+  expect(leaderboard.status()).toBe(200);
+  expect(Array.isArray((await leaderboard.json()).leaderboard)).toBe(true);
+  await legacyApi.close();
   const a = await browser.newContext(),
     b = await browser.newContext();
   const host = await a.newPage(),

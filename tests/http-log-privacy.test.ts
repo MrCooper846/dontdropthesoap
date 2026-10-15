@@ -25,17 +25,24 @@ it("an actual HTTP infrastructure failure returns and logs only fixed public dia
     const response = await fetch(
       "http://127.0.0.1:" + address.port + "/api/v1/session",
       {
-        headers: { cookie: "dds_session=" + "a".repeat(64) },
+        headers: {
+          cookie: "dds_session=" + "a".repeat(64),
+          "x-request-id": sentinel,
+        },
       },
     );
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain(sentinel);
-    expect(log).toHaveBeenCalledExactlyOnceWith(
-      JSON.stringify({
-        event: "api.error",
-        code: "SERVICE_UNAVAILABLE",
-      }),
-    );
+    expect(log).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(log.mock.calls[0][0]);
+    expect(record).toEqual({
+      event: "api.error",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: response.headers.get("x-request-id"),
+      latencyMs: expect.any(Number),
+    });
+    expect(record.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(record.latencyMs).toBeGreaterThanOrEqual(0);
     expect(JSON.stringify(log.mock.calls)).not.toContain(sentinel);
   } finally {
     server.closeAllConnections();

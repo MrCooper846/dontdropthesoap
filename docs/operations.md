@@ -223,3 +223,10 @@ activeMatches includes league and social unfinished games; activeSeats counts th
 The deadline/coordinator producer no longer awaits snapshot fanout. A separate single publisher reads at most 100 ordered pending metadata rows and checks a fifty-millisecond cooperative budget between complete events. Each receiver still gets a freshly authenticated/projected snapshot; private events retain their recipient-seat restriction. The budget does not interrupt an individual SQL call or recipient fanout. Unsent/unmarked events remain pending for later batches.
 
 Shutdown stops new publisher batches and awaits its admitted work before releasing the writer. Publisher failures emit outbox.publish.failed and increment outbox.failed separately from deadline failures. The physical drain suite holds a real pending event-row lock, proves deadline timeout decisions still commit, signals shutdown and checks the writer remains held until the blocked publisher can finish.
+
+
+## Bounded failure correlation
+
+Versioned API requests receive a fresh server-generated X-Request-ID; client-provided IDs are not trusted. API failure records include that ID, a fixed event/error code and monotonic elapsed milliseconds. Match-command rejection records additionally include schema-validated command/match UUIDs and a fixed action when available, covering HTTP and Socket.IO and pre-admission socket failures. Invalid identifiers and unknown exception codes are omitted/replaced; no payload, alias, URL/query, headers, cookies, moves, prompts or raw exception fields are serialized. Successful private gameplay is not logged.
+
+Correlation context uses a WeakMap tied to the live request rather than a historical ID cache. Error diagnostics emit at most 20 records per second and shed when stderr already buffers 256 KiB; they do not queue records for later delivery. The fixed logging.dropped aggregate counter records shedding. Aggregate metrics remain the source for total failure counts when individual diagnostics are sampled/dropped. Existing lifecycle diagnostics retain their fixed privacy contracts; hosted storage, rotation and alerts require the deployment environment.

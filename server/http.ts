@@ -1,3 +1,4 @@
+import { beginRequest, httpFailure } from "./observability/diagnostics";
 import { increment } from "./observability/metrics";
 import { ExpiringMap } from "./lifecycle/expiring";
 import { matchesOpen } from "./operators/maintenance";
@@ -36,8 +37,10 @@ export function json(res: ServerResponse, status: number, data: unknown) {
       typeof data === "object" &&
       "ok" in data &&
       data.ok === false);
-  if (rejected && res.req?.url?.startsWith("/api/v1/"))
+  if (rejected && res.req?.url?.startsWith("/api/v1/")) {
     increment("http.rejected");
+    httpFailure(res.req, data);
+  }
   res.writeHead(status, {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
@@ -103,6 +106,7 @@ export async function api(
     return true;
   }
   if (!pathname.startsWith("/api/v1/")) return false;
+  beginRequest(req, res);
   try {
     rateLimit("ip:" + req.socket.remoteAddress, 100);
     if (!isReady()) throw new RuleError("SERVICE_UNAVAILABLE");
@@ -293,13 +297,6 @@ export async function api(
                 : code === "SERVICE_UNAVAILABLE"
                   ? 503
                   : 400;
-    if (code === "SERVICE_UNAVAILABLE")
-      console.error(
-        JSON.stringify({
-          event: "api.error",
-          code,
-        }),
-      );
     json(res, status, {
       error: {
         code,
