@@ -159,8 +159,8 @@ it("commit-time enforcement rolls back a decision if availability is lost after 
 });
 
 it("cannot renew over a previously inspected match whose window expires while another match is locked", async () => {
-  const one = await game(6000),
-    two = await game(6000);
+  const one = await game(10000),
+    two = await game(10000);
   const [first, last] = [one, two].sort((a, b) => a.id.localeCompare(b.id));
   const locker = await pool.connect();
   try {
@@ -169,14 +169,52 @@ it("cannot renew over a previously inspected match whose window expires while an
       last.id,
     ]);
     await pool.query(
-      "UPDATE coordinator_health SET last_success=clock_timestamp()-interval '5.5 seconds'",
+      "UPDATE coordinator_health SET last_success=clock_timestamp()-interval '5.1 seconds'",
     );
     enforceCoordinatorLease();
     const recovery = maintainCoordinator();
     const rejected = expect(recovery).rejects.toThrow(
       "Game service is recovering",
     );
-    await delay(900);
+    // Prove recovery has inspected the earlier UUID and is waiting on the
+    // later one before crossing the deadline; elapsed sleep alone cannot
+    // establish that ordering on a busy host.
+    const pid = (await locker.query("SELECT pg_backend_pid() AS pid")).rows[0]
+      .pid;
+    await expect
+      .poll(
+        async () =>
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid))",
+              [pid],
+            )
+          ).rows[0].n,
+        { timeout: 3000, interval: 20 },
+      )
+      .toBeGreaterThan(0);
+    expect(
+      Number(
+        (
+          await pool.query(
+            "SELECT extract(epoch FROM (clock_timestamp()-last_success))*1000 AS age FROM coordinator_health",
+          )
+        ).rows[0].age,
+      ),
+    ).toBeLessThan(10000);
+    await expect
+      .poll(
+        async () =>
+          Number(
+            (
+              await pool.query(
+                "SELECT extract(epoch FROM (clock_timestamp()-last_success))*1000 AS age FROM coordinator_health",
+              )
+            ).rows[0].age,
+          ),
+        { timeout: 7000, interval: 20 },
+      )
+      .toBeGreaterThanOrEqual(10000);
     await locker.query("COMMIT");
     await rejected;
     expect((await transaction((db) => loadMatch(db, first.id))).phase).toBe(

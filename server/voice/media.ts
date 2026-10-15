@@ -39,6 +39,10 @@ export class VoiceMedia {
         | { type: "consumer.closed"; consumerId: string }
         | { type: "voice.closed" },
     ) => void,
+    private diagnose: (
+      identity: VoiceIdentity,
+      reason: string,
+    ) => void = () => {},
   ) {}
   async start() {
     const worker = await createWorker({
@@ -126,7 +130,7 @@ export class VoiceMedia {
           this.peers.get(identity.ownerId) === p &&
           (state === "closed" || state === "failed")
         )
-          this.remove(identity.ownerId, identity.connectionId);
+          this.remove(identity.ownerId, identity.connectionId, "dtls:" + state);
       });
       return {
         id: t.id,
@@ -278,7 +282,7 @@ export class VoiceMedia {
   reconcile() {
     for (const p of [...this.peers.values()]) {
       if (!this.policy.valid(p.identity)) {
-        this.remove(p.identity.ownerId, p.identity.connectionId);
+        this.remove(p.identity.ownerId, p.identity.connectionId, "authority");
         continue;
       }
       for (const c of [...p.consumers.values()]) {
@@ -289,10 +293,11 @@ export class VoiceMedia {
       }
     }
   }
-  remove(ownerId: string, connectionId?: string) {
+  remove(ownerId: string, connectionId?: string, reason = "explicit") {
     const p = this.peers.get(ownerId);
     if (!p || (connectionId && p.identity.connectionId !== connectionId))
       return;
+    this.diagnose(p.identity, reason);
     this.peers.delete(ownerId);
     this.notify(p.identity, { type: "voice.closed" });
     p.send?.close();

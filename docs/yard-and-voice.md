@@ -1,6 +1,6 @@
 # Yard client, movement and proximity voice
 
-Status: the yard/movement/social alpha is implemented and under browser verification. Voice remains a proposed design and requires a feasibility spike before committing to its provider.
+Status: yard/movement/social alpha and server-authorized mediasoup voice are implemented with automated browser evidence. Physical-device audio, public-network reachability and human playtest gates remain pending. Historical feasibility checkpoints below explain the adapter choice.
 
 ## Rendering and input
 
@@ -90,3 +90,11 @@ Real Chromium scenarios cover republishing with blocked/distant listeners, fresh
 Firefox 157.0 and WebKit 27.2 run the real synthetic-RTP privacy scenario alongside Chromium 156.0.8078.4. These are Linux browser-engine checks, not Safari/iOS/Android hardware evidence. Firefox did not establish ICE against the initial loopback-only media listener, even with its local-loopback preference; the same scenario passed on the machine's local network interface without that preference. The test configuration therefore binds media to that interface. Mozilla documents its [loopback ICE restrictions](https://bugzilla.mozilla.org/show_bug.cgi?id=1659672); production must advertise an actually reachable media address. Local Firefox users should configure VOICE_LISTEN_IP to their local interface rather than assuming loopback media works.
 
 Actual microphones, speaker echo, headphones/Bluetooth, background/resume and network changes on physical devices remain release gates. No first-party recording or transcription was added.
+
+## Production HTTPS browser acceptance
+
+test:voice now builds the frontend and runs the actual production game/SFU behind a loopback HTTPS/WSS fixture (3107 → 3119). Browser contexts ignore certificate errors for this loopback-only test fixture; Node Socket.IO clients explicitly trust its generated CA. Keys/certificates have restricted permissions and are removed on teardown/creator exit, including startup failure. These are ephemeral test keys, never deployment credentials.
+
+The production app continues returning 404 for its lab media page. The loopback fixture serves a separately compiled trusted MediaProbe/VoiceClient entry solely for test controls; all identity, movement, media authorization and RTP use the real production backend/native worker. The actual yard's microphone/mute/permission UI is also tested over HTTPS with Secure/HttpOnly cookies. This is local TLS evidence, not public certificates, TURN/NAT, physical-device or human-playtest validation.
+
+Investigation of a development acceptance failure recorded a 671–672 ms stale policy age during an event-loop stall, with current sockets/controllers/yard membership. The guard correctly removed the peers. Acceptance excludes the development compiler, and local authority freshness now uses monotonic elapsed time with the same strict 600-ms bound. The lease anchors to query start, so a slow result cannot renew already stale authority. Structured voice.peer.closed diagnostics include only reason/freshness/authority booleans, not identities or audio; aggregate windows include policy-refresh duration.

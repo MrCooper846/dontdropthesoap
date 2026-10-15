@@ -38,14 +38,20 @@ export function json(res: ServerResponse, status: number, data: unknown) {
 export async function body(req: IncomingMessage, maxBytes = 16384) {
   let size = 0;
   const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > maxBytes)
-      throw new RuleError(
-        "INVALID_PAYLOAD",
-        "Request exceeds " + maxBytes / 1024 + " KiB",
-      );
-    chunks.push(Buffer.from(chunk));
+  try {
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > maxBytes)
+        throw new RuleError(
+          "INVALID_PAYLOAD",
+          "Request exceeds " + maxBytes / 1024 + " KiB",
+        );
+      chunks.push(Buffer.from(chunk));
+    }
+  } catch (error) {
+    if (req.aborted && !(error instanceof RuleError))
+      throw new RuleError("REQUEST_ABORTED", "Request body was interrupted");
+    throw error;
   }
   try {
     return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
@@ -254,6 +260,7 @@ export async function api(
       error: { code: "NOT_FOUND", message: "Unknown route", retryable: false },
     });
   } catch (e) {
+    if (e instanceof RuleError && e.code === "REQUEST_ABORTED") return true;
     const code =
       e instanceof RuleError || e instanceof ProgramError
         ? e.code

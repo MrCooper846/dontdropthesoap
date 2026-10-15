@@ -31,6 +31,21 @@ export function readConfig(
       .min(1000)
       .max(60000)
       .default(30000),
+    MAX_SOCKETS_PER_OWNER: z.coerce.number().int().min(2).max(32).default(8),
+    MAX_PENDING_PER_OWNER: z.coerce.number().int().min(2).max(64).default(8),
+    HTTP_REQUEST_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(1000)
+      .max(120000)
+      .default(30000),
+    MAX_TCP_CONNECTIONS: z.coerce
+      .number()
+      .int()
+      .min(4)
+      .max(16384)
+      .default(1024),
+    MAX_TCP_PER_IP: z.coerce.number().int().min(4).max(4096).default(256),
     MAX_PENDING_WORK: z.coerce.number().int().min(32).max(4096).default(256),
     MAX_YARD_PLAYERS: z.coerce.number().int().min(2).max(64).default(32),
     MAX_ACTIVE_LEAGUE_FIXTURES: z.coerce

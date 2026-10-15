@@ -1,3 +1,4 @@
+import { bindOwnerWork } from "../lifecycle/owners";
 import {
   randomBytes,
   randomUUID,
@@ -54,6 +55,7 @@ export async function authenticate(
   );
   if (!q.rowCount) throw new RuleError("AUTH_REQUIRED");
   const row = q.rows[0];
+  bindOwnerWork(row.id);
   return {
     id: row.id,
     ownerId: row.id,

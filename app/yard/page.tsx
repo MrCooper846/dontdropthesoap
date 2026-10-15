@@ -191,15 +191,37 @@ export default function YardPage() {
     if (!session) return;
     const s = io("/game-v1", { transports: ["websocket"] });
     socket.current = s;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined,
+      retryMs = 1000;
     s.on("connect", () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = undefined;
+      retryMs = 1000;
       setOnline(true);
+      setError("");
       if (enteredRef.current) void run(enter);
     });
     s.on("disconnect", () => setOnline(false));
-    s.on("connect_error", () => {
-      setOnline(false);
-      setError("Connection unavailable");
-    });
+    s.on(
+      "connect_error",
+      (
+        error: Error & { data?: { message?: unknown; retryable?: boolean } },
+      ) => {
+        setOnline(false);
+        setError(
+          typeof error.data?.message === "string"
+            ? error.data.message
+            : "Connection unavailable",
+        );
+        if (error.data?.retryable && !retryTimer) {
+          retryTimer = setTimeout(() => {
+            retryTimer = undefined;
+            s.connect();
+          }, retryMs);
+          retryMs = Math.min(5000, retryMs * 2);
+        }
+      },
+    );
     s.on("yard.positions", (next: YardView) =>
       setView((old) =>
         !old || old.epoch !== next.epoch || next.tick >= old.tick ? next : old,
@@ -217,6 +239,7 @@ export default function YardPage() {
       ),
     );
     return () => {
+      if (retryTimer) clearTimeout(retryTimer);
       s.disconnect();
       socket.current = null;
     };
