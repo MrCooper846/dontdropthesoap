@@ -289,8 +289,6 @@ export async function api(
         JSON.stringify({
           event: "api.error",
           code,
-          name: e instanceof Error ? e.name : "unknown",
-          frames: e instanceof Error ? e.stack?.split("\n").slice(1, 5) : [],
         }),
       );
     json(res, status, {

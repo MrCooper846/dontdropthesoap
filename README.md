@@ -95,7 +95,7 @@ legacy:archive leaves the source untouched and writes a versioned export, copied
 
 | Path | Responsibility |
 | --- | --- |
-| server.ts | Authenticated HTTP/Socket.IO composition, singleton ownership, recovery and deadlines |
+| server.ts, server/main.ts | Redacted startup boundary; authenticated HTTP/Socket.IO composition, singleton ownership, recovery and deadlines |
 | server/auth/ | Guest cookies, CSRF, session validation and controller fencing |
 | server/commands/ | Common command service, receipts, admission and match transitions |
 | server/persistence/ | PostgreSQL pool, migrations, transactions and writer lock |
@@ -165,3 +165,7 @@ Terminal round details expire after ninety days while final scores and league st
 ## Bounded metadata and social admission
 
 Credential management shows at most 100 metadata records at a time with an Older credentials control. Outgoing block history is paginated; current-yard controls use only current presences and recent authorized chat senders. Live routing fails closed for unknown members or failed block refreshes. All unfinished non-league tables, including standalone matches, share the configured table cap. See [metadata contracts](docs/protocol.md#bounded-credential-and-block-metadata). These bounds do not replace the remaining privacy/CSP, sustained-soak, actual-device and human playtest gates.
+
+## Browser policy and diagnostic privacy
+
+Production pages use fresh script nonces and dynamic rendering. The editor's pinned media is served locally; external asset hosts and model services are not required. Run npm run test:security for real production HTTPS yard/editor/CSP checks and npm run test:startup-privacy for application/migration/fatal diagnostic redaction. See [policy scope](docs/operations.md#browser-content-policy-and-private-diagnostics). Remaining monitoring, sustained soak, real-device/human and hosting gates still apply.

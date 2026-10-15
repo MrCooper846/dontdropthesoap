@@ -94,7 +94,10 @@ async function singleton() {
     second.once("exit", resolve),
   );
   assert.equal(code, 1);
-  assert.match(output, /Another game writer/);
+  assert.deepEqual(JSON.parse(output.trim()), {
+    event: "service.startup.failed",
+    code: "WRITER_ALREADY_RUNNING",
+  });
 }
 async function externalRecovery() {
   const human = await guest("External recovery human"),
