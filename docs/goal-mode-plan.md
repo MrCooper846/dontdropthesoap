@@ -800,3 +800,6 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 
 - Exec 55849 remains confirmed live at the first complete memory-window checkpoint: 902 measured seconds, 418 churn cycles, 575,284 accepted movement inputs and 26,193 chats. All 91 unique phase samples are ready/current, largest sample gap 10,009 ms (limit 30,000), max event-loop p95 11.273 ms and tracked failure counters zero. Independent Python recomputation uses the frozen nearest-rank twentieth-percentile definition.
 - First full post-warm-up window has 30 actual samples, heap/RSS floors 167.059/646.656 MiB. Nine complete windows plus terminal duration/ledger/metric/memory verification remain; no stability/full-hour PASS is claimed. Runtime/worker/build remain frozen at clean launch source ffeb04b; only documentation has advanced.
+
+
+- The same confirmed-live exec 55849 reaches 1,201 measured seconds: 557 churn cycles, 766,688 accepted movement inputs and 34,924 chats. All 121 unique samples are ready/current, maximum recorded sampling gap remains 10,009 ms, max event-loop p95 11.273 ms and tracked failures remain zero. Two complete memory windows each have 30 samples: heap floors 167.059/161.998 MiB, RSS floors 646.656/646.781 MiB. Eight windows and all final command/duration/ledger/metric/memory checks remain. No full-hour/stability PASS is claimed.
