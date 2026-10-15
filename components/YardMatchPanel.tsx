@@ -222,6 +222,11 @@ export default function YardMatchPanel({
           ))}
         </section>
       )}
+      {match.historyExpired && (
+        <p role="status">
+          Round details expired after 90 days. Final scores are retained.
+        </p>
+      )}
       {match.cancelReason === "empty" && (
         <p role="status">
           This waiting room closed after 15 minutes without connected

@@ -488,6 +488,12 @@ export default function Play() {
                       </span>
                     </div>
                   ))}
+              {snapshot.historyExpired && (
+                <p role="status">
+                  Round details expired after 90 days. Final scores are
+                  retained.
+                </p>
+              )}
               {snapshot.cancelReason === "empty" && (
                 <p role="status">
                   This waiting room closed after 15 minutes without connected

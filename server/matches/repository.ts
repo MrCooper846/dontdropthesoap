@@ -23,9 +23,14 @@ export async function saveMatch(
   eventType = "match.snapshot",
   infrastructureRecovery = false,
 ) {
+  if (m.historyExpired)
+    throw new RuleError(
+      "HISTORY_EXPIRED",
+      "Archived match history is read only",
+    );
   if (!infrastructureRecovery) await assertCoordinatorFresh(db, m);
-  await db.query(
-    "INSERT INTO matches(id,circle_id,host_owner_id,mode,phase,version,state_json,deadline) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET host_owner_id=excluded.host_owner_id,phase=excluded.phase,version=excluded.version,state_json=excluded.state_json,deadline=excluded.deadline",
+  const saved = await db.query(
+    "INSERT INTO matches(id,circle_id,host_owner_id,mode,phase,version,state_json,deadline) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET host_owner_id=excluded.host_owner_id,phase=excluded.phase,version=excluded.version,state_json=excluded.state_json,deadline=excluded.deadline WHERE matches.history_expired_at IS NULL RETURNING id",
     [
       m.id,
       m.circleId,
@@ -37,6 +42,11 @@ export async function saveMatch(
       m.deadline ? new Date(m.deadline) : null,
     ],
   );
+  if (!saved.rowCount)
+    throw new RuleError(
+      "HISTORY_EXPIRED",
+      "Archived match history is read only",
+    );
   for (const s of m.seats)
     await db.query(
       "INSERT INTO match_seats(id,match_id,owner_id,bot_version_id,kind,name,score,ready,abandoned) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(id) DO UPDATE SET name=excluded.name,score=excluded.score,ready=excluded.ready,abandoned=excluded.abandoned",

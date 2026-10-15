@@ -32,7 +32,8 @@ export async function syncObservation(
     ).rows[0];
     const last = Number(bounds.last),
       first = Number(bounds.first),
-      reset = after > last || (after > 0 && after < first - 1);
+      reset =
+        !!m.historyExpired || after > last || (after > 0 && after < first - 1);
     const rows = reset
       ? []
       : (

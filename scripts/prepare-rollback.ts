@@ -1,3 +1,4 @@
+import { assertProductionArtifacts } from "./release-artifacts";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -78,6 +79,7 @@ async function run() {
       "Rollback package command failed",
     );
   }
+  assertProductionArtifacts(directory);
   console.log(
     JSON.stringify({
       rollbackPackage: directory,

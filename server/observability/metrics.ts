@@ -47,6 +47,7 @@ const durations = {
   "command.accepted": new DurationHistogram(),
   "db.transaction": new DurationHistogram(),
   "voice.policy.refresh": new DurationHistogram(),
+  "retention.batch": new DurationHistogram(),
 };
 const counters = {
   "command.rejected": 0,
@@ -54,6 +55,7 @@ const counters = {
   "connection.rejected": 0,
   "connection.backpressure": 0,
   "waiting.expired": 0,
+  "retention.history": 0,
 };
 export function duration(name: keyof typeof durations, ms: number) {
   durations[name].observe(ms);

@@ -168,3 +168,6 @@ Deserted pregame rooms can publish match.waiting-expired with phase cancelled an
 
 
 Browser yard.input requires a connected socket, uses volatile delivery and expires its acknowledgement after one second. A later input frame replaces dropped intent; server input freshness still stops movement. Yard position snapshots are volatile latest-state updates: backpressure can drop an intermediate snapshot, and a later snapshot/yard.sync restores current state. Durable match commands, receipts and events retain their acknowledgement/recovery semantics. A client that does not drain reliable output can be disconnected at the bounded Engine.IO queue limit; it reconnects and synchronizes through the existing snapshot/cursor protocol.
+
+
+historyExpired true denotes a retained terminal summary whose ninety-day round details have expired. Scores, participants and frozen rules remain; ownMove is null, results/pairs are empty and event synchronization returns reset with a fresh cursor. match.history-expired uses the existing match.snapshot delivery path to refresh open panels, storing only an empty notification payload. /results includes historyExpired; league replay's selected match includes the same flag. HISTORY_EXPIRED rejects attempts to save an archived checkpoint. Lost old resource receipts do not make an expired/deleted creation key valid again.

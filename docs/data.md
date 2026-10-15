@@ -1,6 +1,6 @@
 # Data model and persistence
 
-Status: proposed schema, not existing migrations. PostgreSQL is the durable authority. UUIDs identify entities; timestamps use UTC timestamptz. Money-like game values use integers. JSON payloads have explicit schema versions.
+Status: alpha data contract; implemented migrations/checkpoints are described below and verified in the execution record. PostgreSQL is the durable authority. UUIDs identify entities; timestamps use UTC timestamptz. Money-like game values use integers. JSON payloads have explicit schema versions.
 
 ## Durable entities
 
@@ -102,4 +102,15 @@ Migration 011 stores atomic, immutable operator action responses and separate id
 Migration 013 adds matches.waiting_empty_since and an indexed non-league waiting-room scan. The durable timestamp is independent of private game choices and the JSON checkpoint. The singleton derives current presence from browser connections/external controller leases, clears the timestamp on return and atomically cancels deserted rooms after fifteen minutes. A trigger clears stale absence on later phases, including additive-schema binary rollback. Cancellation retains seats/history and never settles points. Detailed semantics are in operations.md.
 
 
-Ephemeral owner limiter/controller maps have hard capacities and monotonic expiry with an independent one-second prune; nearby chat also expires during idle periods. These controls do not implement the persistent retention defaults above. Round/checkpoint/event/feedback cleanup, receipt/session/report cleanup and deployment backup expiry remain separate release requirements until their actual jobs and tests land.
+Ephemeral owner limiter/controller maps have hard capacities and monotonic expiry with an independent one-second prune; nearby chat also expires during idle periods. These controls are separate from the persistent retention producer below. Deployment backup expiry remains an environment requirement.
+
+
+## Implemented persistent retention
+
+Migration 014 records a database-clock terminal_at on first finish/cancellation/abort and history_expired_at on cleanup. Existing terminal matches use their first attributable terminal event time, or a fresh grace period when that history is unavailable. Later terminal edits do not restart the clock. Active games are excluded regardless of creation age.
+
+After ninety days terminal history expires in one transaction: normalized decisions/pairings/round results/rounds, visual decision traces and per-seat runtime memory are deleted; historical event payloads are removed; the checkpoint clears moves, pairs and results and replaces private RNG/Clanker state with inert defaults. Match identity, frozen settings, final seat scores/aggregate statistics, owner/bot definitions, casual ledger and immutable league attempts/settlements remain. A payload-free match.history-expired notification advances the old event sequence and delivers the current archived snapshot; this notification expires after seven days. Archived checkpoints reject stale saves, and observation cursors reset to the summary with historyExpired true. Expiry does not rerun a bot or recompute standings.
+
+Metadata cleanup removes command receipts after seven days, creation keys after expiry plus seven days, sessions and all expired bot credentials (including revoked credentials) after absolute expiry plus seven days, reports in every review state after thirty days, and challenge invitations after expiry plus seven days. Unknown/expired creation keys still reject after cleanup. Review audit rows retain only status changes plus operator metadata/reasons; they do not automatically copy original report text. Operator audit, owner/bot deletion and backup expiry are separate policies, not deletions silently performed by this job.
+
+Each metadata table contributes at most 100 rows per transaction, with locked rows skipped; one terminal match's dependent SQL history is handled per transaction without loading all event payloads into Node. Existing ten-second statement timeouts and a 100-ms lock timeout apply. The producer yields between batches, checks a 250-ms work budget between them, retries backlog/failure after one second and checks idle state after one minute. One SQL transaction can exceed that inter-batch budget; it is not a hard 250-ms database-query deadline. Stop/drain awaits in-flight retention before releasing writer ownership. Deployment backup storage/scheduling/seven-day expiry still require the chosen environment.

@@ -1,3 +1,5 @@
+import { retentionBatch } from "../../server/persistence/retention";
+import { syncObservation } from "../../server/matches/observations";
 import { beforeAll, afterAll, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
@@ -343,6 +345,76 @@ it("a real worker bot completes five rounds, retains memory across recovery and 
         ])
       ).rowCount,
     ).toBe(2);
+    const original = await transaction((db) => loadMatch(db, f.id));
+    const ledger = (
+      await pool.query(
+        "SELECT id,owner_id,delta FROM balance_entries WHERE match_id=$1 ORDER BY id",
+        [f.id],
+      )
+    ).rows;
+    await pool.query(
+      "UPDATE matches SET terminal_at=now()-interval '91 days' WHERE id=$1",
+      [f.id],
+    );
+    for (let i = 0; i < 100; i++) {
+      await retentionBatch();
+      if ((await transaction((db) => loadMatch(db, f.id))).historyExpired)
+        break;
+    }
+    const expired = await observe(f.human, f.id);
+    expect(expired.historyExpired).toBe(true);
+    expect(expired.results).toEqual([]);
+    expect(expired.pairs).toEqual([]);
+    expect(expired.ownMove).toBeNull();
+    expect(expired.seats.map((s) => s.score)).toEqual(
+      final.seats.map((s) => s.score),
+    );
+    for (const table of [
+      "moves",
+      "round_results",
+      "pairings",
+      "rounds",
+      "bot_runtime_states",
+      "visual_decisions",
+    ])
+      expect(
+        (
+          await pool.query("SELECT 1 FROM " + table + " WHERE match_id=$1", [
+            f.id,
+          ])
+        ).rowCount,
+      ).toBe(0);
+    expect(await visualFeedback(f.botOwner, f.id, f.visualSeat)).toEqual([]);
+    const events = (
+      await pool.query(
+        "SELECT type,payload FROM match_events WHERE match_id=$1",
+        [f.id],
+      )
+    ).rows;
+    expect(events).toEqual([{ type: "match.history-expired", payload: {} }]);
+    const sync = await syncObservation(f.human, f.id, 1);
+    expect(sync.reset).toBe(true);
+    expect(sync.events).toEqual([]);
+    await expect(transaction((db) => saveMatch(db, original))).rejects.toThrow(
+      "Archived match history is read only",
+    );
+    expect(
+      (
+        await pool.query(
+          "SELECT id,owner_id,delta FROM balance_entries WHERE match_id=$1 ORDER BY id",
+          [f.id],
+        )
+      ).rows,
+    ).toEqual(ledger);
+    await pool.query(
+      "UPDATE match_events SET created_at=now()-interval '8 days' WHERE match_id=$1",
+      [f.id],
+    );
+    await retentionBatch();
+    expect(
+      (await pool.query("SELECT 1 FROM match_events WHERE match_id=$1", [f.id]))
+        .rowCount,
+    ).toBe(0);
   } finally {
     await workers.close();
   }
