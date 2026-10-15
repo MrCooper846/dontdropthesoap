@@ -51,6 +51,10 @@ After the laptop stack is rebuilt, refresh the same HTTPS URL. The map now remai
 On the iPhone, repeat joining/readiness/a complete human game in both orientations, then type with the real keyboard and return to movement. Verify neither the browser toolbar nor keyboard hides the next action. Try microphone/push-to-talk while opening and closing Chat. Automated phone-size and native-RTP tests cover these UI paths, but actual iOS keyboard/safe-area/audio behavior still needs device evidence.
 
 
-## Current deployment blocker — 15 October 2026
+## Storage recovery and deployed UI — 15 October 2026
 
-The approved map-first UI is committed as 816fdfe and passes the recorded browser regressions. Its Docker build succeeds, but container replacement fails because Docker storage reports I/O/read-only filesystem errors. Windows C: has only 0.53 GiB free; D: has about 279 GiB free. The laptop URL is not confirmed updated. Host storage recovery and any Docker restart/relocation require coordination with the owner because other projects are running. Preserve database/certificate volumes and private settings. After recovery, rebuild from the committed source, rerun test:playtest and the actual deployed browser check, then refresh the phones.
+The owner moved Docker Desktop storage through its settings to D:\Docker Desktop\DockerDesktopWSL. The 62 GiB disk is present there; C: now has about 65 GiB free. A stopped-disk recovery copy remains at D:\DockerRecovery-20261015\docker_data.vhdx. All saved Docker volumes matched the pre-move inventory, and the five previously running containers were restored. This is inventory preservation evidence, not a full application-level audit of unrelated projects.
+
+The map-first UI from 816fdfe is now rebuilt and deployed. All three soap-playtest services are healthy. test:playtest passed CA-validated HTTPS, guest/controller, proxied WebSocket, native voice transport, announced LAN address and media TCP reachability. Windows also returned ready=true using the existing trusted CA. The CA fingerprint is unchanged.
+
+A browser check against the deployed HTTPS URL passed 390x844 portrait and 844x390 landscape: the avatar and panel-close action remain visible, there is no document scrolling, and no page errors occurred. That UI-only browser check ignored certificate errors; separate smoke and Windows checks validated TLS. Physical iPhone/Android layout, keyboard and audio retesting remains required. The timing and wider acceptance gates above remain open.
