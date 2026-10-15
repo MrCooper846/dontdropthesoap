@@ -655,8 +655,12 @@ async function run() {
       "Nominal event-loop p95 must remain below 50 ms",
     );
   const allSamples = metricSamples();
+  const measuredReconnects = allSamples.reduce(
+    (n, s) => n + s.counters["yard.reconnected"],
+    0,
+  );
   assert.equal(
-    allSamples.reduce((n, s) => n + s.counters["yard.reconnected"], 0),
+    measuredReconnects,
     1 + (soak?.reconnects ?? 0),
     "Actual retained-presence reconnects agree with the workload",
   );
@@ -720,6 +724,12 @@ async function run() {
     deadlineResolutionLagsMs: resolutionLags,
     counts,
     metrics,
+    allMetrics: allSamples,
+    committedMetricTotals: {
+      moves: measuredMoves,
+      timeouts: measuredTimeouts,
+      reconnects: measuredReconnects,
+    },
     voiceLoad: "NOT_TESTED",
     physicalMobileFPS: "NOT_TESTED",
     soak60Minutes: soak?.mode === "FULL_HOUR" ? "PASS" : "NOT_RUN",
@@ -731,7 +741,9 @@ async function run() {
     JSON.stringify(report, null, 2),
     { mode: 0o600 },
   );
-  console.log(JSON.stringify({ ...report, metrics: undefined }));
+  console.log(
+    JSON.stringify({ ...report, metrics: undefined, allMetrics: undefined }),
+  );
 }
 run()
   .catch((error) => {

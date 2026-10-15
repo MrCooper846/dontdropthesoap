@@ -119,3 +119,6 @@ Metric evidence is collected incrementally with a hard 1,000-window bound; overf
 ## Revealed results page boundary
 
 tests/integration/results.test.ts builds a maximum-length eight-seat match with the real engine and PostgreSQL repository using an explicit synthetic fixture clock. Real HTTP requests verify browser/bot page parity, hidden final-round decisions, append-stable traversal of 200 revealed results in at most 100-row pages, invalid/end cursors, authentication/assignment/read scopes, and reset after the real retention producer archives the match while preserving score entries. It does not benchmark real-time match deadlines; those remain separate workload/recovery gates.
+
+
+Saved workload reports distinguish metrics (filtered full-population performance windows) from allMetrics (the existing bounded complete metric stream, including setup/reconnect/drain) and committedMetricTotals (the asserted full-stream move/timeout/reconnect sums). Console summaries omit both arrays. Older reports retain filtered metrics plus phase progress snapshots; their final reconnect assertion is evidenced by the successful verifier/source, not an independent sum of omitted late windows. Full-hour memory/continuity can be recomputed from their complete phase progress samples.
