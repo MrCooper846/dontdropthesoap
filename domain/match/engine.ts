@@ -305,6 +305,7 @@ export function project(
     serverTime: Date.now(),
     interruptions: m.interruptions,
     abortReason: m.abortReason ?? null,
+    cancelReason: m.cancelReason ?? null,
     seats: m.seats.map((s) => ({
       id: s.id,
       ownerId: s.ownerId,

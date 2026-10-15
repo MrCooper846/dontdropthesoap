@@ -65,6 +65,7 @@ export type Match = {
   clankerMemory: Move;
   interruptions: number;
   abortReason?: "infrastructure";
+  cancelReason?: "empty";
   createdAt: number;
 };
 export class RuleError extends Error {

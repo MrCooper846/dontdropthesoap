@@ -488,6 +488,13 @@ export default function Play() {
                       </span>
                     </div>
                   ))}
+              {snapshot.cancelReason === "empty" && (
+                <p role="status">
+                  This waiting room closed after 15 minutes without connected
+                  participants. No points were credited. Start a new table to
+                  play.
+                </p>
+              )}
               {snapshot.abortReason === "infrastructure" && (
                 <p role="status">
                   Match ended after a service interruption. No points were
