@@ -49,3 +49,8 @@ The proxy uses [Caddy's internal TLS issuer](https://caddyserver.com/docs/caddyf
 After the laptop stack is rebuilt, refresh the same HTTPS URL. The map now remains in the viewport. Use Chat, Tables and People on the bottom dock; approaching a circle also gives an Inspect prompt. Table controls appear below the map in portrait and alongside it in landscape/desktop. Match settings expand separately. The table button keeps the current countdown/locked state visible when another panel is open. Close match view collapses the controls without leaving the game. Voice remains connected while other panels open and close.
 
 On the iPhone, repeat joining/readiness/a complete human game in both orientations, then type with the real keyboard and return to movement. Verify neither the browser toolbar nor keyboard hides the next action. Try microphone/push-to-talk while opening and closing Chat. Automated phone-size and native-RTP tests cover these UI paths, but actual iOS keyboard/safe-area/audio behavior still needs device evidence.
+
+
+## Current deployment blocker — 15 October 2026
+
+The approved map-first UI is committed as 816fdfe and passes the recorded browser regressions. Its Docker build succeeds, but container replacement fails because Docker storage reports I/O/read-only filesystem errors. Windows C: has only 0.53 GiB free; D: has about 279 GiB free. The laptop URL is not confirmed updated. Host storage recovery and any Docker restart/relocation require coordination with the owner because other projects are running. Preserve database/certificate volumes and private settings. After recovery, rebuild from the committed source, rerun test:playtest and the actual deployed browser check, then refresh the phones.
