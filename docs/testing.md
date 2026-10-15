@@ -72,6 +72,12 @@ Every implementation PR: typecheck, targeted domain/integration tests, productio
 
 Documentation-only PRs check relative links, terminology, examples and cross-document consistency. Do not claim runtime validation for a documentation change.
 
+.github/workflows/verify.yml now wires the core PR/manual verification sequence on Ubuntu 24.04/Node 24.18.0: locked installation, Chromium, local PostgreSQL fixture setup, unit/native/v1 request compatibility, types/format/docs paths, PostgreSQL invariants, fresh/repeated migrations, authenticated/browser baseline, human/external/league crash recovery, final production build and physical shutdown. Browser/recovery/build commands remain sequential because they share .next. Always-run cleanup stops only the workflow's Compose fixture service. The workflow uses read-only repository permissions, no persisted checkout credentials, no deployment secrets and no publication/deployment step.
+
+Official [checkout](https://github.com/actions/checkout) v7 and [setup-node](https://github.com/actions/setup-node) v6 releases are pinned to verified immutable commits. Local Actionlint validation checks workflow syntax/expressions; it does not establish an executed GitHub job. First hosted execution and branch protection configuration remain separate, pending authorized publication. This core workflow does not claim the full-hour soak, public media, voice capacity, physical-device, human or deployment gates.
+
+npm run test:protocol checks five fixed v1 wire requests against the actual envelope and applicable payload parsers, preserves their fields, rejects a forged authority field and rejects unsupported/malformed versions. The fixtures are a compatibility baseline, not a replacement for real HTTP/socket visibility and authority tests. npm test includes these cases. npm run test:docs verifies relative file/directory targets from the root README and docs Markdown; external URLs, fragments and prose consistency still require review.
+
 ## Production mixed-bot workload
 
 After npm ci, services:up, test:setup and build, run npm run test:load in Ubuntu. The fixture uses only local soap_load and production port 3117, resets that named synthetic database, and never targets a deployed database. Run sequentially with other build/browser/runtime checks. HTTPS test origins and Secure cookies are configured while Node clients connect over loopback; this is not public TLS/network validation.

@@ -24,7 +24,8 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 | Requirement / named artifact or command | Authoritative evidence | Status |
 | --- | --- | --- |
 | Fresh setup/runtime/dependencies | services:up/db:migrate development baseline; clean prepare:release archive, locked installs/build, runtime-only test:production boot; measured Node 24.18.0 | PASS locally; hosting compatibility separate |
-| Pure rules, validation and bounded workers | npm test: 97 checks; typecheck/format; real interpreter workers and failure termination | PASS |
+| Pure rules, validation and bounded workers | npm test: 103 checks; typecheck/format; real interpreter workers and failure termination | PASS |
+| PR verification wiring | Local .github/workflows/verify.yml; official Actionlint 1.7.12, v1 compatibility fixtures, types/format/docs paths | PASS locally; first GitHub execution/required-check configuration NOT_RUN pending publication authority |
 | Durable state, privacy, retries and scopes | test:integration: 48 real PostgreSQL checks including public/private cursors, result pages, external revisions, owner/epoch/credential guards and ledgers | PASS |
 | Fresh and repeated migrations | test:migrations: all sixteen migrations; schema-16 restore/old-binary/roll-forward checks | PASS |
 | Original baseline and renderer/editor lifecycle | Corrected test:browser: two tests; dedicated feature configs retain all feature tests | PASS |

@@ -1,0 +1,64 @@
+name: Verify alpha core
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.18.0"
+          package-manager-cache: false
+      - name: Install locked dependencies and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Prepare isolated local fixtures
+        run: |
+          cp .env.example .env
+          npm run services:up
+          npm run db:migrate
+          npm run test:setup
+      - name: Rules, workers and v1 protocol compatibility
+        run: npm test
+      - name: Types, formatting and documentation links
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test:docs
+      - name: PostgreSQL invariants and migration compatibility
+        run: |
+          npm run test:integration
+          npm run test:migrations
+      # These jobs share .next; keep every browser/recovery/build step sequential.
+      - name: Authenticated browser smoke and original baseline
+        run: |
+          npm run test:alpha
+          npm run test:browser
+      - name: Human, external bot and league crash recovery
+        run: |
+          npm run test:recovery
+          npm run test:league-recovery
+      - name: Production build and physical drain
+        run: |
+          npm run build
+          npm run test:shutdown
+      - name: Stop owned fixture service
+        if: always()
+        run: npm run services:down

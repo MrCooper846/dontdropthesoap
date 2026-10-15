@@ -42,7 +42,9 @@
     "test:soak:smoke": "tsx tests/runtime/load.ts --soak-smoke",
     "prepare:release": "tsx scripts/prepare-rollback.ts --current",
     "test:production": "tsx scripts/production-smoke.ts",
-    "diagnose:clock": "tsx tests/runtime/clock.ts"
+    "diagnose:clock": "tsx tests/runtime/clock.ts",
+    "test:protocol": "vitest run tests/protocol.test.ts",
+    "test:docs": "tsx scripts/check-doc-links.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

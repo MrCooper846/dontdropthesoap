@@ -1,0 +1,57 @@
+[
+  {
+    "v": 1,
+    "commandId": "11111111-1111-4111-8111-111111111111",
+    "controllerEpoch": 1,
+    "matchId": "22222222-2222-4222-8222-222222222222",
+    "type": "move.submit",
+    "payload": {
+      "move": "D"
+    },
+    "round": 3,
+    "seatId": "seat-fixture"
+  },
+  {
+    "v": 1,
+    "commandId": "11111111-1111-4111-8111-111111111111",
+    "controllerEpoch": 1,
+    "matchId": "22222222-2222-4222-8222-222222222222",
+    "type": "seat.ready",
+    "payload": {
+      "ready": true
+    },
+    "seatId": "seat-fixture"
+  },
+  {
+    "v": 1,
+    "commandId": "11111111-1111-4111-8111-111111111111",
+    "controllerEpoch": 1,
+    "matchId": "22222222-2222-4222-8222-222222222222",
+    "type": "seat.leave",
+    "payload": {},
+    "seatId": "seat-fixture"
+  },
+  {
+    "v": 1,
+    "commandId": "11111111-1111-4111-8111-111111111111",
+    "controllerEpoch": 1,
+    "matchId": "22222222-2222-4222-8222-222222222222",
+    "type": "match.start",
+    "payload": {},
+    "matchVersion": 7
+  },
+  {
+    "v": 1,
+    "commandId": "11111111-1111-4111-8111-111111111111",
+    "controllerEpoch": 1,
+    "matchId": "22222222-2222-4222-8222-222222222222",
+    "type": "match.configure",
+    "payload": {
+      "rounds": 10,
+      "decisionMs": 20000,
+      "revealMs": 5000,
+      "maxSeats": 8
+    },
+    "matchVersion": 7
+  }
+]
