@@ -803,3 +803,6 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 
 
 - The same confirmed-live exec 55849 reaches 1,201 measured seconds: 557 churn cycles, 766,688 accepted movement inputs and 34,924 chats. All 121 unique samples are ready/current, maximum recorded sampling gap remains 10,009 ms, max event-loop p95 11.273 ms and tracked failures remain zero. Two complete memory windows each have 30 samples: heap floors 167.059/161.998 MiB, RSS floors 646.656/646.781 MiB. Eight windows and all final command/duration/ledger/metric/memory checks remain. No full-hour/stability PASS is claimed.
+
+
+- The unchanged, confirmed-live exec 55849 reaches 1,501 measured seconds: 696 cycles, 957,776 accepted movement inputs and 43,621 chats. All 151 unique phase samples remain ready/current; max sample gap 10,009 ms, max event-loop p95 11.314 ms, tracked failures zero. Three full windows each contain 30 samples; third heap/RSS floors are 156.981/656.531 MiB. Seven windows and final terminal duration/ledger/metric/memory checks remain. No hour or stability PASS is claimed; source/worker/build stay frozen.
