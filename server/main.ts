@@ -1,3 +1,4 @@
+import { startOutbox } from "./matches/outbox";
 import { DurableMetrics } from "./observability/durable";
 import { securityHeaders } from "./security/headers";
 import { startRetention } from "./persistence/retention";
@@ -397,41 +398,6 @@ export async function main() {
         lastWaitingCheck = performance.now();
       }
     })()
-      .then(async () => {
-        const q = await pool.query(
-          "SELECT match_id,sequence,type,visibility,recipient_seat_id FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",
-        );
-        for (const row of q.rows) {
-          for (const socket of game.sockets.values())
-            if (socket.rooms.has(row.match_id)) {
-              try {
-                const snapshot = await observe(socket.request, row.match_id);
-                if (
-                  row.visibility !== "public" &&
-                  snapshot.ownSeatId !== row.recipient_seat_id
-                )
-                  continue;
-                socket.emit("match.snapshot", {
-                  v: 1,
-                  type: row.type,
-                  seq: Number(row.sequence),
-                  payload: snapshot,
-                });
-              } catch {
-                socket.disconnect(true);
-              }
-            }
-          const published = await pool.query(
-            "UPDATE match_events SET published_at=now() WHERE match_id=$1 AND sequence=$2 AND published_at IS NULL",
-            [row.match_id, row.sequence],
-          );
-          if (published.rowCount) increment("outbox.published");
-        }
-        if (performance.now() - lastMetricsCheck >= 5000) {
-          lastMetricsCheck = performance.now();
-          await durableMetrics.refresh();
-        }
-      })
       .catch(() => {
         increment("game.tick.failed");
         console.error(
@@ -446,6 +412,16 @@ export async function main() {
         tickWork = undefined;
       });
   }, 100);
+  const stopOutbox = startOutbox(
+    game,
+    () => ready && coordinatorAvailable(),
+    async () => {
+      if (performance.now() - lastMetricsCheck >= 5000) {
+        lastMetricsCheck = performance.now();
+        await durableMetrics.refresh();
+      }
+    },
+  );
   ready = true;
   http.listen(config.PORT, "0.0.0.0", () =>
     console.log(JSON.stringify({ event: "service.ready" })),
@@ -476,6 +452,7 @@ export async function main() {
     clearInterval(timer);
     clearInterval(ephemeralTimer);
     await Promise.all([
+      stopOutbox(),
       stopOperators(),
       stopRetention(),
       stopYard(),

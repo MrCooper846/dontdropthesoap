@@ -70,6 +70,7 @@ const counters = {
   "voice.policy.failed": 0,
   "voice.policy.stale": 0,
   "outbox.published": 0,
+  "outbox.failed": 0,
   "game.tick.failed": 0,
   "metrics.refresh.failed": 0,
 };
