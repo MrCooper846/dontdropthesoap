@@ -1,3 +1,4 @@
+import { requireTableCapacity } from "../matches/capacity";
 import { duration, increment } from "../observability/metrics";
 import { config } from "../config";
 import { requireNear } from "../yards/world";
@@ -211,6 +212,7 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
     await assertController(db, p, data.controllerEpoch);
     if (config.FEATURE_YARD && !data.circleId)
       throw new RuleError("FORBIDDEN", "Create matches through a yard circle");
+    await requireTableCapacity(db);
     if (data.circleId) {
       requireNear(p.ownerId, data.circleId);
       const c = await db.query(
@@ -218,16 +220,6 @@ export async function newMatch(req: IncomingMessage, input: unknown) {
         [data.circleId],
       );
       if (!c.rowCount) throw new RuleError("NOT_FOUND");
-      if (
-        Number(
-          (
-            await db.query(
-              "SELECT count(*) FROM matches WHERE circle_id IS NOT NULL AND phase NOT IN ('finished','cancelled','aborted')",
-            )
-          ).rows[0].count,
-        ) >= config.MAX_ACTIVE_MATCHES
-      )
-        throw new RuleError("CAPACITY_FULL", "All configured tables are busy");
       if (data.mode !== c.rows[0].mode) throw new RuleError("INVALID_PAYLOAD");
       if (
         (

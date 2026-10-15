@@ -4,7 +4,7 @@ import { pruneBotLeases } from "./server/bots/identity";
 import { pruneHttpBudgets } from "./server/http";
 import { pruneChatBudgets } from "./server/yards/socket";
 import { pruneInvitationBudgets } from "./server/yards/challenges";
-import { pruneChat } from "./server/yards/world";
+import { pruneChat, blockRoutingSize } from "./server/yards/world";
 import { sweepWaitingRooms } from "./server/matches/waiting";
 import { isBotOnline } from "./server/bots/identity";
 import { OwnerConnections } from "./server/lifecycle/owner-connections";
@@ -303,6 +303,7 @@ async function main() {
     connectedSockets: game.sockets.size,
     tcpConnections: connections.current,
     connectionSources: connections.addressCount,
+    blockRoutingEdges: blockRoutingSize(),
     ready: ready && coordinatorAvailable(),
     draining: serviceWork.draining,
     dbWaiting: pool.waitingCount,

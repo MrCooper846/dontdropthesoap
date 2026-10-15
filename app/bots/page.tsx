@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 type Session = {
   features?: {
     yard: boolean;
@@ -32,6 +32,10 @@ export default function Bots() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [secret, setSecret] = useState(""),
+    [credentialNext, setCredentialNext] = useState<
+      Record<string, string | null>
+    >({}),
+    [credentialBusy, setCredentialBusy] = useState(false),
     [credentials, setCredentials] = useState<
       Record<
         string,
@@ -56,6 +60,24 @@ export default function Bots() {
     if (!response.ok)
       throw new Error(result.error?.message ?? "Request failed");
     return result;
+  }
+  const credentialRead = useRef(0);
+  async function credentialPage(id: string, before?: string | null) {
+    const revision = ++credentialRead.current;
+    setCredentialBusy(true);
+    try {
+      const page = await api(
+        "/bots/" +
+          id +
+          "/credentials" +
+          (before ? "?before=" + encodeURIComponent(before) : ""),
+      );
+      if (revision !== credentialRead.current) return;
+      setCredentials((old) => ({ ...old, [id]: page.credentials }));
+      setCredentialNext((old) => ({ ...old, [id]: page.next }));
+    } finally {
+      if (revision === credentialRead.current) setCredentialBusy(false);
+    }
   }
   async function refresh() {
     setBots((await api("/bots")).bots);
@@ -222,15 +244,11 @@ export default function Bots() {
                   </button>
                   <button
                     className="button"
+                    disabled={credentialBusy}
                     onClick={() =>
-                      void api("/bots/" + bot.id + "/credentials")
-                        .then((r) =>
-                          setCredentials((old) => ({
-                            ...old,
-                            [bot.id]: r.credentials,
-                          })),
-                        )
-                        .catch((e) => setError(e.message))
+                      void credentialPage(bot.id).catch((e) =>
+                        setError(e.message),
+                      )
                     }
                   >
                     Manage credentials
@@ -255,13 +273,7 @@ export default function Bots() {
                                 { controllerEpoch: epoch },
                                 "DELETE",
                               );
-                              const list = await api(
-                                "/bots/" + bot.id + "/credentials",
-                              );
-                              setCredentials((old) => ({
-                                ...old,
-                                [bot.id]: list.credentials,
-                              }));
+                              await credentialPage(bot.id);
                             })
                           }
                         >
@@ -270,6 +282,20 @@ export default function Bots() {
                       )}
                     </div>
                   ))}
+                  {credentialNext[bot.id] && (
+                    <button
+                      className="button"
+                      disabled={credentialBusy}
+                      onClick={() =>
+                        void credentialPage(
+                          bot.id,
+                          credentialNext[bot.id],
+                        ).catch((e) => setError(e.message))
+                      }
+                    >
+                      Older credentials
+                    </button>
+                  )}
                   <p className="muted">
                     Run the Python or TypeScript reference client with your
                     credential, then enter this bot at a mixed table. Your

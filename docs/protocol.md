@@ -171,3 +171,9 @@ Browser yard.input requires a connected socket, uses volatile delivery and expir
 
 
 historyExpired true denotes a retained terminal summary whose ninety-day round details have expired. Scores, participants and frozen rules remain; ownMove is null, results/pairs are empty and event synchronization returns reset with a fresh cursor. match.history-expired uses the existing match.snapshot delivery path to refresh open panels, storing only an empty notification payload. /results includes historyExpired; league replay's selected match includes the same flag. HISTORY_EXPIRED rejects attempts to save an archived checkpoint. Lost old resource receipts do not make an expired/deleted creation key valid again.
+
+## Bounded credential and block metadata
+
+GET /bots/:id/credentials is owner-only and returns at most 100 credential metadata records plus next, never token hashes, secrets or scopes. Pass next as before for the older page. Ordering uses expiry and credential UUID, with microsecond precision preserved in the opaque cursor. The management screen replaces its current page rather than accumulating all history; reopening management returns to the newest page.
+
+GET /blocks returns at most 100 outgoing block IDs plus next; pass next as after. GET /blocks?scope=yard requires current yard membership and returns only outgoing blocks relevant to current presences and senders in the viewer's still-retained, originally authorized nearby-chat buffer. Offline historical blocks remain durable and available through pagination. Block writes invalidate routing before a fresh bounded read; unknown routing membership fails closed.

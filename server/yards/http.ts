@@ -4,7 +4,14 @@ import { z } from "zod";
 import { json, body } from "../http";
 import { authenticate, assertController } from "../auth/sessions";
 import { pool, transaction } from "../persistence/db";
-import { requireYard, requireNearby, refreshBlocks, snapshot } from "./world";
+import {
+  requireYard,
+  requireNearby,
+  refreshBlocks,
+  invalidateBlocks,
+  snapshot,
+  chatSenderIds,
+} from "./world";
 import { config } from "../config";
 import { RuleError } from "../../domain/match/model";
 export async function yardHttp(
@@ -34,14 +41,40 @@ export async function yardHttp(
     return true;
   }
   if (path === "/blocks" && method === "GET") {
-    json(res, 200, {
-      blocks: (
+    const query = new URL(req.url!, config.PUBLIC_ORIGIN).searchParams;
+    const scope = z.enum(["all", "yard"]).parse(query.get("scope") ?? "all");
+    if (scope === "yard") {
+      requireYard(p.ownerId);
+      const ids = [
+        ...new Set([
+          ...snapshot().players.map((player) => player.ownerId),
+          ...chatSenderIds(p.ownerId),
+        ]),
+      ];
+      const rows = (
         await pool.query(
-          "SELECT blocked_owner_id FROM owner_blocks WHERE owner_id=$1",
-          [p.ownerId],
+          "SELECT blocked_owner_id FROM owner_blocks WHERE owner_id=$1 AND blocked_owner_id=ANY($2::uuid[]) ORDER BY blocked_owner_id",
+          [p.ownerId, ids],
         )
-      ).rows.map((r) => r.blocked_owner_id),
-    });
+      ).rows;
+      json(res, 200, {
+        blocks: rows.map((r) => r.blocked_owner_id),
+        next: null,
+      });
+    } else {
+      const after = query.get("after");
+      if (after !== null) z.string().uuid().parse(after);
+      const rows = (
+        await pool.query(
+          "SELECT blocked_owner_id FROM owner_blocks WHERE owner_id=$1 AND ($2::uuid IS NULL OR blocked_owner_id>$2::uuid) ORDER BY blocked_owner_id LIMIT 101",
+          [p.ownerId, after],
+        )
+      ).rows;
+      json(res, 200, {
+        blocks: rows.slice(0, 100).map((r) => r.blocked_owner_id),
+        next: rows.length > 100 ? rows[99].blocked_owner_id : null,
+      });
+    }
     return true;
   }
   const block = path.match(/^\/blocks(?:\/([^/]+))?$/);
@@ -85,6 +118,7 @@ export async function yardHttp(
           [p.ownerId, target],
         );
     });
+    invalidateBlocks();
     await refreshBlocks();
     json(res, 200, { ok: true });
     return true;

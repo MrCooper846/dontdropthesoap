@@ -1,3 +1,4 @@
+import { requireTableCapacity } from "../matches/capacity";
 import { ExpiringMap } from "../lifecycle/expiring";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { PoolClient } from "pg";
@@ -174,19 +175,7 @@ export async function challengeHttp(
           ).rowCount
         )
           throw new RuleError("CAPACITY_FULL");
-        if (
-          Number(
-            (
-              await db.query(
-                "SELECT count(*) FROM matches WHERE circle_id IS NOT NULL AND phase NOT IN ('finished','cancelled','aborted')",
-              )
-            ).rows[0].count,
-          ) >= config.MAX_ACTIVE_MATCHES
-        )
-          throw new RuleError(
-            "CAPACITY_FULL",
-            "All configured tables are busy",
-          );
+        await requireTableCapacity(db);
         const matchId = randomUUID(),
           m = createMatch(
             matchId,

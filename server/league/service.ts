@@ -275,7 +275,7 @@ export async function tickLeague() {
     for (const row of closing) await freezeBatch(db, row.id);
     const flagged = (
       await db.query(
-        "SELECT e.id,e.bot_id,e.offline_epoch,b.controller_epoch FROM league_entries e JOIN bots b ON b.id=e.bot_id WHERE e.offline_at IS NOT NULL AND e.kind='external'",
+        "SELECT e.id,e.bot_id,e.offline_epoch,b.controller_epoch FROM league_entries e JOIN bots b ON b.id=e.bot_id JOIN league_batches lb ON lb.id=e.batch_id WHERE lb.state='running' AND e.offline_at IS NOT NULL AND e.kind='external'",
       )
     ).rows;
     for (const entry of flagged)

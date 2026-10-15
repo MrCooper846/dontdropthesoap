@@ -134,7 +134,7 @@ export async function startVoice(game: Namespace) {
           [sockets.map((s) => s.data.principal.sessionId)],
         ),
         pool.query(
-          "SELECT state_json FROM matches WHERE phase NOT IN ('finished','cancelled','aborted')",
+          "SELECT state_json FROM matches WHERE circle_id IS NOT NULL AND phase NOT IN ('finished','cancelled','aborted')",
         ),
         refreshBlocks(),
       ]);

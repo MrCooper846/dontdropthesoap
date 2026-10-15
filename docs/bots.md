@@ -1,6 +1,6 @@
 # Bot execution and visual programming
 
-Status: proposed design. Bots act through the [protocol](protocol.md); rules live in [gameplay](gameplay.md).
+Status: external and visual bot implementations are integrated; physical-device editor usability remains a release gate. Historical foundation notes below are superseded by the integrated publication section. Bots act through the [protocol](protocol.md); rules live in [gameplay](gameplay.md).
 
 ## Shared observation
 
@@ -64,13 +64,13 @@ Snapshots and recorded decisions allow result replay without re-running remote a
 
 domain/bots/program.ts validates and canonicalizes interpreter version 1. It accepts finite number/boolean/move expressions, revealed observations, move counters, seeded random, comparisons, boolean operators, addition/subtraction and typed named memory. Statements are literal C/D return, if/else and memory assignment with an explicit next statement. Every path returns; there are no loops, recursion or arbitrary source-code operations. Programs enforce 32-level/512-node/64-KiB bounds; declared memory has at most 128 named scalar slots and an 8-KiB limit. Names retain their declared types. Execution limits remain 2,000 steps and 8 KiB; diagnostic traces are limited to 32 entries.
 
-shared/bots/blocks.ts defines the real Blockly vocabulary. domain/bots/workspace.ts derives the AST from saved JSON, so a separately claimed executable AST cannot disguise different block fields. It bounds the workspace to 64 KiB, rejects spare roots/unknown operations/disabled executable blocks and requires complete decision paths. Four starter workspaces round-trip through the installed real Blockly serializer and compiler in tests. Shared definitions are not a mounted editor feature yet.
+shared/bots/blocks.ts defines the real Blockly vocabulary. domain/bots/workspace.ts derives the AST from saved JSON, so a separately claimed executable AST cannot disguise different block fields. It bounds the workspace to 64 KiB, rejects spare roots/unknown operations/disabled executable blocks and requires complete decision paths. Four starter workspaces round-trip through the installed real Blockly serializer and compiler in tests. At that foundation checkpoint these shared definitions were not yet a mounted editor; the integrated UI is described below.
 
 server/bots/visual-pool.ts uses two worker threads by default, a total capacity of 32 tasks, a 100-ms execution watchdog, a separate 5-second startup budget, resource limits and bounded crash restarts. Expired tasks/results are discarded and malformed outcomes reject. Tests execute real threads and terminate an intentionally infinite worker while the parent timer continues ticking. This is process isolation and known-opcode execution; it does not host user JavaScript.
 
 npm run build:workers compiles only the trusted worker/interpreter source to ignored dist/workers/visual-worker.mjs using pinned esbuild 0.28.2. dev, build and test run this step automatically. Shipping requires the generated artifact alongside the application. Loader-based attempts on the installed Node/tsx runtime failed dependency resolution and module-cycle checks; the compiled worker removes that runtime-loader dependency.
 
-Publication/version storage, durable state-plus-move commits, live visual seats, owner feedback and the create/test/publish/enter/watch/edit UI remain unfinished. Deterministic replay from the same domain input is tested; atomic persistence is not claimed from those unit tests.
+That foundation checkpoint preceded publication storage, atomic state-plus-move persistence, live seats and the complete editor UI. Those integrations and their real acceptance evidence are described below and in goal-mode-plan.md; the foundation unit tests alone do not prove them.
 
 ### Integrated publication and participation
 

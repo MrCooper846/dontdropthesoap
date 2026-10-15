@@ -124,6 +124,28 @@ export default function YardPage() {
         });
     });
   }
+  const blockRead = useRef(0);
+  async function refreshOwnBlocks() {
+    const revision = ++blockRead.current;
+    const response = await api("/blocks?scope=yard");
+    if (revision === blockRead.current) setBlocks(response.blocks);
+  }
+  const blockMembers =
+    view?.players
+      .map((p) => p.ownerId)
+      .sort()
+      .join(",") ?? "";
+  useEffect(() => {
+    if (!entered || !online) return;
+    let live = true;
+    void refreshOwnBlocks().catch(() => {
+      if (live) setError("Cannot refresh block controls");
+    });
+    return () => {
+      live = false;
+      blockRead.current++;
+    };
+  }, [entered, online, blockMembers, session?.ownerId]);
   async function enter() {
     if (enterWork.current) return;
     enterWork.current = true;
@@ -142,7 +164,7 @@ export default function YardPage() {
       setEntered(true);
       setView(result.snapshot);
       setChat(result.chat);
-      setBlocks((await api("/blocks")).blocks);
+      await refreshOwnBlocks();
       if (matchRef.current) await watch(matchRef.current);
       else if (inviteMatch.current) {
         const requested = inviteMatch.current;
@@ -745,7 +767,7 @@ export default function YardPage() {
                                     controllerEpoch:
                                       sessionRef.current!.controllerEpoch,
                                   });
-                                setBlocks((await api("/blocks")).blocks);
+                                await refreshOwnBlocks();
                               })
                             }
                           >
