@@ -345,20 +345,29 @@ export default function YardPage() {
     acceptMatch(await api("/matches/" + match.id + "/observation"));
   }
   function motion(payload: { seq: number; axisX: number; axisY: number }) {
-    if (!enteredRef.current || !sessionRef.current) return;
-    socket.current?.emit(
-      "yard.input",
-      { controllerEpoch: sessionRef.current.controllerEpoch, payload },
-      (r: any) => {
-        if (r?.error?.code === "CONTROLLER_STALE") {
-          enteredRef.current = false;
-          setEntered(false);
-          setError(
-            "Another tab took control. Enter again to take control here.",
-          );
-        }
-      },
-    );
+    if (
+      !enteredRef.current ||
+      !sessionRef.current ||
+      !socket.current?.connected
+    )
+      return;
+    // Movement is latest-state intent, not a durable command. Never buffer old
+    // input offline or retain an acknowledgement indefinitely after a lost frame.
+    socket.current.volatile
+      .timeout(1000)
+      .emit(
+        "yard.input",
+        { controllerEpoch: sessionRef.current.controllerEpoch, payload },
+        (_error: Error | null, r: any) => {
+          if (r?.error?.code === "CONTROLLER_STALE") {
+            enteredRef.current = false;
+            setEntered(false);
+            setError(
+              "Another tab took control. Enter again to take control here.",
+            );
+          }
+        },
+      );
   }
   const me = view?.players.find((p) => p.ownerId === session?.ownerId),
     selected = view?.circles.find((c) => c.id === circleId),

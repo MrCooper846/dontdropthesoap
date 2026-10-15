@@ -1,3 +1,4 @@
+import { ExpiringMap } from "../lifecycle/expiring";
 import { bindOwnerWork } from "../lifecycle/owners";
 import { config } from "../config";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -15,8 +16,9 @@ export type BotPrincipal = {
   name: string;
   scopes: string[];
 };
-type Lease = { credentialId: string; epoch: number; seenAt: number };
-const leases = new Map<string, Lease>();
+type Lease = { credentialId: string; epoch: number };
+const leases = new ExpiringMap<Lease>(4096, 15000);
+export const pruneBotLeases = () => leases.prune();
 export async function botPrincipal(
   req: IncomingMessage,
   db: PoolClient | typeof pool = pool,
@@ -44,11 +46,10 @@ export async function botPrincipal(
 export function assertScope(p: BotPrincipal, scope: string) {
   if (!p.scopes.includes(scope)) throw new RuleError("FORBIDDEN");
 }
-export function isBotOnline(botId: string, now = Date.now()) {
-  const lease = leases.get(botId);
-  return !!lease && now - lease.seenAt < 15000;
+export function isBotOnline(botId: string) {
+  return !!leases.get(botId);
 }
-export function assertLease(p: BotPrincipal, epoch: number, now = Date.now()) {
+export function assertLease(p: BotPrincipal, epoch: number) {
   const lease = leases.get(p.id);
   if (
     p.epoch !== epoch ||
@@ -56,7 +57,6 @@ export function assertLease(p: BotPrincipal, epoch: number, now = Date.now()) {
     lease.credentialId !== p.credentialId
   )
     throw new RuleError("CONTROLLER_STALE");
-  if (now - lease.seenAt >= 15000) throw new RuleError("BOT_OFFLINE");
 }
 export async function lockBotController(
   db: PoolClient,
@@ -89,7 +89,6 @@ export async function acquireBot(req: IncomingMessage) {
       leases.set(p.id, {
         credentialId: p.credentialId,
         epoch,
-        seenAt: Date.now(),
       });
     return {
       botId: p.id,
@@ -112,7 +111,7 @@ export async function heartbeatBot(req: IncomingMessage, input: unknown) {
     lease.credentialId !== p.credentialId
   )
     throw new RuleError("CONTROLLER_STALE");
-  lease.seenAt = Date.now();
+  leases.set(p.id, lease);
   return { ok: true, controllerEpoch };
 }
 export async function createExternalBot(

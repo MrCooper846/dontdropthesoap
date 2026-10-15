@@ -1,3 +1,4 @@
+import { ExpiringMap } from "./lifecycle/expiring";
 import { matchesOpen } from "./operators/maintenance";
 import { publicLeagueHttp, leagueHttp } from "./league/http";
 import { visualHttp } from "./bots/visual-http";
@@ -59,17 +60,16 @@ export async function body(req: IncomingMessage, maxBytes = 16384) {
     throw new RuleError("INVALID_PAYLOAD");
   }
 }
-const budgets = new Map<string, { count: number; start: number }>();
+const budgets = new ExpiringMap<{ count: number; start: number }>(10000, 1000);
+export const pruneHttpBudgets = () => budgets.prune();
 export function rateLimit(key: string, limit = 10) {
-  const now = Date.now();
+  const now = performance.now();
   let b = budgets.get(key);
   if (!b || now - b.start >= 1000) {
     b = { count: 0, start: now };
     budgets.set(key, b);
   }
   if (++b.count > limit) throw new RuleError("RATE_LIMITED");
-  if (budgets.size > 10000)
-    for (const [k, v] of budgets) if (now - v.start > 60000) budgets.delete(k);
 }
 export async function api(
   req: IncomingMessage,

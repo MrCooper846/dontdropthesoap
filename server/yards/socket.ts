@@ -1,3 +1,4 @@
+import { ExpiringMap } from "../lifecycle/expiring";
 import { serviceWork } from "../lifecycle/work";
 import type { Namespace, Socket } from "socket.io";
 import { z } from "zod";
@@ -30,7 +31,8 @@ function failure(e: unknown) {
     },
   };
 }
-const chatBudgets = new Map<string, { tokens: number; at: number }>();
+const chatBudgets = new ExpiringMap<{ tokens: number; at: number }>(4096, 3000);
+export const pruneChatBudgets = () => chatBudgets.prune();
 export function attachYard(socket: Socket, game: Namespace) {
   const ownerId = socket.data.principal.ownerId;
   function route(
@@ -116,7 +118,7 @@ export function attachYard(socket: Socket, game: Namespace) {
       .parse(input);
     if (p.epoch !== controllerEpoch) throw new RuleError("CONTROLLER_STALE");
     requireYard(ownerId);
-    const now = Date.now(),
+    const now = performance.now(),
       budget = chatBudgets.get(ownerId) ?? { tokens: 3, at: now };
     budget.tokens = Math.min(3, budget.tokens + (now - budget.at) / 1000);
     budget.at = now;
@@ -124,7 +126,13 @@ export function attachYard(socket: Socket, game: Namespace) {
     budget.tokens--;
     chatBudgets.set(ownerId, budget);
     const recipients = yard.recipients(ownerId, blocked),
-      message = { id: randomUUID(), ownerId, name: p.name, text, sentAt: now };
+      message = {
+        id: randomUUID(),
+        ownerId,
+        name: p.name,
+        text,
+        sentAt: Date.now(),
+      };
     retainChat(message, recipients);
     for (const peer of game.sockets.values())
       if (peer.data.yard && recipients.includes(peer.data.principal.ownerId))
@@ -145,7 +153,7 @@ export function startYard(game: Namespace) {
     yard.step(Date.now());
     if (Date.now() - lastBroadcast >= 100) {
       lastBroadcast = Date.now();
-      game.to("yard").emit("yard.positions", snapshot());
+      game.to("yard").volatile.emit("yard.positions", snapshot());
     }
   }, 50);
   const refresh = setInterval(() => {

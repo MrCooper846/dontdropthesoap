@@ -1,3 +1,4 @@
+import { ExpiringMap } from "../lifecycle/expiring";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { PoolClient } from "pg";
 import { z } from "zod";
@@ -18,7 +19,8 @@ import {
 import { entrant, seatCaps } from "../bots/participation";
 import { saveMatch } from "../matches/repository";
 import { config } from "../config";
-const inviteTimes = new Map<string, number[]>();
+const inviteTimes = new ExpiringMap<number[]>(4096, 60000);
+export const pruneInvitationBudgets = () => inviteTimes.prune();
 export async function challengeHttp(
   req: IncomingMessage,
   res: ServerResponse,
@@ -45,7 +47,7 @@ export async function challengeHttp(
       "challenge.create",
       async (db, payload) => {
         const p = await authenticate(req, db);
-        const now = Date.now(),
+        const now = performance.now(),
           recent = (inviteTimes.get(p.ownerId) ?? []).filter(
             (t) => now - t < 60000,
           );
@@ -56,9 +58,6 @@ export async function challengeHttp(
           );
         recent.push(now);
         inviteTimes.set(p.ownerId, recent);
-        if (inviteTimes.size > 4096)
-          for (const [id, times] of inviteTimes)
-            if (!times.some((t) => now - t < 60000)) inviteTimes.delete(id);
         const data = z
           .object({
             ownerId: z.string().uuid(),
