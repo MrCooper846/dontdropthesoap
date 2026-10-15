@@ -35,3 +35,5 @@ Credentials are returned on initial issuance only. An exact issuance retry retur
 HTTP clients use Authorization: Bearer ... and need no browser cookie/CSRF token. Socket.IO clients use /game-v1 with the same bearer header and lease semantics. Only assigned observations and moves are allowed; tokens cannot create tables, manage owners/bots, or join voice.
 
 Observation responses retain the direct snapshot fields and add events, cursor, hasMore and reset. Supply ?after=cursor to scan subsequent committed events. state.sync({matchId,after}) returns equivalent snapshot/events/cursor data. Private entries are filtered server-side; cursors advance across entries that the viewer cannot see.
+
+For local performance diagnostics, SOAP_METRICS=true optionally emits JSON bot.ack.latency records after successful move HTTP acknowledgements. elapsedMs includes request/response decoding and loopback/network time; no identifiers, credentials or choices are included. This is used by the production workload harness and is off by default.

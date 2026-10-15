@@ -13,9 +13,13 @@ def stop(*_):
 signal.signal(signal.SIGTERM,stop)
 signal.signal(signal.SIGINT,stop)
 def api(path,data=None):
+    started=time.monotonic()
     request=urllib.request.Request(origin+"/api/v1"+path,data=None if data is None else json.dumps(data).encode(),headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})
     try:
-        with urllib.request.urlopen(request,timeout=10) as response: return json.load(response)
+        with urllib.request.urlopen(request,timeout=10) as response: result=json.load(response)
+        if os.environ.get("SOAP_METRICS")=="true" and path.endswith("/moves") and result.get("ok"):
+            print(json.dumps({"event":"bot.ack.latency","elapsedMs":(time.monotonic()-started)*1000}),flush=True)
+        return result
     except urllib.error.HTTPError as error:
         global stopped
         if error.code==401: stopped=True

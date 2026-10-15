@@ -16,6 +16,7 @@ process.on("SIGINT", () => {
   stopped = true;
 });
 async function api(path: string, data?: unknown) {
+  const started = performance.now();
   const response = await fetch(origin + "/api/v1" + path, {
     method: data === undefined ? "GET" : "POST",
     headers: {
@@ -30,6 +31,17 @@ async function api(path: string, data?: unknown) {
     if (response.status === 401) stopped = true;
     throw error;
   }
+  if (
+    process.env.SOAP_METRICS === "true" &&
+    path.endsWith("/moves") &&
+    result.ok
+  )
+    console.log(
+      JSON.stringify({
+        event: "bot.ack.latency",
+        elapsedMs: performance.now() - started,
+      }),
+    );
   return result;
 }
 function decide(s: Snapshot): "C" | "D" {

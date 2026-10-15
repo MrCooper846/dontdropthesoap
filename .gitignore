@@ -18,3 +18,5 @@ data/legacy-archives/
 __pycache__/
 
 data/restore-drills/
+
+data/load-runs/

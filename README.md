@@ -146,3 +146,5 @@ Audited host-side operator controls support owner disable/enable, individual ses
 ## Load-readiness measurements
 
 The server emits bounded aggregate latency/event-loop/memory windows and limits admitted HTTP/socket work with MAX_PENDING_WORK (initial default 256). npm run test:overload exercises actual saturation/recovery on isolated soap_load with a production build; it does not establish nominal capacity or the required 60-minute soak. See [measurement scope](docs/operations.md#bounded-admitted-work-and-aggregate-measurements).
+
+The production mixed-bot workload is reproducible with npm run test:load; -- --twice tests 64 presences and duplicate durable traffic with four tables. Both local profiles pass latency/deadline/settlement checks. The required 60-minute soak, physical-device and deployment gates remain pending. See [the workload and measurements](docs/testing.md#production-mixed-bot-workload).
