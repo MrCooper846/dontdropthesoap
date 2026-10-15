@@ -233,3 +233,6 @@ Correlation context uses a WeakMap tied to the live request rather than a histor
 
 
 Current-source package verification on 15 October 2026: clean dd7ce2c archives into a separate private /tmp/soap-release-* package, installs/builds afresh, removes development dependencies and passes actual production npm start against an empty unique fixture database. Build xQqK0FZ9sEpmOLm56WGB6 passes pages/cookie/interpreter/native-binary/isolation/correlation checks, normal game-process shutdown and fixture cleanup. This is reproducibility and local boot evidence; it does not replace final recovery/rollback, physical-device, public-media or hosting acceptance.
+
+
+To exercise the exact prepared candidate in the encrypted restore/binary rollback drill, set SOAP_CURRENT_DIR to its private /tmp/soap-release-<uuid> directory and SOAP_ROLLBACK_DIR to the separately prepared ancestor package, then run npm run test:rollback from the Git checkout. The verifier checks committed source hashes and application-source freshness before launching current→previous→current. Synthetic fixtures and owned restore-database cleanup retain the local-only guards above.

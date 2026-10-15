@@ -124,6 +124,10 @@ async function run() {
     assert.match(r.headers.get("content-type") ?? "", /text\/html/);
   }
   assert.equal((await fetch(local + "/api/leaderboard?probe=1")).status, 404);
+  const homepage = await fetch(local + "/", { redirect: "manual" });
+  assert.equal(homepage.status, 307);
+  assert.equal(homepage.headers.get("location"), "/yard");
+
   const legacyPage = await fetch(local + "/create?probe=1", {
     redirect: "manual",
   });

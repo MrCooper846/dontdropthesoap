@@ -87,7 +87,7 @@ npm run dev:legacy
 npm run legacy:archive
 ```
 
-The legacy demo binds only to localhost and refuses production mode. Run it with a distinct port if the new server is running. It uses browser localStorage identities and the old SQLite ledger; these IDs never authenticate new guests.
+The legacy demo binds only to localhost and refuses production mode. The authenticated server ignores SOAP_LEGACY even in development; production rendering independently rejects legacy mode. Run it with a distinct port if the new server is running. It uses browser localStorage identities and the old SQLite ledger; these IDs never authenticate new guests.
 
 legacy:archive leaves the source untouched and writes a versioned export, copied SQLite file, row counts and SHA-256 under ignored data/legacy-archives. Private archives must not be committed. The initial checkout had no legacy ledger; the first archived ledger contains synthetic baseline-browser records.
 

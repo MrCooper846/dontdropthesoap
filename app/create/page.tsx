@@ -1,6 +1,7 @@
+import { legacyDemoEnabled } from "@/lib/legacy-mode";
 import { redirect } from "next/navigation";
 import LegacyCreate from "@/components/LegacyCreate";
 export default function Page() {
-  if (process.env.SOAP_LEGACY === "true") return <LegacyCreate />;
+  if (legacyDemoEnabled()) return <LegacyCreate />;
   redirect("/play");
 }

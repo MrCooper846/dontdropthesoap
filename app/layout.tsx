@@ -1,3 +1,4 @@
+import { legacyDemoEnabled } from "@/lib/legacy-mode";
 import { connection } from "next/server";
 import type { Metadata, Viewport } from "next";
 import { ClientShell } from "@/components/ClientShell";
@@ -23,9 +24,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClientShell legacy={process.env.SOAP_LEGACY === "true"}>
-          {children}
-        </ClientShell>
+        <ClientShell legacy={legacyDemoEnabled()}>{children}</ClientShell>
       </body>
     </html>
   );

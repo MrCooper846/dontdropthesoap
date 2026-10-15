@@ -21,6 +21,8 @@ function fail(
 }
 process.on("uncaughtException", () => fail("service.fatal"));
 process.on("unhandledRejection", () => fail("service.fatal"));
+// This entry point always runs the authenticated application, including in development.
+process.env.SOAP_LEGACY = "false";
 void import("./server/main")
   .then(({ main }) => main())
   .catch((error) => fail("service.startup.failed", error));

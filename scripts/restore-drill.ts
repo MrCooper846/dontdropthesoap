@@ -16,6 +16,10 @@ const base = "postgresql://soap:soap_local_only@localhost:55432/";
 const sources = ["soap_test", "soap_league_recovery"];
 const root = process.cwd(),
   folder = path.join(root, "data/restore-drills", randomUUID());
+const currentDirectory = process.env.SOAP_CURRENT_DIR
+  ? path.resolve(process.env.SOAP_CURRENT_DIR)
+  : root;
+let currentRevision: string | undefined;
 const origin = "https://soap-restore.invalid",
   local = "http://127.0.0.1:3113";
 const pepper = randomBytes(32).toString("hex"),
@@ -57,8 +61,8 @@ async function waitFor<T>(
   check: () => Promise<T | false | undefined>,
   what: string,
 ): Promise<T> {
-  const end = Date.now() + 60000;
-  while (Date.now() < end) {
+  const end = performance.now() + 60000;
+  while (performance.now() < end) {
     const value = await check();
     if (value) return value as T;
     await delay(200);
@@ -382,7 +386,7 @@ async function restoreOne(
     ];
     const ledger = await fingerprints(restored, durableTables);
     await restored.query("UPDATE service_controls SET matches_open=false");
-    await start(root, destination);
+    await start(currentDirectory, destination);
     const cookie = "dds_session=" + seeded.secret;
     const restoredSession = await fetch(local + "/api/v1/session", {
       headers: { Cookie: cookie },
@@ -428,7 +432,7 @@ async function restoreOne(
         ) >= 10,
       );
       await stop();
-      await start(root, destination);
+      await start(currentDirectory, destination);
       const forward = await fetch(local + "/api/v1/session", {
         headers: { Cookie: cookie },
       });
@@ -441,6 +445,11 @@ async function restoreOne(
     }
     const summary = {
       source,
+      currentRevision: currentRevision ?? null,
+      currentBuildId: readFileSync(
+        path.join(currentDirectory, ".next/BUILD_ID"),
+        "utf8",
+      ).trim(),
       backupTimestamp,
       encryptedArchive: path.relative(root, filename),
       encryptedBytes: archive.length,
@@ -477,7 +486,7 @@ async function restoreOne(
     await restored.end();
   }
 }
-function verifyRollback(directory: string) {
+function verifyPackage(directory: string, current = false) {
   const revision = readFileSync(
     path.join(directory, "release-revision.txt"),
     "utf8",
@@ -487,13 +496,14 @@ function verifyRollback(directory: string) {
     cwd: root,
     stdio: "pipe",
   });
-  assert.notEqual(
-    revision,
-    execFileSync("git", ["rev-parse", "HEAD"], {
-      cwd: root,
-      encoding: "utf8",
-    }).trim(),
-  );
+  if (!current)
+    assert.notEqual(
+      revision,
+      execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+      }).trim(),
+    );
   const entries = execFileSync(
     "git",
     ["ls-tree", "-rz", "--full-tree", revision],
@@ -523,15 +533,19 @@ function verifyRollback(directory: string) {
       "Rollback source differs from committed revision: " + name,
     );
   }
-  assert.notEqual(
-    readFileSync(path.join(directory, ".next/BUILD_ID"), "utf8").trim(),
-    readFileSync(path.join(root, ".next/BUILD_ID"), "utf8").trim(),
-  );
+  if (!current)
+    assert.notEqual(
+      readFileSync(path.join(directory, ".next/BUILD_ID"), "utf8").trim(),
+      readFileSync(
+        path.join(currentDirectory, ".next/BUILD_ID"),
+        "utf8",
+      ).trim(),
+    );
   return revision;
 }
 async function run() {
   assert.ok(
-    existsSync(path.join(root, ".next/BUILD_ID")),
+    existsSync(path.join(currentDirectory, ".next/BUILD_ID")),
     "Build current application first",
   );
   const rollback = process.env.SOAP_ROLLBACK_DIR
@@ -546,7 +560,40 @@ async function run() {
     assert.match(rollback, /^\/tmp\/soap-rollback-[a-f0-9]{32}$/);
     assertProductionArtifacts(rollback);
   }
-  const revision = rollback ? verifyRollback(rollback) : undefined;
+  if (currentDirectory !== root) {
+    assert.match(currentDirectory, /^\/tmp\/soap-release-[a-f0-9]{32}$/);
+    assertProductionArtifacts(currentDirectory);
+    currentRevision = verifyPackage(currentDirectory, true);
+    // Harness/docs may advance, but the tested application's source must match the checkout.
+    execFileSync(
+      "git",
+      [
+        "diff",
+        "--exit-code",
+        currentRevision,
+        "--",
+        "server.ts",
+        "server",
+        "app",
+        "client",
+        "domain",
+        "shared",
+        "components",
+        "lib",
+        "public",
+        "package.json",
+        "package-lock.json",
+        "next.config.mjs",
+      ],
+      { cwd: root, stdio: "pipe" },
+    );
+  } else {
+    currentRevision = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+  }
+  const revision = rollback ? verifyPackage(rollback) : undefined;
   for (const source of sources) {
     assert.ok(
       (
