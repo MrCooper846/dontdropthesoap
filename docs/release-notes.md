@@ -32,7 +32,7 @@ Required remaining evidence:
 - A 4–8-person session covering discovery, human/bot roles, bluffing, spectator play, Blockly understanding, mute/block/report and return play.
 - Authorized HTTPS hosting and reachable public/cellular media, including the actual NAT/TURN decision and network policy.
 - Deployment-specific secrets, daily encrypted off-host backups, expiry/key custody, restore smoke, monitoring/alerts and deployment authority.
-- Resolution and verification of a subsequent short-workload deadline failure (1,114.936 ms delivered reveal, 1,013.401 ms database-derived resolution lag). The completed frozen-source hour applies only to its recorded source and workload.
+- Resolution and verification of a subsequent short-workload deadline failure (1,114.936 ms delivered reveal, 1,013.401 ms database-derived resolution lag). The completed frozen-source hour applies only to its recorded source and workload. Later paired-clock probes reproduce local Node/PostgreSQL wall-clock discontinuity; stable-clock timing validation remains pending.
 
 Use [the physical acceptance procedure](playtest.md) for the device/human/network evidence. Unavailable or unrun cases remain NOT_TESTED. Guest recovery, prizes/payments, hosted AI inference, clans, guards and broader prison simulation are outside this alpha.
 

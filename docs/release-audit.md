@@ -47,7 +47,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 
 ## Remaining handoff
 
-The frozen-source hour completed successfully (3,600,008.944 ms). A subsequent short reporting smoke failed the unchanged one-second deadline-delivery bound at 1,114.936 ms; independent database-derived resolution lag was 1,013.401 ms. This is an open timing defect, not a clock-comparison artifact. Aggregate coordinator/deadline/lock/pool/waiting timings and failure-time final metric retention are being verified to identify its cause. No deadline limit has been relaxed.
+The frozen-source hour completed successfully (3,600,008.944 ms). A subsequent short reporting smoke failed the unchanged one-second deadline-delivery bound at 1,114.936 ms; independent database-derived resolution lag was 1,013.401 ms. This is an open timing defect, not a clock-comparison artifact. Aggregate phase timings and complete final-window retention are verified. Subsequent read-only paired-clock probes observe simultaneous Node/PostgreSQL wall-clock steps up to approximately two seconds relative to monotonic time, despite sub-1.1-ms mutual offsets. This explains the observed discrepancy pattern but does not retrospectively prove the original failure cause. Timing acceptance requires an attributable rerun on a stable clock. No deadline limit has been relaxed.
 
 After that, collect actual candidate/device/browser/network-specific results using playtest.md. Provide devices, four to eight people and an existing authorized HTTPS/media test environment; configure real secrets and off-host backup/monitoring custody through its operator. No credentials should be placed in this report.
 

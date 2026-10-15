@@ -108,11 +108,23 @@ export function startMetrics(
   const loop = monitorEventLoopDelay({ resolution: 10 });
   loop.enable();
   const started = performance.now();
+  const wallStarted = Date.now();
+  let previousElapsed = 0,
+    previousWallElapsed = 0;
   function sample() {
     const memory = process.memoryUsage();
+    const elapsed = performance.now() - started;
+    const wallElapsed = Date.now() - wallStarted;
     emit({
       event: "service.metrics",
-      uptimeMs: Math.round(performance.now() - started),
+      uptimeMs: Math.round(elapsed),
+      clock: {
+        wallElapsedMs: wallElapsed,
+        monotonicElapsedMs: elapsed,
+        cumulativeDriftMs: wallElapsed - elapsed,
+        windowDriftMs:
+          wallElapsed - previousWallElapsed - (elapsed - previousElapsed),
+      },
       ...state(),
       rssBytes: memory.rss,
       heapUsedBytes: memory.heapUsed,
@@ -127,6 +139,8 @@ export function startMetrics(
       ),
       counters: { ...counters },
     });
+    previousElapsed = elapsed;
+    previousWallElapsed = wallElapsed;
     loop.reset();
     for (const h of Object.values(durations)) h.reset();
     for (const name of Object.keys(counters) as (keyof typeof counters)[])

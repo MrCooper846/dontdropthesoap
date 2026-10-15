@@ -122,3 +122,8 @@ tests/integration/results.test.ts builds a maximum-length eight-seat match with 
 
 
 Saved workload reports distinguish metrics (filtered full-population performance windows) from allMetrics (the existing bounded complete metric stream, including setup/reconnect/drain) and committedMetricTotals (the asserted full-stream move/timeout/reconnect sums). Console summaries omit both arrays. Older reports retain filtered metrics plus phase progress snapshots; their final reconnect assertion is evidenced by the successful verifier/source, not an independent sum of omitted late windows. Full-hour memory/continuity can be recomputed from their complete phase progress samples.
+
+
+## Clock-stability diagnostics
+
+Absolute match deadlines use the database wall clock; workload durations and event-loop timings use monotonic time. Node/database agreement alone cannot establish clock continuity: both can jump together. Use npm run diagnose:clock and the service.metrics clock fields when these measurements disagree. The diagnostic command is read-only evidence collection, not an acceptance pass and not a replacement for test:load, test:soak or the unchanged one-second deadline-delivery bound. Failed timing runs remain failed. Record significant clock discontinuities and validate on a stable environment before attributing timing acceptance to a candidate.
