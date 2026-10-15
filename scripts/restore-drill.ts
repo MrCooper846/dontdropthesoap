@@ -399,6 +399,19 @@ async function restoreOne(
     const session = await restoredSession.json();
     assert.equal(session.ownerId, seeded.ownerId);
     await pausedAdmission(cookie, restored);
+    // Readiness precedes the periodic league tick. Let already-expired
+    // registrations reach their real terminal/scheduled state before baseline.
+    await waitFor(
+      async () =>
+        Number(
+          (
+            await restored.query(
+              "SELECT count(*) AS n FROM league_batches WHERE state='registration' AND registration_deadline<=clock_timestamp()",
+            )
+          ).rows[0].n,
+        ) === 0,
+      "expired league registration reconciliation",
+    );
     const publicBefore = await (await fetch(local + "/api/v1/leagues")).json();
     const restoredReadyMs = Math.round(performance.now() - started);
     await stop();

@@ -59,6 +59,7 @@ it("publishes external declarations over HTTP with retry/concurrency/security an
   const batch = await transaction((db) =>
     createBatch(req, { name: "Before revision" }, db),
   );
+  const ownedBatches = [batch.id];
   const oldEntry = await transaction((db) =>
     registerEntry(req, batch.id, { botId: bot.id }, db),
   );
@@ -203,6 +204,7 @@ it("publishes external declarations over HTTP with retry/concurrency/security an
     const nextBatch = await transaction((db) =>
       createBatch(req, { name: "After revision" }, db),
     );
+    ownedBatches.push(nextBatch.id);
     const nextEntry = await transaction((db) =>
       registerEntry(req, nextBatch.id, { botId: bot.id }, db),
     );
@@ -217,6 +219,11 @@ it("publishes external declarations over HTTP with retry/concurrency/security an
       pool.query("DELETE FROM bot_versions WHERE id=$1", [latest.version_id]),
     ).rejects.toThrow(/immutable/);
   } finally {
+    // Exact IDs created by this fixture only; leave no live registration timers.
+    await pool.query(
+      "UPDATE league_batches SET state='cancelled' WHERE id=ANY($1::uuid[]) AND state='registration'",
+      [ownedBatches],
+    );
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
