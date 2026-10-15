@@ -19,7 +19,11 @@ export async function publicLeagueHttp(
   method: string,
   url: URL,
 ) {
-  if (method !== "GET" || !path.startsWith("/leagues")) return false;
+  if (
+    method !== "GET" ||
+    (!path.startsWith("/leagues") && !path.startsWith("/league-batches"))
+  )
+    return false;
   if (!config.FEATURE_LEAGUE) throw new RuleError("NOT_FOUND");
   if (path === "/leagues") {
     const before = url.searchParams.get("before");
@@ -30,7 +34,7 @@ export async function publicLeagueHttp(
     json(res, 200, await listBatches(before ?? undefined));
     return true;
   }
-  const batch = path.match(/^\/leagues\/([^/]+)$/);
+  const batch = path.match(/^\/(?:leagues|league-batches)\/([^/]+)$/);
   if (batch) {
     const after = z.coerce
       .number()

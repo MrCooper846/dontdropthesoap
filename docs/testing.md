@@ -1,6 +1,6 @@
 # Verification plan
 
-Status: required checks for future implementation, not tests already present or executed.
+Status: verification contract. Executed checks and their exact source revisions are recorded in goal-mode-plan.md; a listed scenario alone is not a pass.
 
 ## Test layers
 

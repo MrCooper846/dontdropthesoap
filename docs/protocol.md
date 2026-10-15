@@ -100,9 +100,10 @@ Initial limits: one human active seat per owner; at most two total active seats 
 | POST /command-keys | Time-bounded resource-creation key |
 | GET /matches/:id/results?afterResult=cursor | Revealed results, at most 100 per page |
 | GET /league-batches/:id | Public schedule and standings |
-| POST /voice/token | Browser owner only, current yard eligibility |
 | POST /blocks; DELETE /blocks/:ownerId | Own block list |
 | POST /reports | Bounded report submission |
+
+GET /league-batches/:id and GET /leagues/:id share the same public batch response and after cursor; the UI and league management use /leagues. Voice uses the authenticated voice.command socket contract below. The original /voice/token proposal was superseded by server-owned mediasoup consumers after the LiveKit permission spike; no reusable media token endpoint is exposed.
 
 All routes are under /api/v1. Unlisted management operations should be specified before implementation, not improvised by clients.
 
@@ -135,7 +136,7 @@ Filtered responses advance the cursor across scanned events, including invisible
 
 ## Time-bounded creation keys
 
-Only resource-creating commands require a key in addition to commandId. For an expired key, first check a matching unexpired receipt and return its result; otherwise reject. Deleting old key records does not make them reusable because signed expiry and principal binding are validated. Store a key signing secret separately from bot/session tokens. Match moves rely on round identity and uniqueness, not creation keys.
+Only resource-creating commands require a key in addition to commandId. For an expired key, first check a matching unexpired receipt and return its result; otherwise reject. Deleting old key records does not make them reusable: only known, unexpired, unconsumed durable keys bound to the authenticated principal can create a resource. The integrated implementation uses opaque UUID keys stored in PostgreSQL, as described above; it does not issue self-contained signed keys. Match moves rely on round identity and uniqueness, not creation keys.
 
 ## Input budgets
 

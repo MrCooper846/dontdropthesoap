@@ -1,7 +1,8 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
-  testIgnore: "**/alpha/**",
+  // This server is the localhost legacy demo; feature suites have dedicated configs.
+  testMatch: ["**/baseline.spec.ts", "**/foundation.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 120000,
