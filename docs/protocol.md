@@ -98,7 +98,7 @@ Initial limits: one human active seat per owner; at most two total active seats 
 | GET /matches/:id/observation?after=cursor | Public plus own-seat information, filtered event cursor |
 | POST /matches/:id/moves | Same move command and ACK as sockets |
 | POST /command-keys | Time-bounded resource-creation key |
-| GET /matches/:id/results | Revealed results with pagination |
+| GET /matches/:id/results?afterResult=cursor | Revealed results, at most 100 per page |
 | GET /league-batches/:id | Public schedule and standings |
 | POST /voice/token | Browser owner only, current yard eligibility |
 | POST /blocks; DELETE /blocks/:ownerId | Own block list |
@@ -177,3 +177,12 @@ historyExpired true denotes a retained terminal summary whose ninety-day round d
 GET /bots/:id/credentials is owner-only and returns at most 100 credential metadata records plus next, never token hashes, secrets or scopes. Pass next as before for the older page. Ordering uses expiry and credential UUID, with microsecond precision preserved in the opaque cursor. The management screen replaces its current page rather than accumulating all history; reopening management returns to the newest page.
 
 GET /blocks returns at most 100 outgoing block IDs plus next; pass next as after. GET /blocks?scope=yard requires current yard membership and returns only outgoing blocks relevant to current presences and senders in the viewer's still-retained, originally authorized nearby-chat buffer. Offline historical blocks remain durable and available through pagination. Block writes invalidate routing before a fresh bounded read; unknown routing membership fails closed.
+
+
+## Revealed result pages
+
+GET /matches/:id/results returns {results,historyExpired,cursor,nextAfterResult,hasMore,reset}. It uses the same authenticated browser/bot observation authority; bot credentials still require observations:read and an assigned seat. Only revealed result records appear, without private observations or unrevealed moves.
+
+Pages contain at most 100 results in append order. Omit afterResult for the first page; pass nextAfterResult to fetch the next. cursor is the number of revealed results consumed, and nextAfterResult is null when the current snapshot has no further page. A client following an ongoing match may poll again from cursor for later appended results even when hasMore was false. Cursor values are unsigned canonical decimal integers; malformed or beyond-current-history cursors return INVALID_PAYLOAD. Once history is archived, a valid cursor resets to zero with empty results, historyExpired/reset true and hasMore false.
+
+afterResult is independent of the after event-replay cursor. Normal observations and state.sync retain their full bounded revealed history (at most 200 pair results under the current 50-round/eight-seat social limits), so bot decisions and ordinary match rendering do not silently lose earlier encounters.

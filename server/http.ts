@@ -1,3 +1,4 @@
+import { resultsPage } from "./matches/results";
 import { beginRequest, httpFailure } from "./observability/diagnostics";
 import { increment } from "./observability/metrics";
 import { ExpiringMap } from "./lifecycle/expiring";
@@ -234,28 +235,31 @@ export async function api(
     if (match) {
       const id = z.string().uuid().parse(match[1]);
       if (method === "GET") {
+        if (match[2] === "results") {
+          json(
+            res,
+            200,
+            await resultsPage(
+              req,
+              id,
+              url.searchParams.get("afterResult") ?? undefined,
+            ),
+          );
+          return true;
+        }
         const sync = await syncObservation(
           req,
           id,
           url.searchParams.get("after") ?? undefined,
         );
         const snapshot = sync.snapshot;
-        json(
-          res,
-          200,
-          match[2] === "results"
-            ? {
-                results: snapshot.results,
-                historyExpired: snapshot.historyExpired,
-              }
-            : {
-                ...snapshot,
-                events: sync.events,
-                cursor: sync.cursor,
-                hasMore: sync.hasMore,
-                reset: sync.reset,
-              },
-        );
+        json(res, 200, {
+          ...snapshot,
+          events: sync.events,
+          cursor: sync.cursor,
+          hasMore: sync.hasMore,
+          reset: sync.reset,
+        });
         return true;
       }
       if (method === "POST" && match[2] === "join") {

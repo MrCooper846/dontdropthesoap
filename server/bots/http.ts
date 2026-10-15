@@ -1,3 +1,4 @@
+import { resultsPage } from "../matches/results";
 import { credentialHistory } from "./credential-history";
 import { config } from "../config";
 import { syncObservation } from "../matches/observations";
@@ -56,6 +57,20 @@ export async function botHttp(
     const id = z.string().uuid().parse(match[1]);
     if (method === "GET") {
       assertScope(p, "observations:read");
+      if (match[2] === "results") {
+        json(
+          res,
+          200,
+          await resultsPage(
+            req,
+            id,
+            new URL(req.url ?? "/", "http://local").searchParams.get(
+              "afterResult",
+            ) ?? undefined,
+          ),
+        );
+        return true;
+      }
       const sync = await syncObservation(
         req,
         id,
@@ -63,19 +78,13 @@ export async function botHttp(
           undefined,
       );
       const snapshot = sync.snapshot;
-      json(
-        res,
-        200,
-        match[2] === "results"
-          ? { results: snapshot.results }
-          : {
-              ...snapshot,
-              events: sync.events,
-              cursor: sync.cursor,
-              hasMore: sync.hasMore,
-              reset: sync.reset,
-            },
-      );
+      json(res, 200, {
+        ...snapshot,
+        events: sync.events,
+        cursor: sync.cursor,
+        hasMore: sync.hasMore,
+        reset: sync.reset,
+      });
       return true;
     }
     if (method === "POST" && match[2] === "moves") {
