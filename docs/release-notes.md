@@ -32,7 +32,7 @@ Required remaining evidence:
 - A 4–8-person session covering discovery, human/bot roles, bluffing, spectator play, Blockly understanding, mute/block/report and return play.
 - Authorized HTTPS hosting and reachable public/cellular media, including the actual NAT/TURN decision and network policy.
 - Deployment-specific secrets, daily encrypted off-host backups, expiry/key custody, restore smoke, monitoring/alerts and deployment authority.
-- Final frozen-source regression/load/soak acceptance; earlier measurements apply only to their recorded source and workload.
+- Completion of the current frozen-source full-hour presence/reconnect soak; earlier measurements apply only to their recorded source and workload.
 
 Use [the physical acceptance procedure](playtest.md) for the device/human/network evidence. Unavailable or unrun cases remain NOT_TESTED. Guest recovery, prizes/payments, hosted AI inference, clans, guards and broader prison simulation are outside this alpha.
 
@@ -45,4 +45,4 @@ Keep this as an untagged local candidate while required gates are open. After a 
 
 Application source 72aa79a, with documentation-only source marker 3be47a6, passes 48 PostgreSQL checks, 95 unit/native checks, two legacy/lifecycle browser tests, eight authenticated alpha cases, nine yard cases, two league cases, fifteen production native-voice cases and five production security/editor cases. Physical signal drain, startup redaction, isolated DB outage, resource enforcement and overload recovery pass. Nominal and doubled-presence/command profiles pass on clean 3be47a6/build cu1hrACOOu8b7Ah0kE5zm with unchanged score/decision metrics. The latter retains four tables/32 seats and six bots.
 
-Current-source final crash/package/restore verification and the full frozen-source hour are still pending at this checkpoint. These results do not fill the physical-device/human/public-network/hosting gates above.
+Final candidate ffeb04b passes current-source human/external/league crash verification, clean runtime-only production packaging and exact-package schema-16 encrypted restore/previous-binary rollback. Its private package is /tmp/soap-release-59322452d65147279a49987a87a37b23 (build LXgsLT4m8oGYlRsLpXMxM). The actual frozen-source hour is running on clean ffeb04b with root build hafeLDvQmndyldUBWUZ8-; no hour/memory pass is claimed before terminal verification. These results do not fill the physical-device/human/public-network/hosting gates above.
