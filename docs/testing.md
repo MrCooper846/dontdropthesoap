@@ -48,6 +48,8 @@ Perform microphone and background/resume tests on desktop Chrome/Firefox/Safari 
 
 ## Playtests
 
+Use the [physical-device and human acceptance procedure](playtest.md) to collect candidate/device/network-specific evidence. Its blank result form is not a completed gate.
+
 First session: 4–8 humans, with at least one basic and one external bot. Observe whether users can find a circle, identify bots/owners, understand lock/reveal and return for another match. Test spectators, deliberate misinformation and owners wandering away from their bots.
 
 Separate product findings from bugs: a strategy being boring is not a networking failure. Change one ruleset version at a time so results are comparable.
