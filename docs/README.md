@@ -17,6 +17,7 @@ Status: v1 specifications and implementation references, 14 October 2026. The au
 | [Operations](operations.md) | Deployment, credentials, observability and recovery |
 | [Physical-device and human acceptance](playtest.md) | Procedure and result form for the remaining real-device/playtest gates |
 | [Alpha candidate notes](release-notes.md) | Implemented scope, runnable package and explicit remaining release dependencies |
+| [Candidate acceptance audit](release-audit.md) | Requirement-by-requirement evidence, scope limits and unpassed gates |
 | [Implementation](implementation.md) | Milestones and migration from current code |
 | [Goal Mode execution](goal-mode-plan.md) | Paste-ready goal, stage gates, checkpoint record and resume instructions |
 

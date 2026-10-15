@@ -142,7 +142,7 @@ Inputs: yard/voice, operations, testing and implementation milestone 4.
 
 Deliver:
 - Provider adapter with proved server-enforced audience.
-- Human-only room tokens, authoritative audible sets and revocation.
+- Human-only authenticated media signaling/ephemeral transport credentials, authoritative audible sets and revocation (the recorded mediasoup adapter replaces the original room-token proposal).
 - Push-to-talk, speaking indicators, mute, block, spectator filtering and device failures.
 - Clear owner-managed agent-listening notice; no built-in transcription or model integration.
 - Text-only fallback when media is unavailable.
@@ -788,3 +788,11 @@ Stop expanding scope once the agreed v1 gates pass. Further mechanics require a 
 - At the recorded 120,716-ms checkpoint it has 56 churn cycles, 77,009 accepted movement inputs and 3,488 chats; thirteen phase metric samples have max event-loop p95 10.937 ms and zero tracked failures. This is running evidence only: ten-minute warm-up, complete fifty-minute memory windows and full command/ledger/metric checks remain pending. All original criteria remain unchanged.
 - Resume the exact exec handle; an observation timeout/stale progress file is not termination. Check the actual process if necessary, never restart only because observation expired. Keep runtime/worker/build files frozen and avoid concurrent build/browser/load/fault jobs during the hour. Documentation-only records may advance. Full-hour PASS requires actual successful terminal completion and independent final evidence checks.
 - The remaining real-device/human/public-network/hosting/publication inputs have not arrived. Stage 7 stays IN_PROGRESS and the goal remains active; no validated/deployed label, push, tag or merge.
+
+
+### Stage 7 checkpoint — acceptance audit and measured warm-up
+
+- Added docs/release-audit.md, linked from the technical index, mapping all eight user-visible goal requirements and the engineering/operational gates to actual implementation/test evidence and explicit scope limits. Overall status is NOT YET VALIDATED; physical devices/humans/public networks/hosting/publication and the running hour are not silently marked passed. Reconciled stage 4's old room-token wording with the recorded server-owned mediasoup signaling decision; no runtime/auth change.
+- The retained initial synthetic legacy archive still exists. Its 24,576-byte SQLite file independently hashes to 1a119a284e803418e4172edc794c90d4c12cad9a8b36c228d22ed6c15217bd62, matching its checkpoint directory; no private rows were read into status output. Final clean-package full/runtime installs report zero audit advisories. All current README/docs relative links resolve.
+- Exec 55849 remains confirmed live; game/workload/all three external bot processes are independently observed alive. Application-source diff against ffeb04b is empty. At 721 measured seconds, the same actual run has 334 cycles, 459,910 accepted movement inputs and 20,948 chats. All 73 phase metric samples remain ready/current, max event-loop p95 11.101 ms, tracked failures zero. The ten-minute warm-up is complete; ten complete five-minute memory windows and terminal checks are not yet complete.
+- Continue that exact hour handle and private progress artifact. Keep runtime/worker/build unchanged and do not run competing verification jobs. The full objective remains active; this is a verified wait and documentation audit progress, not a completed hour or validated release.
