@@ -23,7 +23,26 @@ export async function own(page: Page) {
     ),
   };
 }
+export async function pane(page: Page, name: "Tables" | "Chat" | "People") {
+  const button = page
+    .getByRole("navigation", { name: "Yard actions" })
+    .getByRole("button", { name, exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true")
+    await button.click();
+}
+export async function settings(page: Page) {
+  const summary = page.locator(".yard-settings > summary");
+  if ((await summary.locator("..").getAttribute("open")) === null)
+    await summary.click();
+}
 export async function walk(page: Page, x: number, y: number) {
+  const close = page.getByRole("button", { name: "Close panel", exact: true });
+  if (await close.isVisible()) await close.click();
+  const closeMatch = page.getByRole("button", {
+    name: "Close match view",
+    exact: true,
+  });
+  if (await closeMatch.isVisible()) await closeMatch.click();
   await page
     .getByRole("img", { name: "Cartoon prison yard" })
     .click({ position: { x: 12, y: 12 } });

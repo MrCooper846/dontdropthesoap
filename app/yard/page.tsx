@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { io, type Socket } from "socket.io-client";
+import { useMatchCountdown } from "../../client/useMatchCountdown";
 import YardCanvas from "../../client/yard/YardCanvas";
 import YardVoicePanel from "../../components/YardVoicePanel";
 import YardMatchPanel from "../../components/YardMatchPanel";
@@ -15,6 +16,54 @@ import type { Snapshot } from "../../shared/protocol/commands";
 import { distance } from "../../shared/yard/map";
 type Bot = { id: string; name: string; online: boolean; kind: string };
 export default function YardPage() {
+  type Pane =
+    "tables" | "chat" | "people" | "circle" | "match" | "menu" | "voice" | null;
+  const [pane, setPane] = useState<Pane>(null);
+  const shellRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const resize = () => {
+      shellRef.current?.style.setProperty(
+        "--yard-viewport-height",
+        viewport.height + "px",
+      );
+      shellRef.current?.style.setProperty(
+        "--yard-viewport-top",
+        viewport.offsetTop + "px",
+      );
+    };
+    resize();
+    viewport.addEventListener("resize", resize);
+    viewport.addEventListener("scroll", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      viewport.removeEventListener("scroll", resize);
+    };
+  }, []);
+  const panelRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const announcedRound = useRef("");
+  function openPane(next: Pane) {
+    if (document.activeElement instanceof HTMLElement)
+      triggerRef.current = document.activeElement;
+    setPane(next);
+  }
+  useEffect(() => {
+    if (pane && pane !== "voice")
+      panelRef.current?.focus({ preventScroll: true });
+    if (!pane) {
+      const target = triggerRef.current?.getClientRects().length
+        ? triggerRef.current
+        : document.querySelector<HTMLElement>(".yard-dock button");
+      target?.focus({ preventScroll: true });
+    }
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPane(null);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [pane]);
   const [admissionsPaused, setAdmissionsPaused] = useState(false);
   useEffect(() => {
     let stopped = false,
@@ -184,6 +233,7 @@ export default function YardPage() {
     );
   }
   async function watch(id: string) {
+    openPane("match");
     matchRef.current = id;
     acceptMatch(await api("/matches/" + id + "/observation"));
     socket.current?.emit("state.sync", { matchId: id }, (r: any) => {
@@ -199,6 +249,7 @@ export default function YardPage() {
       matchRef.current = "";
       setMatch(null);
     }
+    openPane("circle");
   }
   useEffect(() => {
     setBotId(new URLSearchParams(location.search).get("bot") ?? "");
@@ -391,39 +442,71 @@ export default function YardPage() {
         },
       );
   }
+  useEffect(() => {
+    const own = match?.seats.find((seat) => seat.id === match.ownSeatId);
+    const key = match?.id + ":" + match?.round + ":" + match?.phase;
+    if (
+      own?.kind === "human" &&
+      !own.abandoned &&
+      match?.phase === "collecting" &&
+      announcedRound.current !== key
+    ) {
+      announcedRound.current = key;
+      setPane("match");
+    }
+  }, [match?.id, match?.round, match?.phase, match?.ownSeatId]);
   const me = view?.players.find((p) => p.ownerId === session?.ownerId),
     selected = view?.circles.find((c) => c.id === circleId),
     near = !!me && !!selected && distance(me, selected) <= selected.radius + 32;
   return (
-    <main className="yard-page">
+    <main
+      ref={shellRef}
+      className={"yard-page" + (entered ? " yard-active" : "")}
+    >
       {admissionsPaused && (
         <p role="status">
           New games are paused for maintenance. Existing games can finish; the
           yard and nearby chat remain open.
         </p>
       )}
-      <header className="yard-header">
-        <div>
-          <span className="yard-eyebrow">THE NOODLE ECONOMY</span>
-          <h1>Don't Drop The Soap</h1>
-          <p>Make friends. Make questionable financial decisions.</p>
-        </div>
-        <div className="yard-header-actions">
-          {session && (
-            <span className="pill">
-              {session.name} · {online ? "connected" : "reconnecting"}
-            </span>
-          )}
-          {session?.features.league && (
-            <Link className="button small" href="/leagues">
-              Bot league
+      {entered ? (
+        <header className="yard-status-bar">
+          <strong>The yard</strong>
+          <span role="status">
+            {session?.name} · {online ? "Connected" : "Reconnecting…"}
+          </span>
+          <button
+            className="button small"
+            aria-expanded={pane === "menu"}
+            onClick={() => openPane(pane === "menu" ? null : "menu")}
+          >
+            Menu
+          </button>
+        </header>
+      ) : (
+        <header className="yard-header">
+          <div>
+            <span className="yard-eyebrow">THE NOODLE ECONOMY</span>
+            <h1>Don't Drop The Soap</h1>
+            <p>Make friends. Make questionable financial decisions.</p>
+          </div>
+          <div className="yard-header-actions">
+            {session && (
+              <span className="pill">
+                {session.name} · {online ? "connected" : "reconnecting"}
+              </span>
+            )}
+            {session?.features.league && (
+              <Link className="button small" href="/leagues">
+                Bot league
+              </Link>
+            )}
+            <Link className="button small" href="/bots">
+              Your bots
             </Link>
-          )}
-          <Link className="button small" href="/bots">
-            Your bots
-          </Link>
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
       {error && (
         <p role="alert" className="danger yard-alert">
           {error}
@@ -484,17 +567,86 @@ export default function YardPage() {
       ) : (
         view && (
           <>
-            <div className="yard-layout">
+            <div
+              className={
+                "yard-layout" + (pane && pane !== "voice" ? " has-pane" : "")
+              }
+            >
               <div className="yard-main">
                 <YardCanvas
                   view={view}
                   ownerId={session.ownerId}
                   controlEpoch={session.controllerEpoch}
-                  enabled={online && entered}
+                  enabled={online && entered && !pane}
                   onInput={motion}
                   onInspect={(id) => void run(() => inspect(id))}
                 />
-                <section className="panel stack nearby-chat">
+                {session.features.voice && (
+                  <div className="yard-voice-anchor">
+                    <YardVoicePanel
+                      socket={socket.current}
+                      epoch={session.controllerEpoch}
+                      players={view.players}
+                      compact
+                      expanded={pane === "voice"}
+                      onToggle={() =>
+                        openPane(pane === "voice" ? null : "voice")
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+              <aside
+                id="yard-context-panel"
+                className="yard-sidebar"
+                ref={panelRef}
+                tabIndex={-1}
+                aria-label="Yard controls"
+                hidden={!pane || pane === "voice"}
+              >
+                <div className="yard-pane-heading" hidden={pane === "match"}>
+                  <strong>
+                    {pane === "match"
+                      ? "Your table"
+                      : pane === "circle"
+                        ? "Circle"
+                        : pane === "chat"
+                          ? "Nearby chat"
+                          : pane === "people"
+                            ? "People & challenges"
+                            : pane === "menu"
+                              ? "Yard menu"
+                              : "Tables"}
+                  </strong>
+                  <button
+                    className="button small"
+                    onClick={() => setPane(null)}
+                  >
+                    Close panel
+                  </button>
+                </div>
+                <section className="panel stack" hidden={pane !== "menu"}>
+                  <Link className="button" href="/bots">
+                    Your bots
+                  </Link>
+                  {session.features.league && (
+                    <Link className="button" href="/leagues">
+                      Bot league
+                    </Link>
+                  )}
+                  <p>
+                    Walk with the joystick or WASD/arrows. Approach a circle and
+                    choose Interact, or browse Tables.
+                  </p>
+                  <p className="muted">
+                    Your guest identity lives in this browser cookie. Losing it
+                    loses access to your bots.
+                  </p>
+                </section>
+                <section
+                  className="panel stack nearby-chat"
+                  hidden={pane !== "chat"}
+                >
                   <div className="row">
                     <h2>Nearby text</h2>
                     <span className="pill">8 tiles · last 30s</span>
@@ -546,16 +698,7 @@ export default function YardPage() {
                     </button>
                   </form>
                 </section>
-              </div>
-              <aside className="yard-sidebar">
-                {session.features.voice && (
-                  <YardVoicePanel
-                    socket={socket.current}
-                    epoch={session.controllerEpoch}
-                    players={view.players}
-                  />
-                )}
-                <section className="panel stack">
+                <section className="panel stack" hidden={pane !== "tables"}>
                   <h2>Match circles</h2>
                   <p className="muted">
                     Walk nearer to enter. Inspect or watch without taking a
@@ -586,15 +729,14 @@ export default function YardPage() {
                   <section
                     className="panel stack"
                     aria-label="Circle inspector"
+                    hidden={pane !== "circle"}
                   >
                     <div className="row">
                       <h2>{selected.name}</h2>
                       <button
                         className="button small"
                         onClick={() => {
-                          setCircleId("");
-                          matchRef.current = "";
-                          setMatch(null);
+                          setPane(null);
                         }}
                       >
                         Close circle
@@ -631,7 +773,8 @@ export default function YardPage() {
                             </select>
                           </label>
                           {!selected.matchId && (
-                            <>
+                            <details className="yard-settings">
+                              <summary>Match settings</summary>
                               <label className="label">
                                 Rounds
                                 <input
@@ -671,7 +814,7 @@ export default function YardPage() {
                                   }
                                 />
                               </label>
-                            </>
+                            </details>
                           )}
                           <button
                             className="button primary"
@@ -705,20 +848,19 @@ export default function YardPage() {
                   </section>
                 )}
                 {match && (
-                  <YardMatchPanel
-                    match={match}
-                    session={session}
-                    busy={busy}
-                    onCommand={(type, payload) =>
-                      void run(() => command(type, payload))
-                    }
-                    onClose={() => {
-                      matchRef.current = "";
-                      setMatch(null);
-                    }}
-                  />
+                  <div hidden={pane !== "match"}>
+                    <YardMatchPanel
+                      match={match}
+                      session={session}
+                      busy={busy}
+                      onCommand={(type, payload) =>
+                        void run(() => command(type, payload))
+                      }
+                      onClose={() => setPane(null)}
+                    />
+                  </div>
                 )}
-                <section className="panel stack">
+                <section className="panel stack" hidden={pane !== "people"}>
                   <h2>People in the yard</h2>
                   {view.players
                     .filter((p) => p.ownerId !== session.ownerId && p.connected)
@@ -793,7 +935,11 @@ export default function YardPage() {
                       i.target_id === session.ownerId && i.status === "pending",
                   )
                   .map((i) => (
-                    <section className="panel stack" key={i.id}>
+                    <section
+                      className="panel stack"
+                      key={i.id}
+                      hidden={pane !== "people"}
+                    >
                       <h2>Challenge from {i.creator_name}</h2>
                       <label className="label">
                         Accept as
@@ -859,6 +1005,7 @@ export default function YardPage() {
                 {reportOwner && (
                   <form
                     className="panel stack"
+                    hidden={pane !== "people"}
                     onSubmit={(e) => {
                       e.preventDefault();
                       void run(async () => {
@@ -899,9 +1046,78 @@ export default function YardPage() {
                 )}
               </aside>
             </div>
+            <nav className="yard-dock" aria-label="Yard actions">
+              {(["chat", "tables", "people"] as const).map((item) => (
+                <button
+                  key={item}
+                  className="button small"
+                  aria-controls="yard-context-panel"
+                  aria-expanded={pane === item}
+                  onClick={() => openPane(pane === item ? null : item)}
+                >
+                  {item === "chat"
+                    ? "Chat"
+                    : item === "tables"
+                      ? "Tables"
+                      : "People"}
+                  {item === "people" &&
+                  invites.some(
+                    (i) =>
+                      i.target_id === session.ownerId && i.status === "pending",
+                  ) ? (
+                    <span aria-hidden="true"> •</span>
+                  ) : (
+                    ""
+                  )}
+                </button>
+              ))}
+              {match && (
+                <TableDockButton
+                  match={match}
+                  open={pane === "match"}
+                  onToggle={() => openPane(pane === "match" ? null : "match")}
+                />
+              )}
+            </nav>
           </>
         )
       )}
     </main>
+  );
+}
+
+function TableDockButton({
+  match,
+  open,
+  onToggle,
+}: {
+  match: Snapshot;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const seconds = useMatchCountdown(match.deadline, match.serverTime);
+  const own = match.seats.find((seat) => seat.id === match.ownSeatId);
+  const choosing =
+    own?.kind === "human" && !own.abandoned && match.phase === "collecting";
+  const state = choosing
+    ? match.ownMove
+      ? "Locked"
+      : seconds + "s · Choose"
+    : match.phase === "waiting"
+      ? "Waiting"
+      : match.phase === "finished"
+        ? "Results"
+        : own?.kind === "visual" || own?.kind === "external"
+          ? "Bot playing"
+          : match.phase;
+  return (
+    <button
+      className="button small primary yard-table-button"
+      aria-expanded={open}
+      onClick={onToggle}
+    >
+      <span>{match.ownSeatId ? "My table" : "Watching"}</span>
+      <small>{state}</small>
+    </button>
   );
 }

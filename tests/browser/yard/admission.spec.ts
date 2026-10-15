@@ -1,3 +1,4 @@
+import { pane, settings } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { io } from "socket.io-client";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -37,10 +38,12 @@ test("remote and teleport admission is rejected, full circles stay bounded, and 
     await enter(intruder, "Remote visitor");
     await walk(host, 240, 450);
     await walk(guest, 240, 450);
+    await pane(host, "Tables");
     await host
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
       .click();
+    await settings(host);
     await host.getByLabel("Seats", { exact: true }).fill("2");
     await host.getByRole("button", { name: "Create circle match" }).click();
     await expect(host.getByRole("button", { name: "Ready up" })).toBeVisible();
@@ -69,6 +72,7 @@ test("remote and teleport admission is rejected, full circles stay bounded, and 
     await expect(
       guest.locator(".circle-card").filter({ hasText: "Noodle Exchange" }),
     ).toContainText("waiting");
+    await pane(guest, "Tables");
     await guest
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
@@ -143,15 +147,20 @@ test("a direct challenge creates two fixed seats, plays to completion, and expir
     await enter(guest, "Challenged");
     await walk(host, 240, 190);
     await walk(guest, 240, 190);
+    await pane(host, "Tables");
     await host
       .locator(".circle-card")
       .filter({ hasText: "Trust Issues" })
       .click();
+    await settings(host);
     await host.getByLabel("Rounds", { exact: true }).fill("5");
+    await settings(host);
     await host.getByLabel("Decision seconds").fill("5");
+    await pane(host, "People");
     await host
       .getByRole("button", { name: "Challenge Challenged", exact: true })
       .click();
+    await pane(guest, "People");
     await expect(
       guest.getByRole("heading", { name: "Challenge from Challenger" }),
     ).toBeVisible();
@@ -242,11 +251,14 @@ test("an owner watches an external bot while moving and a spectator receives no 
       .toBe(true);
     await walk(human, 720, 450);
     await walk(owner, 720, 450);
+    await pane(human, "Tables");
     await human
       .locator(".circle-card")
       .filter({ hasText: "Snake Pit" })
       .click();
+    await settings(human);
     await human.getByLabel("Rounds", { exact: true }).fill("5");
+    await settings(human);
     await human.getByLabel("Decision seconds").fill("10");
     await human.getByRole("button", { name: "Create circle match" }).click();
     await expect(human.getByRole("button", { name: "Ready up" })).toBeVisible();
@@ -254,6 +266,7 @@ test("an owner watches an external bot while moving and a spectator receives no 
     await expect(
       owner.locator(".circle-card").filter({ hasText: "Snake Pit" }),
     ).toContainText("waiting");
+    await pane(owner, "Tables");
     await owner
       .locator(".circle-card")
       .filter({ hasText: "Snake Pit" })
@@ -269,6 +282,7 @@ test("an owner watches an external bot while moving and a spectator receives no 
       .getByRole("button", { name: "Join circle", exact: true })
       .click();
     await expect(owner.getByRole("button", { name: "Ready up" })).toBeVisible();
+    await pane(spectator, "Tables");
     await spectator
       .locator(".circle-card")
       .filter({ hasText: "Snake Pit" })

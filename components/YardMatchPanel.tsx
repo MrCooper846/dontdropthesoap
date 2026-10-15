@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { useMatchCountdown } from "../client/useMatchCountdown";
 import Link from "next/link";
 import type { Snapshot } from "../shared/protocol/commands";
 import type { BrowserSession } from "../shared/yard/types";
@@ -16,12 +17,7 @@ export default function YardMatchPanel({
   onCommand: (type: string, payload: unknown) => void;
   onClose: () => void;
 }) {
-  const receipt = useRef({
-    serverTime: match.serverTime,
-    receivedAt: Date.now(),
-  });
-  if (receipt.current.serverTime !== match.serverTime)
-    receipt.current = { serverTime: match.serverTime, receivedAt: Date.now() };
+  const seconds = useMatchCountdown(match.deadline, match.serverTime);
   const own = match.seats.find((s) => s.id === match.ownSeatId),
     pair = match.pairs.find((p) => p.a === own?.id || p.b === own?.id),
     opponent = match.seats.find(
@@ -71,18 +67,7 @@ export default function YardMatchPanel({
         </button>
       </div>
       <p className="pill">
-        {match.phase} ·{" "}
-        {match.deadline
-          ? Math.max(
-              0,
-              Math.ceil(
-                (match.deadline -
-                  match.serverTime -
-                  (Date.now() - receipt.current.receivedAt)) /
-                  1000,
-              ),
-            ) + "s"
-          : ""}
+        {match.phase} · {seconds === null ? "" : seconds + "s"}
       </p>
       {match.phase === "waiting" && (
         <>
@@ -170,28 +155,31 @@ export default function YardMatchPanel({
               </span>
             </div>
           ))}
-      <ul className="list">
-        {match.seats.map((s) => (
-          <li className="listItem" key={s.id}>
-            <strong>
-              {s.name} · {s.kind}
-              {s.kind === "external" || s.kind === "visual"
-                ? " · owned by " + (s.ownerName ?? s.ownerId?.slice(0, 6))
-                : ""}
-            </strong>
-            <span>
-              {s.score} noodles ·{" "}
-              {s.abandoned
-                ? "left"
-                : s.botError
-                  ? "bot error · timeout Cooperate if no decision"
-                  : s.ready
-                    ? "ready"
-                    : "not ready"}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <details open={match.phase === "waiting"} className="match-roster">
+        <summary>Players & scores</summary>
+        <ul className="list">
+          {match.seats.map((s) => (
+            <li className="listItem" key={s.id}>
+              <strong>
+                {s.name} · {s.kind}
+                {s.kind === "external" || s.kind === "visual"
+                  ? " · owned by " + (s.ownerName ?? s.ownerId?.slice(0, 6))
+                  : ""}
+              </strong>
+              <span>
+                {s.score} noodles ·{" "}
+                {s.abandoned
+                  ? "left"
+                  : s.botError
+                    ? "bot error · timeout Cooperate if no decision"
+                    : s.ready
+                      ? "ready"
+                      : "not ready"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
       {own?.kind === "visual" && (
         <section aria-label="Your bot decisions" className="stack">
           <h3>Your bot decisions</h3>

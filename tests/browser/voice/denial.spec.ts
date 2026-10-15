@@ -1,3 +1,4 @@
+import { pane } from "../yard/helpers";
 import { test, expect } from "@playwright/test";
 import { enter } from "../yard/helpers";
 test.use({
@@ -24,6 +25,7 @@ test("real browser microphone denial keeps listening and nearby text usable", as
       panel.getByRole("button", { name: "Enable microphone" }),
     ).toBeEnabled();
     await expect(panel.locator(".pill")).toContainText("connected");
+    await pane(page, "Chat");
     await page
       .getByLabel("Nearby message", { exact: true })
       .fill("Text fallback");

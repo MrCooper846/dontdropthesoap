@@ -1,3 +1,4 @@
+import { pane } from "../yard/helpers";
 import { test, expect } from "@playwright/test";
 import { enter } from "../yard/helpers";
 test("production scripts hydrate with fresh nonces while inline injection, eval and foreign connections are denied", async ({
@@ -40,6 +41,7 @@ test("production scripts hydrate with fresh nonces while inline injection, eval 
   await expect(
     page.getByRole("img", { name: "Cartoon prison yard" }),
   ).toBeVisible();
+  await pane(page, "Chat");
   await page
     .getByLabel("Nearby message", { exact: true })
     .fill("Hydration and sockets work");
@@ -47,6 +49,7 @@ test("production scripts hydrate with fresh nonces while inline injection, eval 
   await expect(page.getByLabel("Nearby messages")).toContainText(
     "Hydration and sockets work",
   );
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
   await page.getByRole("link", { name: /Your bots/ }).click();
   await expect(
     page.getByRole("heading", { name: "Your bot stable", exact: true }),

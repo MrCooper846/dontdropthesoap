@@ -1,3 +1,4 @@
+import { pane } from "../yard/helpers";
 import { test, expect } from "@playwright/test";
 import { enter } from "../yard/helpers";
 test("yard voice uses explicit microphone permission, keyboard push-to-talk, mute and clean leave", async ({
@@ -5,6 +6,9 @@ test("yard voice uses explicit microphone permission, keyboard push-to-talk, mut
 }) => {
   const talkerContext = await browser.newContext({
       permissions: ["microphone"],
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
     }),
     listenerContext = await browser.newContext();
   const talker = await talkerContext.newPage(),
@@ -19,7 +23,7 @@ test("yard voice uses explicit microphone permission, keyboard push-to-talk, mut
     await panel.getByRole("button", { name: "Join nearby voice" }).click();
     await panel.getByRole("button", { name: "Enable microphone" }).click();
     const hold = panel.getByRole("button", { name: "Hold to talk" });
-    await expect(hold).toBeVisible();
+    await expect(hold).toBeInViewport({ ratio: 1 });
     await hold.focus();
     await talker.keyboard.down("Space");
     await expect(panel.locator(".pill")).toContainText("transmitting");
@@ -32,12 +36,32 @@ test("yard voice uses explicit microphone permission, keyboard push-to-talk, mut
       .toBeGreaterThan(10);
     await talker.keyboard.up("Space");
     await expect(panel.locator(".pill")).not.toContainText("transmitting");
+    const beforePanel = await listener.evaluate(
+      async () => (await window.mediaProbe.stats()).packets,
+    );
+    await pane(talker, "Chat");
+    await talker
+      .getByRole("button", { name: "Close panel", exact: true })
+      .click();
+    await expect(hold).toBeInViewport({ ratio: 1 });
+    await expect(panel.locator(".pill")).toContainText("connected");
+    await hold.focus();
+    await talker.keyboard.down("Space");
+    await expect
+      .poll(() =>
+        listener.evaluate(
+          async () => (await window.mediaProbe.stats()).packets,
+        ),
+      )
+      .toBeGreaterThan(beforePanel + 10);
+    await talker.keyboard.up("Space");
     await panel
       .getByRole("button", { name: "Mute microphone", exact: true })
       .click();
     await expect(hold).toBeDisabled();
     await panel.getByRole("button", { name: "Unmute microphone" }).click();
     await expect(hold).toBeEnabled();
+    await panel.getByRole("button", { name: "Voice settings" }).click();
     await panel.getByLabel("Mute spectators while seated").check();
     await panel.getByRole("button", { name: "Leave voice" }).click();
     await expect(
@@ -50,6 +74,7 @@ test("yard voice uses explicit microphone permission, keyboard push-to-talk, mut
         ),
       )
       .toBe(0);
+    await pane(talker, "Chat");
     await talker
       .getByLabel("Nearby message", { exact: true })
       .fill("Voice can leave; text still works");

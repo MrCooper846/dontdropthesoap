@@ -12,7 +12,13 @@ export default function YardVoicePanel({
   socket,
   epoch,
   players,
+  compact = false,
+  expanded = false,
+  onToggle,
 }: {
+  compact?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
   socket: Socket | null;
   epoch: number;
   players: { ownerId: string; name: string }[];
@@ -59,7 +65,10 @@ export default function YardVoicePanel({
     }
   }
   return (
-    <section className="panel stack" aria-label="Nearby voice">
+    <section
+      className={"panel stack" + (compact ? " yard-voice-hud" : "")}
+      aria-label="Nearby voice"
+    >
       <div className="row">
         <h2>Nearby voice</h2>
         <span className="pill">
@@ -67,13 +76,27 @@ export default function YardVoicePanel({
           {status.talking ? " · transmitting" : ""}
         </span>
       </div>
-      <p className="muted">
+      {compact && (
+        <button
+          className="button small voice-settings"
+          aria-label="Voice settings"
+          aria-expanded={expanded}
+          onClick={onToggle}
+        >
+          •••
+        </button>
+      )}
+      <p
+        className="muted voice-more"
+        hidden={compact && (!expanded || status.connected)}
+      >
         Nearby players may process what they hear through their own bots. The
         game does not record or transcribe voice.
       </p>
       {!status.connected ? (
         <button
           className="button"
+          aria-label="Join nearby voice"
           disabled={busy || !socket?.connected}
           onClick={() =>
             void run(async () => {
@@ -87,13 +110,14 @@ export default function YardVoicePanel({
             })
           }
         >
-          Join nearby voice
+          {compact ? "Join voice" : "Join nearby voice"}
         </button>
       ) : (
         <>
           {!microphone ? (
             <button
               className="button"
+              aria-label="Enable microphone"
               disabled={busy}
               onClick={() =>
                 void run(async () => {
@@ -102,7 +126,7 @@ export default function YardVoicePanel({
                 })
               }
             >
-              Enable microphone
+              {compact ? "Enable mic" : "Enable microphone"}
             </button>
           ) : (
             <>
@@ -144,54 +168,69 @@ export default function YardVoicePanel({
               </button>
               <button
                 className="button small"
+                aria-label={muted ? "Unmute microphone" : "Mute microphone"}
                 onClick={() => {
                   release();
                   setMuted(!muted);
                 }}
               >
-                {muted ? "Unmute microphone" : "Mute microphone"}
+                {compact
+                  ? muted
+                    ? "Unmute"
+                    : "Mute"
+                  : muted
+                    ? "Unmute microphone"
+                    : "Mute microphone"}
               </button>
             </>
           )}
-          <label className="label">
-            <input
-              type="checkbox"
-              checked={spectators}
-              onChange={(e) => {
-                const next = e.target.checked;
-                setSpectators(next);
-                void run(() => client.current!.settings(next));
+          <div className="voice-more" hidden={compact && !expanded}>
+            {compact && (
+              <p className="muted">
+                Nearby players may process what they hear through their own
+                bots. The game does not record or transcribe voice.
+              </p>
+            )}
+            <label className="label">
+              <input
+                type="checkbox"
+                checked={spectators}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setSpectators(next);
+                  void run(() => client.current!.settings(next));
+                }}
+              />{" "}
+              Mute spectators while seated
+            </label>
+            <button
+              className="button small"
+              onClick={() => void run(() => client.current!.enableAudio())}
+            >
+              Enable audio
+            </button>
+            <button
+              className="button small"
+              onClick={() => {
+                release();
+                client.current?.close();
+                client.current = null;
+                setMicrophone(false);
+                setStatus(initial);
               }}
-            />{" "}
-            Mute spectators while seated
-          </label>
-          <button
-            className="button small"
-            onClick={() => void run(() => client.current!.enableAudio())}
-          >
-            Enable audio
-          </button>
-          <button
-            className="button small"
-            onClick={() => {
-              release();
-              client.current?.close();
-              client.current = null;
-              setMicrophone(false);
-              setStatus(initial);
-            }}
-          >
-            Leave voice
-          </button>
-          <ul className="list" aria-label="Voice participants">
-            {status.peers.map((p) => (
-              <li key={p.ownerId}>
-                {players.find((o) => o.ownerId === p.ownerId)?.name ??
-                  "Nearby player"}{" "}
-                · {p.transmitting ? "transmitting" : "listening"}
-              </li>
-            ))}
-          </ul>
+            >
+              Leave voice
+            </button>
+            <ul className="list" aria-label="Voice participants">
+              {status.peers.map((p) => (
+                <li key={p.ownerId}>
+                  {players.find((o) => o.ownerId === p.ownerId)?.name ??
+                    "Nearby player"}{" "}
+                  · {p.transmitting ? "transmitting" : "listening"}
+                </li>
+              ))}
+            </ul>
+          </div>
         </>
       )}
       {(localError || status.error) && (

@@ -677,3 +677,99 @@ select {
 .yard-sidebar .row .button{width:auto;flex:none;font-size:12px;padding:9px}.yard-match .row h2{font-size:22px;margin:8px 0}
 
 .bot-editor{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;margin:18px 0}.bot-blocks{height:600px;min-width:0;background:#faf7ef;border-radius:14px;overflow:hidden}.bot-inspector{max-height:600px;overflow-y:auto}.builder-actions{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}.builder-actions .label{flex:1;min-width:200px}.builder-actions .button{width:auto}.builder-results{display:grid;grid-template-columns:1fr 1fr;gap:18px}.builder-results pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}.bot-builder .button{max-width:100%}.bot-builder .yard-header>.button{width:auto}.bot-inspector .input{min-height:44px}@media(max-width:760px){.bot-editor{grid-template-columns:1fr}.bot-blocks{height:440px}.bot-inspector{max-height:none}.builder-results{grid-template-columns:1fr}.builder-actions{align-items:stretch}.builder-actions .button{width:100%}}
+
+/* The yard is a viewport, with bounded contextual panes rather than a page feed. */
+.yard-active{position:fixed;inset:0;max-width:none;margin:0;padding:0;display:flex;flex-direction:column;height:100dvh;background:#101b17;overflow:hidden}
+.yard-active [hidden]{display:none!important}
+.yard-status-bar{height:52px;min-height:52px;display:flex;align-items:center;gap:12px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));background:#18251f;border-bottom:1px solid #425447}
+.yard-status-bar span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#c3d2c7}
+.yard-status-bar>.button{width:auto;margin:0}
+.yard-active .yard-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);gap:0;align-items:stretch;overflow:hidden}
+.yard-active .yard-layout.has-pane{grid-template-columns:minmax(0,1fr) minmax(320px,380px)}
+.yard-active .yard-main{position:relative;min-height:0;display:block;overflow:hidden}
+.yard-active .yard-canvas-wrap{height:100%;border:0;border-radius:0;box-shadow:none;display:block}
+.yard-active .yard-canvas{height:100%;min-height:0}
+.yard-active .yard-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#102017e8);border:0;pointer-events:none;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));justify-content:space-between;gap:8px}
+.yard-active .yard-controls>*{pointer-events:auto}
+.yard-active .yard-controls>p{display:none}
+.yard-active .yard-controls>.button{margin-left:auto;min-height:48px;min-width:76px;width:auto}
+.yard-active .yard-joystick{width:80px;height:80px}
+.yard-active .yard-joystick[aria-disabled=true]{opacity:.35;pointer-events:none}
+.yard-nearby-prompt{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);min-height:44px;border:1px solid #d5bb70;border-radius:12px;background:#1c2c24eb;color:#fff4d6;padding:10px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.yard-active .yard-sidebar{min-height:0;overflow:auto;overscroll-behavior:contain;background:#19251f;border-left:1px solid #526653;gap:0;padding:0 12px 12px;outline:none}
+.yard-active .yard-sidebar .panel{border:0;background:transparent;box-shadow:none;padding:12px 0;margin:0}
+.yard-pane-heading{position:sticky;top:0;z-index:3;background:#19251f;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #415045}
+.yard-pane-heading .button{width:auto;min-height:44px}
+.yard-active .yard-sidebar .button,.yard-active .yard-sidebar input,.yard-active .yard-sidebar select,.yard-active .yard-sidebar summary{min-height:44px}
+.yard-active .yard-sidebar h2{font-size:20px;margin:0}
+.yard-active .yard-sidebar h3{margin:6px 0}
+.yard-active .yard-sidebar p{margin:4px 0}
+.yard-active .yard-sidebar .circle-card{margin-bottom:8px;width:100%;min-height:76px}
+.yard-settings>summary,.match-roster>summary{cursor:pointer;display:flex;align-items:center;font-weight:600;gap:8px}
+.yard-settings>summary::before,.match-roster>summary::before{content:"+"}
+.yard-settings[open]>summary::before,.match-roster[open]>summary::before{content:"−"}
+.yard-dock{display:flex;gap:8px;justify-content:center;flex:none;min-height:58px;padding:6px 12px max(6px,env(safe-area-inset-bottom));background:#18251f;border-top:1px solid #425447}
+.yard-dock .button{width:auto;flex:1;max-width:220px;min-height:44px;margin:0;font-size:13px}
+.yard-voice-anchor{position:absolute;bottom:12px;left:104px;right:100px;z-index:4;display:flex;justify-content:center;pointer-events:none}
+.yard-voice-anchor>*{pointer-events:auto}
+.yard-voice-hud.panel.stack{position:relative;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:0;border:0;background:transparent;box-shadow:none;margin:0;min-width:0}
+.yard-voice-hud>.row{position:absolute;bottom:100%;pointer-events:none;white-space:nowrap;left:0;right:0;justify-content:center}
+.yard-voice-hud>.row h2{display:none}
+.yard-voice-hud .pill{font-size:10px;padding:2px 6px;background:#13241fe8}
+.yard-voice-hud>.button{width:auto;min-height:48px;max-width:100px;padding:6px 8px;line-height:1.15;font-size:12px;margin:0}
+.yard-voice-hud>.voice-settings{order:3;min-width:44px}
+.yard-voice-hud>.voice-more{position:fixed;bottom:140px;right:12px;max-height:45dvh;max-width:calc(100vw - 24px);width:340px;overflow:auto;padding:16px;background:#19251f;border:1px solid #526653;border-radius:12px;box-shadow:0 12px 36px #0008}
+.yard-voice-hud>p.voice-more{bottom:calc(140px + 45dvh);font-size:12px;max-height:60px}
+.yard-voice-hud .voice-more .button{min-height:44px;margin-top:8px}
+.yard-active>.yard-alert,.yard-active>p[role=status]{margin:0;padding:8px 12px;flex:none;max-height:84px;overflow:auto;border-radius:0}
+.yard-active .splitActions{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.yard-active .choiceButton{min-height:58px!important;font-size:18px!important}
+@media(max-width:760px) and (orientation:portrait){
+ .yard-status-bar{height:48px;min-height:48px}
+ .yard-active .yard-layout.has-pane{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(130px,1fr) minmax(0,46dvh)}
+ .yard-active .yard-sidebar{border-left:0;border-top:1px solid #526653}
+ .yard-active .yard-sidebar .panel{padding:8px 0}
+ .yard-active .yard-main:has(+.yard-sidebar:not([hidden])) .yard-controls{padding-bottom:8px}
+ .yard-active .yard-nearby-prompt{font-size:12px;padding:6px 10px;top:6px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ .yard-status-bar{height:40px;min-height:40px}
+ .yard-dock{min-height:48px;padding-top:2px;padding-bottom:2px}
+ .yard-active .yard-layout.has-pane{grid-template-columns:minmax(0,1fr) minmax(280px,42%)}
+ .yard-active .yard-joystick{width:64px;height:64px}
+ .yard-active .yard-controls{padding:6px 10px}
+ .yard-voice-anchor{bottom:8px;left:80px;right:92px}
+ .yard-voice-hud>.row{display:none}
+ .yard-nearby-prompt{top:5px;min-height:36px}
+}
+
+@media(max-width:360px){
+ .yard-active .yard-joystick{width:64px;height:64px}
+ .yard-voice-anchor{left:80px;right:80px}
+ .yard-active .yard-controls>.button{min-width:64px}
+ .yard-voice-hud>.button{max-width:56px;min-width:44px;padding:6px 4px}
+ .yard-dock{gap:4px;padding-left:6px;padding-right:6px}
+ .yard-dock .button{padding:6px 8px;font-size:12px}
+}
+
+.yard-dock .button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.yard-active .yard-match>.row{position:sticky;top:0;z-index:2;background:#19251f;padding:6px 0}
+@media(max-height:500px) and (orientation:landscape){
+ .yard-active .yard-match{gap:6px}
+ .yard-active .yard-match>.row{padding:0}
+ .yard-active .yard-match>.row h2{font-size:18px}
+ .yard-active .yard-match h3{font-size:16px;margin:2px 0}
+ .yard-active .yard-match p{margin:2px 0;font-size:13px}
+}
+
+.yard-active{height:var(--yard-viewport-height,100dvh);top:var(--yard-viewport-top,0px);bottom:auto;overscroll-behavior:none}
+.yard-dock .yard-table-button{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 8px;line-height:1.1}
+.yard-table-button small{font-size:11px;font-weight:600}
+.yard-voice-hud .pill{font-size:12px}
+@media(max-width:760px) and (orientation:portrait){
+ .yard-active .yard-layout.has-pane{grid-template-rows:minmax(100px,1fr) minmax(0,48%)}
+ .yard-active .nearby-chat form{position:sticky;bottom:0;background:#19251f;padding:4px 0}
+}
+
+.yard-layout.has-pane .yard-nearby-prompt{display:none}
+.yard-dock{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}

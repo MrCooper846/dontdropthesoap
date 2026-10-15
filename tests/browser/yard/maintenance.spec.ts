@@ -1,3 +1,4 @@
+import { pane, settings } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -38,6 +39,7 @@ test("operator pause is visible in the yard, rejects real circle creation, and r
     admissions(true);
     await enter(page, "Maintenance yard guest");
     await walk(page, 240, 450);
+    await pane(page, "Tables");
     await page
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })

@@ -1,3 +1,4 @@
+import { pane, settings } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { Pool } from "pg";
 import { enter, walk } from "./helpers";
@@ -15,6 +16,7 @@ test("a deserted waiting room expires durably, frees its circle and explains the
     const page = await context.newPage();
     await enter(page, "Returning waiting guest");
     await walk(page, 240, 450);
+    await pane(page, "Tables");
     await page
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })

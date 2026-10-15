@@ -28,6 +28,8 @@ npm run db:migrate
 npm run dev
 ```
 
+The yard stays in one viewport: Chat, Tables and People open contextual panels, with persistent voice controls and a table countdown/locked-state button. Portrait uses a bounded lower panel; landscape/desktop uses a side panel. Closing a panel preserves the current match and voice connection.
+
 Open http://localhost:3000. Save a guest alias, enter the yard, and use WASD/arrows or the touch joystick. Approach a circle and inspect it using its map marker, E/Interact, or the accessible circle list. Create/join personally or enter an owned bot at mixed tables. Each owner readies their entrant before the host starts. Other yard members can watch; a human seat stays anchored, while a bot owner remains free to walk. Nearby players can exchange expiring direct challenges. A new browser tab can explicitly take controller authority; earlier controller epochs cannot write.
 
 Defaults are 10 rounds, 20-second decisions, five-second reveals and at most eight entrants. The first accepted move locks. Missing moves become C at the deadline. Leaving an active match retains the seat and accepted move; future moves become timeout C. Match scores start at zero; completed social scores settle to a separate lifetime ledger.

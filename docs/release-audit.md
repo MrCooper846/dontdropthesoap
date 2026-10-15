@@ -2,7 +2,9 @@
 
 Overall result: NOT YET VALIDATED. This audit preserves the full [goal](goal-mode-plan.md), rather than treating implemented code as physical/human/deployment evidence.
 
-Candidate: clean 3b8235c90488dc156b7dc97e2683713b28c5bec1; relative to the earlier ffeb04b candidate, runtime changes add aggregate timing/clock diagnostics and test evidence capture, without changing game rules. Current private production-only package: /tmp/soap-release-0852116d2b6b4f76a6b3e77f196783da, build 49BiR5c997xouTKaJY4qs. Fresh production smoke and exact-package restore/previous-binary rollback pass. The completed full-hour workload belongs to ffeb04b/root build hafeLDvQmndyldUBWUZ8-; no full hour is claimed for the diagnostic revision. Subsequent documentation commits do not change packaged application code.
+Previously packaged baseline: clean 3b8235c90488dc156b7dc97e2683713b28c5bec1; relative to the earlier ffeb04b candidate, runtime changes add aggregate timing/clock diagnostics and test evidence capture, without changing game rules. Current private production-only package: /tmp/soap-release-0852116d2b6b4f76a6b3e77f196783da, build 49BiR5c997xouTKaJY4qs. Fresh production smoke and exact-package restore/previous-binary rollback pass. The completed full-hour workload belongs to ffeb04b/root build hafeLDvQmndyldUBWUZ8-; no full hour is claimed for the diagnostic revision. Subsequent documentation commits do not change packaged application code.
+
+The subsequent approved map-first yard UX revision has real phone-size human-game, production editor/security and native voice regression evidence in the execution record. It requires a laptop rebuild and physical-device retest; the baseline package/hour above is not relabelled as this frontend.
 
 ## User-visible requirements
 

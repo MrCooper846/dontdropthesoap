@@ -42,3 +42,10 @@ This local Wi-Fi stack does not prove cellular/NAT/TURN/public hosting, off-host
 ## Technical references
 
 The proxy uses [Caddy's internal TLS issuer](https://caddyserver.com/docs/caddyfile/directives/tls) and [Docker Desktop published-port networking](https://docs.docker.com/desktop/features/networking/). Certificate material and PostgreSQL data persist in the separate project's volumes. The exported public certificate is ignored under data/playtest; private settings match the repository's .env ignore rule.
+
+
+## Map-first UI retest
+
+After the laptop stack is rebuilt, refresh the same HTTPS URL. The map now remains in the viewport. Use Chat, Tables and People on the bottom dock; approaching a circle also gives an Inspect prompt. Table controls appear below the map in portrait and alongside it in landscape/desktop. Match settings expand separately. The table button keeps the current countdown/locked state visible when another panel is open. Close match view collapses the controls without leaving the game. Voice remains connected while other panels open and close.
+
+On the iPhone, repeat joining/readiness/a complete human game in both orientations, then type with the real keyboard and return to movement. Verify neither the browser toolbar nor keyboard hides the next action. Try microphone/push-to-talk while opening and closing Chat. Automated phone-size and native-RTP tests cover these UI paths, but actual iOS keyboard/safe-area/audio behavior still needs device evidence.

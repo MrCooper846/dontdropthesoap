@@ -1,3 +1,4 @@
+import { pane, settings } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { Pool } from "pg";
 import { io } from "socket.io-client";
@@ -33,6 +34,7 @@ test("historical block pages do not hide current-yard block controls after reloa
       "INSERT INTO owner_blocks(owner_id,blocked_owner_id) SELECT $1,id FROM unnest($2::uuid[]) AS id",
       [ownerId, offline],
     );
+    await pane(target, "Chat");
     await target
       .getByLabel("Nearby message", { exact: true })
       .fill("Buffered before block");
@@ -40,6 +42,7 @@ test("historical block pages do not hide current-yard block controls after reloa
     await expect(host.getByLabel("Nearby messages")).toContainText(
       "Buffered before block",
     );
+    await pane(host, "People");
     await host
       .getByRole("button", { name: "Block Nearby block target", exact: true })
       .click();
@@ -118,12 +121,14 @@ test("historical block pages do not hide current-yard block controls after reloa
     ).toBe(true);
     await host.reload();
     await host.getByRole("button", { name: "Enter yard" }).click();
+    await pane(host, "People");
     await expect(
       host.getByRole("button", {
         name: "Unblock Nearby block target",
         exact: true,
       }),
     ).toBeVisible();
+    await pane(host, "People");
     await host
       .getByRole("button", { name: "Unblock Nearby block target", exact: true })
       .click();

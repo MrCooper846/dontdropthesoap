@@ -1,3 +1,4 @@
+import { pane, settings } from "./helpers";
 import { Pool } from "pg";
 import { test, expect } from "@playwright/test";
 import { enter, walk, own, post, speedReveal } from "./helpers";
@@ -23,12 +24,16 @@ test("two browsers walk into a circle, play and return without duplicate canvase
     ).toHaveCount(1);
     await walk(host, 240, 450);
     await walk(guest, 240, 450);
+    await pane(host, "Tables");
     await host
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
       .click();
+    await settings(host);
     await host.getByLabel("Rounds", { exact: true }).fill("5");
+    await settings(host);
     await host.getByLabel("Decision seconds").fill("5");
+    await settings(host);
     await host.getByLabel("Seats", { exact: true }).fill("2");
     await host.getByRole("button", { name: "Create circle match" }).click();
     await expect(host.getByRole("button", { name: "Ready up" })).toBeVisible();
@@ -36,6 +41,7 @@ test("two browsers walk into a circle, play and return without duplicate canvase
     await expect(
       guest.locator(".circle-card").filter({ hasText: "Noodle Exchange" }),
     ).toContainText("waiting");
+    await pane(guest, "Tables");
     await guest
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
@@ -114,7 +120,6 @@ test("two browsers walk into a circle, play and return without duplicate canvase
       ).rowCount,
     ).toBe(2);
     await host.getByRole("button", { name: "Close match view" }).click();
-    await host.getByRole("button", { name: "Close circle" }).click();
     await walk(host, 240, 550);
     await expect(
       host.locator('[data-testid="yard-canvas"] canvas'),
@@ -144,6 +149,7 @@ test("nearby text escapes markup, excludes distant users, respects blocks and ac
     await enter(b, "Listener");
     await enter(c, "Far away");
     await walk(c, 810, 560);
+    await pane(a, "Chat");
     await a
       .getByLabel("Nearby message", { exact: true })
       .fill("<img src=x onerror=alert(1)>");
@@ -153,11 +159,14 @@ test("nearby text escapes markup, excludes distant users, respects blocks and ac
     );
     await expect(b.locator(".chat-list img")).toHaveCount(0);
     await expect(c.getByLabel("Nearby messages")).not.toContainText("<img");
+    await pane(b, "People");
     await b.getByRole("button", { name: "Block Talker", exact: true }).click();
+    await pane(a, "Chat");
     await a
       .getByLabel("Nearby message", { exact: true })
       .fill("Blocked direction one");
     await a.getByRole("button", { name: "Send", exact: true }).click();
+    await pane(b, "Chat");
     await b
       .getByLabel("Nearby message", { exact: true })
       .fill("Blocked direction two");
@@ -168,6 +177,7 @@ test("nearby text escapes markup, excludes distant users, respects blocks and ac
     await expect(a.getByLabel("Nearby messages")).not.toContainText(
       "Blocked direction two",
     );
+    await pane(b, "People");
     await b.getByRole("button", { name: "Report Talker", exact: true }).click();
     await b
       .getByLabel("Reason", { exact: true })

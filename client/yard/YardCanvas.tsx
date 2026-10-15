@@ -35,6 +35,15 @@ export default function YardCanvas(props: Props) {
     joystick.current = { x: 0, y: 0 };
   }, [props.controlEpoch]);
   useEffect(() => {
+    if (!props.enabled) {
+      keys.current.clear();
+      joystick.current = { x: 0, y: 0 };
+      origin.current = null;
+      setStick({ x: 0, y: 0 });
+      props.onInput({ seq: sequence.current++, axisX: 0, axisY: 0 });
+    }
+  }, [props.enabled]);
+  useEffect(() => {
     let cancelled = false,
       game: Phaser.Game | undefined,
       observer: ResizeObserver | undefined;
@@ -72,6 +81,7 @@ export default function YardCanvas(props: Props) {
         e.target.matches("input,textarea,select,[contenteditable=true]")
       )
         return;
+      if (!latest.current.enabled) return;
       const key = e.key.toLowerCase();
       if (
         [
@@ -124,7 +134,12 @@ export default function YardCanvas(props: Props) {
         const Phaser = P.default;
         class Scene extends Phaser.Scene {
           create() {
-            this.cameras.main.setBounds(0, 0, YARD_MAP.width, YARD_MAP.height);
+            this.cameras.main.setBounds(
+              -80,
+              -100,
+              YARD_MAP.width + 160,
+              YARD_MAP.height + 220,
+            );
             this.add.rectangle(480, 320, 960, 640, 0x182821);
             this.add
               .rectangle(480, 320, 864, 544, 0x738d68)
@@ -183,7 +198,14 @@ export default function YardCanvas(props: Props) {
                 .circle(c.x, c.y, c.radius, color, 0.12)
                 .setStrokeStyle(3, color)
                 .setInteractive()
-                .on("pointerdown", () => latest.current.onInspect(c.id));
+                .on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+                  if (
+                    !latest.current.enabled ||
+                    pointer.event.target !== this.game.canvas
+                  )
+                    return;
+                  latest.current.onInspect(c.id);
+                });
               for (let i = 0; i < 8; i++) {
                 const a = (i / 8) * Math.PI * 2;
                 this.add.circle(
@@ -345,10 +367,25 @@ export default function YardCanvas(props: Props) {
                 );
             const local = holders.get(owner);
             if (local) {
-              this.cameras.main.setZoom(
-                host.current!.clientWidth < 600 ? 0.85 : 1,
+              const camera = this.cameras.main;
+              const width = host.current!.clientWidth,
+                height = host.current!.clientHeight;
+              // Fractional grid dimensions can defeat Phaser's previous-size equality
+              // check. Explicitly size this camera to the actual unobscured map.
+              if (camera.width !== width || camera.height !== height)
+                camera.setSize(width, height);
+              camera.setZoom(1);
+              camera.centerOn(
+                local.x,
+                local.y + Math.min(35, Math.max(0, (height - 200) / 2)),
               );
-              this.cameras.main.centerOn(local.x, local.y);
+              const x = local.x - camera.scrollX,
+                y = local.y - camera.scrollY;
+              const visible = String(
+                x >= 20 && x <= width - 20 && y >= 76 && y <= height - 80,
+              );
+              if (host.current!.dataset.playerVisible !== visible)
+                host.current!.dataset.playerVisible = visible;
             }
           }
         }
@@ -362,6 +399,7 @@ export default function YardCanvas(props: Props) {
           render: { antialias: true },
           scale: { mode: Phaser.Scale.RESIZE },
           audio: { noAudio: true },
+          input: { windowEvents: false },
         });
         observer = new ResizeObserver(() => {
           if (!cancelled && host.current && game)
@@ -401,11 +439,29 @@ export default function YardCanvas(props: Props) {
     joystick.current = { x: 0, y: 0 };
     setStick({ x: 0, y: 0 });
   }
+  const me = props.view.players.find(
+    (player) => player.ownerId === props.ownerId,
+  );
+  const nearest =
+    me &&
+    [...props.view.circles].sort(
+      (a, b) => distance(me, a) - distance(me, b),
+    )[0];
+  const nearby = nearest && me && distance(me, nearest) <= nearest.radius + 32;
   return (
     <section className="yard-canvas-wrap">
       <div ref={host} className="yard-canvas" data-testid="yard-canvas" />
       {!ready && !failure && <p className="yard-loading">Opening the yard…</p>}
       {failure && <p role="alert">{failure}</p>}
+      {nearby && (
+        <button
+          className="yard-nearby-prompt"
+          onClick={() => props.onInspect(nearest.id)}
+        >
+          <strong>{nearest.name}</strong> · {nearest.seatCount}/
+          {nearest.settings.maxSeats} · Inspect
+        </button>
+      )}
       <div className="yard-controls">
         <div
           role="application"
@@ -413,6 +469,7 @@ export default function YardCanvas(props: Props) {
           tabIndex={0}
           className="yard-joystick"
           onPointerDown={(e) => {
+            if (!props.enabled || me?.seated) return;
             e.currentTarget.setPointerCapture(e.pointerId);
             origin.current = { x: e.clientX, y: e.clientY };
             stickMove(e);
@@ -421,6 +478,7 @@ export default function YardCanvas(props: Props) {
           onPointerUp={release}
           onPointerCancel={release}
           onLostPointerCapture={release}
+          aria-disabled={!props.enabled || !!me?.seated}
         >
           <span
             style={{

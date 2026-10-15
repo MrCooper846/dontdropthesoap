@@ -1,3 +1,4 @@
+import { pane, settings } from "../yard/helpers";
 import { join } from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { enter, walk } from "../yard/helpers";
@@ -67,13 +68,17 @@ test("a user constructs, tests, publishes, competes, watches and revises a visua
       .click();
     await walk(owner, 240, 450);
     await walk(human, 240, 450);
+    await pane(owner, "Tables");
     await owner
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
       .click();
     await expect(owner.getByLabel("Enter as")).toHaveValue(botId);
+    await settings(owner);
     await owner.getByLabel("Rounds", { exact: true }).fill("5");
+    await settings(owner);
     await owner.getByLabel("Decision seconds").fill("5");
+    await settings(owner);
     await owner.getByLabel("Seats", { exact: true }).fill("2");
     await owner.getByRole("button", { name: "Create circle match" }).click();
     await expect(owner.getByRole("button", { name: "Ready up" })).toBeVisible();
@@ -113,6 +118,7 @@ test("a user constructs, tests, publishes, competes, watches and revises a visua
       });
       if (!(await r.json()).ok) throw new Error("Configure failed");
     }, matchId);
+    await pane(human, "Tables");
     await human
       .locator(".circle-card")
       .filter({ hasText: "Noodle Exchange" })
