@@ -13,7 +13,7 @@ import { sweepWaitingRooms } from "./matches/waiting";
 import { isBotOnline } from "./bots/identity";
 import { OwnerConnections } from "./lifecycle/owner-connections";
 import { limitConnections } from "./lifecycle/connections";
-import { startMetrics, increment } from "./observability/metrics";
+import { startMetrics, increment, measured } from "./observability/metrics";
 import { startOperatorEffects } from "./operators/effects";
 import { dropCredentialLease } from "./bots/identity";
 import { serviceWork } from "./lifecycle/work";
@@ -394,7 +394,7 @@ export async function main() {
     ticking = true;
     tickWork = (async () => {
       if (performance.now() - lastCoordinatorCheck >= 500) {
-        const result = await maintainCoordinator();
+        const result = await measured("game.coordinator", maintainCoordinator);
         lastCoordinatorCheck = performance.now();
         if (result.aborted)
           console.error(
@@ -405,21 +405,23 @@ export async function main() {
             }),
           );
       }
-      await tickMatches();
+      await measured("game.deadlines", tickMatches);
       if (performance.now() - lastWaitingCheck >= 5000) {
-        await sweepWaitingRooms((match) =>
-          match.seats.some(
-            (seat) =>
-              (!!seat.ownerId &&
-                [...game.sockets.values()].some(
-                  (socket) =>
-                    socket.connected &&
-                    socket.data.principal.kind === "browser" &&
-                    socket.data.principal.ownerId === seat.ownerId,
-                )) ||
-              (seat.kind === "external" &&
-                !!seat.botId &&
-                isBotOnline(seat.botId)),
+        await measured("game.waiting", () =>
+          sweepWaitingRooms((match) =>
+            match.seats.some(
+              (seat) =>
+                (!!seat.ownerId &&
+                  [...game.sockets.values()].some(
+                    (socket) =>
+                      socket.connected &&
+                      socket.data.principal.kind === "browser" &&
+                      socket.data.principal.ownerId === seat.ownerId,
+                  )) ||
+                (seat.kind === "external" &&
+                  !!seat.botId &&
+                  isBotOnline(seat.botId)),
+            ),
           ),
         );
         lastWaitingCheck = performance.now();

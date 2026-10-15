@@ -2,7 +2,7 @@
 
 Overall result: NOT YET VALIDATED. This audit preserves the full [goal](goal-mode-plan.md), rather than treating implemented code as physical/human/deployment evidence.
 
-Candidate: clean ffeb04b028c4c6800d3c47b375a3debe08b4c4b8; application files match 72aa79a. Final private production-only package: /tmp/soap-release-59322452d65147279a49987a87a37b23, build LXgsLT4m8oGYlRsLpXMxM. The running full-hour workload uses the same source and root build hafeLDvQmndyldUBWUZ8-. Subsequent documentation commits do not change measured application code.
+Candidate: clean ffeb04b028c4c6800d3c47b375a3debe08b4c4b8; application files match 72aa79a. Final private production-only package: /tmp/soap-release-59322452d65147279a49987a87a37b23, build LXgsLT4m8oGYlRsLpXMxM. The completed full-hour workload used the same source and root build hafeLDvQmndyldUBWUZ8-. Subsequent documentation commits do not change measured application code.
 
 ## User-visible requirements
 
@@ -37,7 +37,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 | CSP and diagnostic privacy | Production HTTPS nonce/asset/connect tests, test:startup-privacy, actual HTTP sentinel/log/correlation/flood tests | PASS within documented scope |
 | Resource admission and overload | test:resources and test:overload actual limits/recovery; tested low fixture caps distinguished from production defaults | PASS |
 | Nominal and doubled traffic | Clean 3be47a6/build cu1hrACOOu8b7Ah0kE5zm; exact 320 moves/four timeouts/160 results/32 credits per profile; measured ACK/deadline targets pass | PASS for stated game workload; 2x is 64 presences/two command copies with four tables/32 seats/six bots |
-| Required full-hour memory/churn | Actual exec 55849; clean ffeb04b, unchanged predeclared criteria and live progress artifact | RUNNING; no hour/memory pass until successful terminal and independent checks |
+| Required full-hour memory/churn | Actual exec 55849 exited 0 on clean ffeb04b; complete report and independently recomputed memory/sample criteria | PASS for the recorded presence/reconnect workload; subsequent deadline smoke failure remains open |
 | Encrypted restore and actual rollback | Final package ffeb04b through previous 26d38b3 and forward, both 33-table fixtures, schema/data/session/admission/ledger equality, authenticated tamper failure and owned cleanup | PASS locally; strict test:rollback includes the restore gate |
 | Production release artifact and notes | Clean archive marker, build manifests, matching compiled visual worker, native binary, runtime-only npm start, normal shutdown; [candidate notes](release-notes.md) | PASS local artifact; no validated tag/deployment |
 | Real devices, 30 FPS, audio/editor/background | [Physical acceptance procedure and result form](playtest.md) | NOT_TESTED; actual devices/evidence required |
@@ -47,7 +47,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 
 ## Remaining handoff
 
-Finish the already-running actual hour and inspect its final report against source, database totals and memory/sample criteria. Do not restart merely because observation expires. Keep runtime, workers and the shared production build unchanged while it runs.
+The frozen-source hour completed successfully (3,600,008.944 ms). A subsequent short reporting smoke failed the unchanged one-second deadline-delivery bound at 1,114.936 ms; independent database-derived resolution lag was 1,013.401 ms. This is an open timing defect, not a clock-comparison artifact. Aggregate coordinator/deadline/lock/pool/waiting timings and failure-time final metric retention are being verified to identify its cause. No deadline limit has been relaxed.
 
 After that, collect actual candidate/device/browser/network-specific results using playtest.md. Provide devices, four to eight people and an existing authorized HTTPS/media test environment; configure real secrets and off-host backup/monitoring custody through its operator. No credentials should be placed in this report.
 

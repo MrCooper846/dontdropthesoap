@@ -27,6 +27,7 @@ export async function transaction<T>(
 ): Promise<T> {
   const started = performance.now();
   const db = await pool.connect();
+  duration("db.pool.acquire", performance.now() - started);
   try {
     committedCounts.set(db, new Map());
     await db.query("BEGIN");

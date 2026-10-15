@@ -46,6 +46,12 @@ export class DurationHistogram {
 const durations = {
   "command.accepted": new DurationHistogram(),
   "db.transaction": new DurationHistogram(),
+  "db.pool.acquire": new DurationHistogram(),
+  "game.coordinator": new DurationHistogram(),
+  "game.deadlines": new DurationHistogram(),
+  "game.waiting": new DurationHistogram(),
+  "game.deadline.lock": new DurationHistogram(),
+  "game.deadline.lag": new DurationHistogram(),
   "voice.policy.refresh": new DurationHistogram(),
   "retention.batch": new DurationHistogram(),
 };
@@ -77,6 +83,17 @@ const counters = {
 };
 export function duration(name: keyof typeof durations, ms: number) {
   durations[name].observe(ms);
+}
+export async function measured<T>(
+  name: keyof typeof durations,
+  work: () => Promise<T>,
+): Promise<T> {
+  const started = performance.now();
+  try {
+    return await work();
+  } finally {
+    duration(name, performance.now() - started);
+  }
 }
 export type Counter = keyof typeof counters;
 export function increment(name: Counter, amount = 1) {

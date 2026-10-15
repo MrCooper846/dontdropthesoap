@@ -746,7 +746,18 @@ async function run() {
   );
 }
 run()
-  .catch((error) => {
+  .catch(async (error) => {
+    // Preserve the final metric window, including the operation that failed.
+    // Cleanup failure is separate evidence and must not replace the original error.
+    let cleanupError: string | undefined;
+    try {
+      await stop();
+    } catch (failure) {
+      cleanupError =
+        failure instanceof Error
+          ? failure.message.slice(0, 1000)
+          : "Cleanup failed";
+    }
     mkdirSync("data/load-runs", { recursive: true, mode: 0o700 });
     writeFileSync(
       "data/load-runs/" + evidenceId + ".failure.json",
@@ -759,6 +770,7 @@ run()
             error instanceof Error
               ? error.message.slice(0, 1000)
               : "Load test failed",
+          cleanupError,
           resolutionLagsMs: resolutionLags,
           metrics: serviceSamples,
           metricsTruncated,

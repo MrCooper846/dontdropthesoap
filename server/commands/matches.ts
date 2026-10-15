@@ -354,7 +354,9 @@ export async function tickMatches() {
   ).rows;
   for (const row of ids)
     await transaction(async (db) => {
+      const lockStarted = performance.now();
       const m = await loadMatch(db, row.id, true);
+      duration("game.deadline.lock", performance.now() - lockStarted);
       if (m.phase === "countdown" && !botsReady(m)) {
         m.phase = "waiting";
         m.deadline = null;
@@ -363,7 +365,10 @@ export async function tickMatches() {
         await saveMatch(db, m);
         return;
       }
-      if (advance(m, await dbTime(db))) await saveMatch(db, m);
+      const now = await dbTime(db);
+      if (m.deadline !== null && now >= m.deadline)
+        duration("game.deadline.lag", now - m.deadline);
+      if (advance(m, now)) await saveMatch(db, m);
     });
 }
 export async function recoverMatches() {
