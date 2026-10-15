@@ -39,3 +39,10 @@ Use [the physical acceptance procedure](playtest.md) for the device/human/networ
 ## Release recommendation
 
 Keep this as an untagged local candidate while required gates are open. After a frozen commit passes its applicable automated and physical gates, recommend that exact SHA for an alpha-candidate tag and authorized deployment. Do not label it validated from implementation tests alone. GitHub publication approval is currently pending; these notes do not authorize a push, merge or deployment.
+
+
+## Current automated evidence
+
+Application source 72aa79a, with documentation-only source marker 3be47a6, passes 48 PostgreSQL checks, 95 unit/native checks, two legacy/lifecycle browser tests, eight authenticated alpha cases, nine yard cases, two league cases, fifteen production native-voice cases and five production security/editor cases. Physical signal drain, startup redaction, isolated DB outage, resource enforcement and overload recovery pass. Nominal and doubled-presence/command profiles pass on clean 3be47a6/build cu1hrACOOu8b7Ah0kE5zm with unchanged score/decision metrics. The latter retains four tables/32 seats and six bots.
+
+Current-source final crash/package/restore verification and the full frozen-source hour are still pending at this checkpoint. These results do not fill the physical-device/human/public-network/hosting gates above.
