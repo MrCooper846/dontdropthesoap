@@ -56,12 +56,30 @@ const counters = {
   "connection.backpressure": 0,
   "waiting.expired": 0,
   "retention.history": 0,
+  "http.rejected": 0,
+  "socket.rejected": 0,
+  "socket.auth.rejected": 0,
+  "socket.transport.rejected": 0,
+  "socket.connected": 0,
+  "socket.disconnected": 0,
+  "yard.reconnected": 0,
+  "move.recorded": 0,
+  "move.timeout": 0,
+  "worker.failed": 0,
+  "worker.timeout": 0,
+  "voice.policy.failed": 0,
+  "voice.policy.stale": 0,
+  "outbox.published": 0,
+  "game.tick.failed": 0,
+  "metrics.refresh.failed": 0,
 };
 export function duration(name: keyof typeof durations, ms: number) {
   durations[name].observe(ms);
 }
-export function increment(name: keyof typeof counters) {
-  counters[name]++;
+export type Counter = keyof typeof counters;
+export function increment(name: Counter, amount = 1) {
+  if (!Number.isSafeInteger(amount) || amount < 0) return;
+  counters[name] = Math.min(Number.MAX_SAFE_INTEGER, counters[name] + amount);
 }
 export function startMetrics(
   state: () => Record<string, number | boolean>,

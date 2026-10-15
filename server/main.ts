@@ -1,3 +1,4 @@
+import { DurableMetrics } from "./observability/durable";
 import { securityHeaders } from "./security/headers";
 import { startRetention } from "./persistence/retention";
 import { boundOutbound } from "./lifecycle/outbound";
@@ -5,12 +6,12 @@ import { pruneBotLeases } from "./bots/identity";
 import { pruneHttpBudgets } from "./http";
 import { pruneChatBudgets } from "./yards/socket";
 import { pruneInvitationBudgets } from "./yards/challenges";
-import { pruneChat, blockRoutingSize } from "./yards/world";
+import { pruneChat, blockRoutingSize, yard } from "./yards/world";
 import { sweepWaitingRooms } from "./matches/waiting";
 import { isBotOnline } from "./bots/identity";
 import { OwnerConnections } from "./lifecycle/owner-connections";
 import { limitConnections } from "./lifecycle/connections";
-import { startMetrics } from "./observability/metrics";
+import { startMetrics, increment } from "./observability/metrics";
 import { startOperatorEffects } from "./operators/effects";
 import { dropCredentialLease } from "./bots/identity";
 import { serviceWork } from "./lifecycle/work";
@@ -179,13 +180,14 @@ export async function main() {
   );
   const io = new Server(http, {
     maxHttpBufferSize: 16384,
-    allowRequest: (req, done) =>
-      done(
-        null,
+    allowRequest: (req, done) => {
+      const allowed =
         !stopping &&
-          (req.headers.origin === config.PUBLIC_ORIGIN ||
-            (!req.headers.origin && !!req.headers.authorization)),
-      ),
+        (req.headers.origin === config.PUBLIC_ORIGIN ||
+          (!req.headers.origin && !!req.headers.authorization));
+      if (!allowed) increment("socket.transport.rejected");
+      done(null, allowed);
+    },
     serveClient: false,
   });
   io.of("/").use((_socket, next) => next(new Error("Use /game-v1")));
@@ -231,13 +233,19 @@ export async function main() {
             }
           }),
         )
-        .catch((error) => next(connectionFailure(error)));
+        .catch((error) => {
+          increment("socket.auth.rejected");
+          next(connectionFailure(error));
+        });
     } catch (error) {
+      increment("socket.auth.rejected");
       next(connectionFailure(error, "FORBIDDEN"));
     }
   });
   const voice = config.FEATURE_VOICE ? await startVoice(game) : null;
   game.on("connection", (socket) => {
+    increment("socket.connected");
+    socket.once("disconnect", () => increment("socket.disconnected"));
     attachYard(socket, game);
     voice?.attach(socket);
     socket.on("state.sync", (input: unknown, ack: (data: unknown) => void) => {
@@ -267,6 +275,7 @@ export async function main() {
             });
         }, socket.data.principal.ownerId)
         .catch(() => {
+          increment("socket.rejected");
           if (typeof ack === "function") ack({ ok: false });
         });
     });
@@ -277,9 +286,11 @@ export async function main() {
             throw new RuleError("SERVICE_UNAVAILABLE");
           rateLimit("socket:" + socket.data.principal.id);
           const result = await command(socket.request, input);
+          if (!result.ok) increment("socket.rejected");
           if (typeof ack === "function") ack(result);
         }, socket.data.principal.ownerId)
         .catch((e) => {
+          increment("socket.rejected");
           if (typeof ack === "function")
             ack({
               ok: false,
@@ -305,7 +316,10 @@ export async function main() {
         });
     });
   });
+  const durableMetrics = new DurableMetrics();
   const stopMetrics = startMetrics(() => ({
+    ...durableMetrics.snapshot(),
+    yardPlayers: yard.snapshot().players.length,
     pendingWork: serviceWork.pendingCount,
     connectedSockets: game.sockets.size,
     tcpConnections: connections.current,
@@ -345,7 +359,8 @@ export async function main() {
   let tickWork: Promise<void> | undefined;
   let ticking = false,
     lastCoordinatorCheck = performance.now(),
-    lastWaitingCheck = -Infinity;
+    lastWaitingCheck = -Infinity,
+    lastMetricsCheck = -Infinity;
   const timer = setInterval(() => {
     if (ticking || !ready) return;
     ticking = true;
@@ -384,7 +399,7 @@ export async function main() {
     })()
       .then(async () => {
         const q = await pool.query(
-          "SELECT match_id,sequence,type,payload,visibility,recipient_seat_id FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",
+          "SELECT match_id,sequence,type,visibility,recipient_seat_id FROM match_events WHERE published_at IS NULL ORDER BY created_at,sequence LIMIT 100",
         );
         for (const row of q.rows) {
           for (const socket of game.sockets.values())
@@ -406,13 +421,19 @@ export async function main() {
                 socket.disconnect(true);
               }
             }
-          await pool.query(
-            "UPDATE match_events SET published_at=now() WHERE match_id=$1 AND sequence=$2",
+          const published = await pool.query(
+            "UPDATE match_events SET published_at=now() WHERE match_id=$1 AND sequence=$2 AND published_at IS NULL",
             [row.match_id, row.sequence],
           );
+          if (published.rowCount) increment("outbox.published");
+        }
+        if (performance.now() - lastMetricsCheck >= 5000) {
+          lastMetricsCheck = performance.now();
+          await durableMetrics.refresh();
         }
       })
       .catch(() => {
+        increment("game.tick.failed");
         console.error(
           JSON.stringify({
             event: "game.tick.error",

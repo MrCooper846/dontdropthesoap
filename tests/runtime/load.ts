@@ -537,6 +537,18 @@ async function run() {
     resolutionLags.every((ms) => ms >= 0 && ms < 1000),
     "Deliberately silent rounds resolve within one second of deadline",
   );
+  const returning = clients[0];
+  returning.socket.disconnect();
+  await delay(100);
+  await new Promise<void>((resolve, reject) => {
+    returning.socket.once("connect", resolve);
+    returning.socket.once("connect_error", reject);
+    returning.socket.connect();
+  });
+  const reentered = await rpc(returning, "yard.enter", {
+    controllerEpoch: returning.epoch,
+  });
+  assert.equal(reentered.ok, true);
   await stop();
   const sorted = acks.sort((a, b) => a - b),
     p95 = sorted[Math.ceil(sorted.length * 0.95) - 1];
@@ -577,9 +589,47 @@ async function run() {
       metrics.every((sample) => sample.eventLoop.p95Ms < 50),
       "Nominal event-loop p95 must remain below 50 ms",
     );
+  const allSamples = metricSamples();
+  assert.equal(
+    allSamples.reduce((n, s) => n + s.counters["yard.reconnected"], 0),
+    1,
+    "Actual retained-presence reconnect is counted once",
+  );
+  const measuredMoves = allSamples.reduce(
+    (n, s) => n + s.counters["move.recorded"],
+    0,
+  );
+  const measuredTimeouts = allSamples.reduce(
+    (n, s) => n + s.counters["move.timeout"],
+    0,
+  );
+  assert.equal(
+    measuredMoves,
+    counts.moves,
+    "Committed decision metrics agree with durable rows",
+  );
+  assert.equal(
+    measuredTimeouts,
+    counts.timeouts,
+    "Timeout metrics agree with durable rows",
+  );
+  assert.ok(
+    allSamples.some(
+      (s) =>
+        s.durableMetricsAvailable &&
+        s.activeMatches === 4 &&
+        s.activeSeats === 32 &&
+        s.yardPlayers === clients.length &&
+        s.outboxOldestAgeMs >= 0,
+    ),
+    "Production gauges observe the real four-table workload",
+  );
   const report = {
     profile: scale === 1 ? "nominal" : "2x-presence-and-command-traffic",
     workloadComplete: true,
+    committedDecisionMetrics: "PASS",
+    reconnectMetrics: "PASS",
+    durableGaugeSample: "PASS",
     timingTargetsMet:
       p95 < 250 &&
       externalP95 < 250 &&

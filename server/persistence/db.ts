@@ -1,5 +1,5 @@
 import { WriterConflict } from "../security/failures";
-import { duration } from "../observability/metrics";
+import { duration, increment, type Counter } from "../observability/metrics";
 import { coordinatorLeaseEnforced } from "./coordinator-lease";
 import { RuleError } from "../../domain/match/model";
 import { Pool, Client, type PoolClient } from "pg";
@@ -13,17 +13,29 @@ export const pool = new Pool({
   statement_timeout: 10000,
   idle_in_transaction_session_timeout: 10000,
 });
+const committedCounts = new WeakMap<PoolClient, Map<Counter, number>>();
+export function countOnCommit(db: PoolClient, name: Counter, amount = 1) {
+  const counts = committedCounts.get(db);
+  if (counts && Number.isSafeInteger(amount) && amount >= 0)
+    counts.set(
+      name,
+      Math.min(Number.MAX_SAFE_INTEGER, (counts.get(name) ?? 0) + amount),
+    );
+}
 export async function transaction<T>(
   work: (db: PoolClient) => Promise<T>,
 ): Promise<T> {
   const started = performance.now();
   const db = await pool.connect();
   try {
+    committedCounts.set(db, new Map());
     await db.query("BEGIN");
     if (coordinatorLeaseEnforced())
       await db.query("SET LOCAL soap.enforce_coordinator = 'on'");
     const result = await work(db);
     await db.query("COMMIT");
+    for (const [name, amount] of committedCounts.get(db)!)
+      increment(name, amount);
     return result;
   } catch (e) {
     await db.query("ROLLBACK");
@@ -39,6 +51,7 @@ export async function transaction<T>(
       );
     throw e;
   } finally {
+    committedCounts.delete(db);
     duration("db.transaction", performance.now() - started);
     db.release();
   }

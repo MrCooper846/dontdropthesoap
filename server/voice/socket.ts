@@ -1,5 +1,5 @@
 import { FreshnessLease } from "../lifecycle/freshness";
-import { duration } from "../observability/metrics";
+import { duration, increment } from "../observability/metrics";
 import { serviceWork } from "../lifecycle/work";
 import type { Namespace, Socket } from "socket.io";
 import type { types } from "mediasoup";
@@ -149,6 +149,7 @@ export async function startVoice(game: Namespace) {
       media.reconcile();
     })()
       .catch(() => {
+        increment("voice.policy.failed");
         freshness.invalidate();
         media.reconcile();
       })
@@ -160,7 +161,13 @@ export async function startVoice(game: Namespace) {
   }
   const routing = setInterval(() => void refresh(true), 200);
   // Independently invalidate stale routing while a database request is stalled.
-  const watchdog = setInterval(() => media.reconcile(), 50);
+  let policyWasFresh = false;
+  const watchdog = setInterval(() => {
+    const fresh = freshness.fresh;
+    if (policyWasFresh && !fresh && !stopped) increment("voice.policy.stale");
+    policyWasFresh = fresh;
+    media.reconcile();
+  }, 50);
   function attach(socket: Socket) {
     const queue = new VoiceQueue();
     socket.on(
@@ -262,6 +269,7 @@ export async function startVoice(game: Namespace) {
             socket.data.principal.ownerId,
           )
           .catch((e) => {
+            increment("socket.rejected");
             if (typeof ack === "function")
               ack({
                 ok: false,
