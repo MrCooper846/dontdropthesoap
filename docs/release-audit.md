@@ -43,7 +43,7 @@ The actual test files are under [browser acceptance](../tests/browser), [Postgre
 | Production release artifact and notes | Clean archive marker, build manifests, matching compiled visual worker, native binary, runtime-only npm start, normal shutdown; [candidate notes](release-notes.md) | PASS local artifact; no validated tag/deployment |
 | Real devices, 30 FPS, audio/editor/background | [Physical acceptance procedure and result form](playtest.md) | NOT_TESTED; actual devices/evidence required |
 | 4–8 humans, including visual/external bot owners | Same playtest procedure; automation is not human evidence | NOT_TESTED; people required |
-| Public media/hosting, backup custody and alerts | Deployment-specific HTTPS/WSS/media/NAT/TURN, secret store, daily encrypted off-host copy/expiry, restore and collection/alerts | NOT_PROVISIONED/NOT_TESTED; authorized environment/operator inputs required |
+| Public media/hosting, backup custody and alerts | Private laptop HTTPS/native-media stack now runs with actual trusted HTTPS/WebSocket/ICE/TCP smoke; public/cellular NAT/TURN, off-host custody and hosted alerts remain separate | Local setup PASS; physical phone audio/UDP and public/operational gates NOT_TESTED |
 | GitHub publication | Earlier automatic review rejected combined push/PR egress to the destination without explicit approval | APPROVAL_PENDING; no push/tag/merge/deployment performed |
 
 ## Remaining handoff

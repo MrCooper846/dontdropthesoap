@@ -44,7 +44,12 @@
     "test:production": "tsx scripts/production-smoke.ts",
     "diagnose:clock": "tsx tests/runtime/clock.ts",
     "test:protocol": "vitest run tests/protocol.test.ts",
-    "test:docs": "tsx scripts/check-doc-links.ts"
+    "test:docs": "tsx scripts/check-doc-links.ts",
+    "prepare:playtest": "tsx scripts/prepare-laptop-playtest.ts",
+    "playtest:up": "docker compose --env-file .env.playtest -f deploy/laptop.compose.yml up -d --build --wait",
+    "playtest:down": "docker compose --env-file .env.playtest -f deploy/laptop.compose.yml stop",
+    "playtest:certificate": "tsx scripts/playtest-certificate.ts",
+    "test:playtest": "tsx scripts/smoke-laptop-playtest.ts"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

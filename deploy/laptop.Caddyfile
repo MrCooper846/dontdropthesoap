@@ -1,0 +1,10 @@
+{
+  admin off
+  default_sni {$SOAP_PLAYTEST_ADDRESS}
+  skip_install_trust
+  auto_https disable_redirects
+}
+https://{$SOAP_PLAYTEST_ADDRESS}:3443 {
+  tls internal
+  reverse_proxy game:3000
+}

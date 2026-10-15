@@ -15,6 +15,7 @@ Status: v1 specifications and implementation references, 14 October 2026. The au
 | [Yard and voice](yard-and-voice.md) | Rendering, movement, social UI and media routing |
 | [Testing](testing.md) | Correctness, hostile clients, playtests and performance gates |
 | [Operations](operations.md) | Deployment, credentials, observability and recovery |
+| [Private laptop playtest](laptop-playtest.md) | Local-network HTTPS/media setup for real phones |
 | [Physical-device and human acceptance](playtest.md) | Procedure and result form for the remaining real-device/playtest gates |
 | [Alpha candidate notes](release-notes.md) | Implemented scope, runnable package and explicit remaining release dependencies |
 | [Candidate acceptance audit](release-audit.md) | Requirement-by-requirement evidence, scope limits and unpassed gates |

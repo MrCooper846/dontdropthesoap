@@ -1,0 +1,66 @@
+name: soap-playtest
+services:
+  db:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: soap
+      POSTGRES_DB: soap_playtest
+      POSTGRES_PASSWORD: ${PLAYTEST_DATABASE_PASSWORD:?Run prepare:playtest first}
+    volumes: [playtest-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soap -d soap_playtest"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  game:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    init: true
+    stop_grace_period: 45s
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_ORIGIN: https://${SOAP_PLAYTEST_ADDRESS:?Run prepare:playtest first}:3443
+      DATABASE_URL: postgresql://soap:${PLAYTEST_DATABASE_PASSWORD}@db:5432/soap_playtest
+      SESSION_SECRET_PEPPER: ${PLAYTEST_SESSION_PEPPER:?Run prepare:playtest first}
+      COMMAND_KEY_SIGNING_SECRET: ${PLAYTEST_COMMAND_SECRET:?Run prepare:playtest first}
+      FEATURE_YARD: "true"
+      FEATURE_EXTERNAL_BOTS: "true"
+      FEATURE_VISUAL_BOTS: "true"
+      FEATURE_LEAGUE: "true"
+      FEATURE_VOICE: "true"
+      VOICE_LISTEN_IP: 0.0.0.0
+      VOICE_ANNOUNCED_ADDRESS: ${SOAP_PLAYTEST_ADDRESS}
+      VOICE_MIN_PORT: "18000"
+      VOICE_MAX_PORT: "18127"
+    ports:
+      - "${SOAP_PLAYTEST_ADDRESS}:18000-18127:18000-18127/udp"
+      - "${SOAP_PLAYTEST_ADDRESS}:18000-18127:18000-18127/tcp"
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  web:
+    image: caddy:2.11.7-alpine
+    environment:
+      SOAP_PLAYTEST_ADDRESS: ${SOAP_PLAYTEST_ADDRESS}
+    ports: ["${SOAP_PLAYTEST_ADDRESS}:3443:3443/tcp"]
+    volumes:
+      - ./laptop.Caddyfile:/etc/caddy/Caddyfile:ro
+      - playtest-caddy:/data
+    depends_on:
+      game: { condition: service_healthy }
+volumes:
+  playtest-db:
+  playtest-caddy:
