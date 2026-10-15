@@ -1,3 +1,5 @@
+import { sweepWaitingRooms } from "./server/matches/waiting";
+import { isBotOnline } from "./server/bots/identity";
 import { OwnerConnections } from "./server/lifecycle/owner-connections";
 import { limitConnections } from "./server/lifecycle/connections";
 import { startMetrics } from "./server/observability/metrics";
@@ -317,7 +319,8 @@ async function main() {
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
   let tickWork: Promise<void> | undefined;
   let ticking = false,
-    lastCoordinatorCheck = performance.now();
+    lastCoordinatorCheck = performance.now(),
+    lastWaitingCheck = -Infinity;
   const timer = setInterval(() => {
     if (ticking || !ready) return;
     ticking = true;
@@ -335,6 +338,24 @@ async function main() {
           );
       }
       await tickMatches();
+      if (performance.now() - lastWaitingCheck >= 5000) {
+        await sweepWaitingRooms((match) =>
+          match.seats.some(
+            (seat) =>
+              (!!seat.ownerId &&
+                [...game.sockets.values()].some(
+                  (socket) =>
+                    socket.connected &&
+                    socket.data.principal.kind === "browser" &&
+                    socket.data.principal.ownerId === seat.ownerId,
+                )) ||
+              (seat.kind === "external" &&
+                !!seat.botId &&
+                isBotOnline(seat.botId)),
+          ),
+        );
+        lastWaitingCheck = performance.now();
+      }
     })()
       .then(async () => {
         const q = await pool.query(

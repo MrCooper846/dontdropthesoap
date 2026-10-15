@@ -162,3 +162,6 @@ During graceful shutdown, /game-v1 emits service.restarting. New HTTP work retur
 Maintenance adds public GET /api/v1/service → {matchesOpen:boolean}. New game/seat/start admissions during a durable operator pause return ADMISSIONS_PAUSED (HTTP 409 or command ACK); existing admitted games keep their normal move, result and settlement semantics. Only trusted host-side operator actions change this state. Yard messaging refreshes every two seconds and is informational; PostgreSQL enforces admission at transaction time.
 
 Connection admission can return connect_error.message=SERVICE_UNAVAILABLE plus data {code,message,retryable}; the code remains stable and the readable data supports bounded reconnect after quota release. Browser/bot identities share their authenticated owner work/socket quotas. Voice freshness keeps its 600-ms fail-closed bound with monotonic elapsed time anchored to query start; no slow-query renewal or wall-clock extension is allowed.
+
+
+Deserted pregame rooms can publish match.waiting-expired with phase cancelled and cancelReason empty after fifteen minutes without connected participants. This additive terminal reason explains expiry; it does not expose private state or alter active-match leave/deadline semantics. Reconnect/observation returns the stored cancelled snapshot. League waiting fixtures are exempt.

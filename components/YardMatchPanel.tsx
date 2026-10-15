@@ -222,6 +222,12 @@ export default function YardMatchPanel({
           ))}
         </section>
       )}
+      {match.cancelReason === "empty" && (
+        <p role="status">
+          This waiting room closed after 15 minutes without connected
+          participants. No points were credited. Start a new table to play.
+        </p>
+      )}
       {match.abortReason === "infrastructure" && (
         <p role="status">
           Match ended after a service interruption. No points were credited.

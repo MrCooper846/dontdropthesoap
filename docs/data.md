@@ -95,3 +95,8 @@ Runtime initialization is durable but does not advance memory. Actual state/RNG 
 ## Operator audit and admission maintenance
 
 Migration 011 stores atomic, immutable operator action responses and separate idempotent live-effect markers. Targets are public identifiers, not secrets. Migration 012 stores a singleton service_controls.matches_open flag; its SQL admission triggers lock that row through the transaction. New matches, new non-system seats and waiting-room starts require it to be open. Existing admitted countdowns/rounds, system filler and settlement continue. This additive backstop remains enforced on the previous binary during rollback. Procedure, audit trust boundaries and pause/resume semantics live in [operations](operations.md#pause-new-games-for-maintenance).
+
+
+## Waiting-room absence
+
+Migration 013 adds matches.waiting_empty_since and an indexed non-league waiting-room scan. The durable timestamp is independent of private game choices and the JSON checkpoint. The singleton derives current presence from browser connections/external controller leases, clears the timestamp on return and atomically cancels deserted rooms after fifteen minutes. A trigger clears stale absence on later phases, including additive-schema binary rollback. Cancellation retains seats/history and never settles points. Detailed semantics are in operations.md.

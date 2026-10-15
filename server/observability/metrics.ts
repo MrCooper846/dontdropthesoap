@@ -52,6 +52,7 @@ const counters = {
   "command.rejected": 0,
   "work.overload": 0,
   "connection.rejected": 0,
+  "waiting.expired": 0,
 };
 export function duration(name: keyof typeof durations, ms: number) {
   durations[name].observe(ms);
