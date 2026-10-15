@@ -1,3 +1,4 @@
+import { assertProductionArtifacts } from "./release-artifacts";
 import assert from "node:assert/strict";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import {
@@ -543,7 +544,7 @@ async function run() {
     );
   if (rollback) {
     assert.match(rollback, /^\/tmp\/soap-rollback-[a-f0-9]{32}$/);
-    assert.ok(existsSync(path.join(rollback, ".next/BUILD_ID")));
+    assertProductionArtifacts(rollback);
   }
   const revision = rollback ? verifyRollback(rollback) : undefined;
   for (const source of sources) {

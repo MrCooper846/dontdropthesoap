@@ -151,7 +151,12 @@ The production mixed-bot workload is reproducible with npm run test:load; -- --t
 
 ## Resource isolation
 
-Per-owner work/socket budgets, absolute receive/header deadlines and global/peer TCP ceilings protect the service. npm run test:resources proves real denial and recovery on local fixtures. test:voice now automatically builds and uses an ephemeral loopback HTTPS fixture with the production backend; OpenSSL is required. See [limits and verification](docs/operations.md#owner-isolation-receive-deadlines-and-connection-limits). Deserted non-league waiting rooms now expire after fifteen minutes without connected participants; their absence timer survives restart and returning players see the reason. Retention/privacy checks and the sustained soak remain pending.
+Per-owner work/socket budgets, absolute receive/header deadlines and global/peer TCP ceilings protect the service. npm run test:resources proves real denial and recovery on local fixtures. test:voice now automatically builds and uses an ephemeral loopback HTTPS fixture with the production backend; OpenSSL is required. See [limits and verification](docs/operations.md#owner-isolation-receive-deadlines-and-connection-limits). Deserted non-league waiting rooms now expire after fifteen minutes without connected participants; their absence timer survives restart and returning players see the reason. Remaining privacy/CSP checks and the sustained soak remain pending.
 
 
-Idle limiter/controller state is bounded and pruned; expired external bot controllers explicitly reacquire. Volatile position frames avoid stale-frame queues, and reliable output has packet/byte ceilings with normal reconnect/snapshot recovery. See [ephemeral and output bounds](docs/operations.md#bounded-ephemeral-state-and-socket-output). Persistent retention/privacy and the full reconnect soak remain pending.
+Idle limiter/controller state is bounded and pruned; expired external bot controllers explicitly reacquire. Volatile position frames avoid stale-frame queues, and reliable output has packet/byte ceilings with normal reconnect/snapshot recovery. See [ephemeral and output bounds](docs/operations.md#bounded-ephemeral-state-and-socket-output). Remaining privacy/CSP and bounded-read checks plus the full reconnect soak remain pending.
+
+
+## Persistent history retention
+
+Terminal round details expire after ninety days while final scores and league standings remain. Match panels and recorded replay explain the archived state. The singleton also removes old receipts, expired keys/sessions/credentials, reports and invitations in bounded batches; retries and score uniqueness remain protected. See [retention rules and producer scope](docs/data.md#implemented-persistent-retention). Deployment backup expiry, remaining privacy/CSP/bounded-read checks, sustained soak and actual-device/human gates remain pending.

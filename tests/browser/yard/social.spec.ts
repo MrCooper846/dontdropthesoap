@@ -8,6 +8,10 @@ test("two browsers walk into a circle, play and return without duplicate canvase
     b = await browser.newContext();
   const host = await a.newPage(),
     guest = await b.newPage();
+  const db = new Pool({
+    connectionString:
+      "postgresql://soap:soap_local_only@localhost:55432/soap_yard_browser",
+  });
   const errors: string[] = [];
   host.on("pageerror", (e) => errors.push(e.message));
   guest.on("pageerror", (e) => errors.push(e.message));
@@ -68,6 +72,47 @@ test("two browsers walk into a circle, play and return without duplicate canvase
       ),
     ).toHaveLength(2);
     await expect.poll(async () => (await own(host)).player.seated).toBe(false);
+    const ownerId = (await own(host)).session.ownerId;
+    const matchId = (
+      await db.query(
+        "SELECT m.id FROM matches m JOIN match_seats s ON s.match_id=m.id WHERE s.owner_id=$1 AND m.phase='finished' ORDER BY m.terminal_at DESC LIMIT 1",
+        [ownerId],
+      )
+    ).rows[0].id;
+    const before = await host.request
+      .get("/api/v1/matches/" + matchId + "/observation")
+      .then((r) => r.json());
+    // Age only this completed synthetic match. The real singleton producer
+    // and durable outbox perform expiry on their normal minute schedule.
+    await db.query(
+      "UPDATE matches SET terminal_at=now()-interval '91 days' WHERE id=$1",
+      [matchId],
+    );
+    await expect(
+      host
+        .getByRole("status")
+        .filter({ hasText: "Round details expired after 90 days" }),
+    ).toBeVisible({ timeout: 75000 });
+    await expect(
+      guest
+        .getByRole("status")
+        .filter({ hasText: "Round details expired after 90 days" }),
+    ).toBeVisible();
+    const after = await host.request
+      .get("/api/v1/matches/" + matchId + "/observation")
+      .then((r) => r.json());
+    expect(after.historyExpired).toBe(true);
+    expect(after.results).toEqual([]);
+    expect(after.seats.map((seat: { score: number }) => seat.score)).toEqual(
+      before.seats.map((seat: { score: number }) => seat.score),
+    );
+    expect(
+      (
+        await db.query("SELECT 1 FROM balance_entries WHERE match_id=$1", [
+          matchId,
+        ])
+      ).rowCount,
+    ).toBe(2);
     await host.getByRole("button", { name: "Close match view" }).click();
     await host.getByRole("button", { name: "Close circle" }).click();
     await walk(host, 240, 550);
@@ -82,6 +127,7 @@ test("two browsers walk into a circle, play and return without duplicate canvase
   } finally {
     await a.close();
     await b.close();
+    await db.end();
   }
 });
 test("nearby text escapes markup, excludes distant users, respects blocks and accepts reports", async ({

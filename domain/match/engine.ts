@@ -306,6 +306,7 @@ export function project(
     interruptions: m.interruptions,
     abortReason: m.abortReason ?? null,
     cancelReason: m.cancelReason ?? null,
+    historyExpired: m.historyExpired ?? false,
     seats: m.seats.map((s) => ({
       id: s.id,
       ownerId: s.ownerId,

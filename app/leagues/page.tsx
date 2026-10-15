@@ -52,7 +52,7 @@ type Replay = {
   fixture: { id: string; ordinal: number; attempts: number };
   attempt: number;
   attempts: { attempt: number; phase: string }[];
-  match: { id: string; phase: string } | null;
+  match: { id: string; phase: string; historyExpired: boolean } | null;
   seats: { id: string; name: string }[];
   results: Result[];
 };
@@ -567,8 +567,10 @@ export default function Leagues() {
             />
           </label>
           <p>
-            {replay.match?.phase ?? "Not started"} · {replay.results.length}/20
-            resolved rounds
+            {replay.match?.phase ?? "Not started"} ·{" "}
+            {replay.match?.historyExpired
+              ? "Round details expired"
+              : replay.results.length + "/20 resolved rounds"}
           </p>
           {replay.results.map((r) => (
             <article key={r.pairId}>
@@ -585,7 +587,13 @@ export default function Leagues() {
               <p>{r.message}</p>
             </article>
           ))}
-          {!replay.results.length && <p>No resolved rounds in this attempt.</p>}
+          {!replay.results.length && (
+            <p>
+              {replay.match?.historyExpired
+                ? "Round details expired after 90 days. Final scores and standings are retained."
+                : "No resolved rounds in this attempt."}
+            </p>
+          )}
         </section>
       )}
     </main>

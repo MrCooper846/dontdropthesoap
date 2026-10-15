@@ -231,7 +231,10 @@ export async function api(
           res,
           200,
           match[2] === "results"
-            ? { results: snapshot.results }
+            ? {
+                results: snapshot.results,
+                historyExpired: snapshot.historyExpired,
+              }
             : {
                 ...snapshot,
                 events: sync.events,

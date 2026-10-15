@@ -87,7 +87,7 @@ export async function fixtureReplay(
     const chosen = attempt === undefined ? fixture.attempts : attempt;
     const selected = (
       await db.query(
-        `SELECT m.id,m.phase,m.state_json->'rulesetVersion' AS "rulesetVersion",m.state_json->'settings' AS settings FROM league_attempts a JOIN matches m ON m.id=a.match_id WHERE a.fixture_id=$1 AND a.attempt_number=$2`,
+        `SELECT m.id,m.phase,(m.history_expired_at IS NOT NULL) AS "historyExpired",m.state_json->'rulesetVersion' AS "rulesetVersion",m.state_json->'settings' AS settings FROM league_attempts a JOIN matches m ON m.id=a.match_id WHERE a.fixture_id=$1 AND a.attempt_number=$2`,
         [id, chosen],
       )
     ).rows[0];

@@ -1,3 +1,4 @@
+import { Pool } from "pg";
 import { test, expect } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 import { starter } from "../../../shared/bots/presets";
@@ -193,6 +194,47 @@ test("owners register visual and real Python/TypeScript bots, complete a league 
         path: "test-results/league-mobile.png",
         fullPage: true,
       });
+      const db = new Pool({
+        connectionString:
+          "postgresql://soap:soap_local_only@localhost:55432/soap_league_browser",
+      });
+      try {
+        const first = data.fixtures.find(
+          (f: { ordinal: number }) => f.ordinal === 1,
+        );
+        const aged = await db.query(
+          "UPDATE matches m SET terminal_at=now()-interval '91 days' FROM league_fixtures f WHERE f.id=$1 AND f.batch_id=$2 AND m.id=f.settled_match_id RETURNING m.id",
+          [first.id, batch],
+        );
+        expect(aged.rowCount).toBe(1);
+        await expect(
+          recording.getByText(
+            "Round details expired after 90 days. Final scores and standings are retained.",
+            { exact: true },
+          ),
+        ).toBeVisible({ timeout: 75000 });
+        await expect(
+          recording.getByText("finished · Round details expired", {
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(
+          recording.getByRole("heading", { name: "Round 20", exact: true }),
+        ).toHaveCount(0);
+        const after = await spectator.request
+          .get("/api/v1/leagues/" + batch)
+          .then((r) => r.json());
+        expect(after.standings).toEqual(data.standings);
+        expect(
+          (await db.query("SELECT 1 FROM league_settlements")).rowCount,
+        ).toBe(6);
+        await spectator.screenshot({
+          path: "test-results/league-history-expired.png",
+          fullPage: true,
+        });
+      } finally {
+        await db.end();
+      }
       expect((await spectator.request.get("/api/v1/session")).status()).toBe(
         401,
       );

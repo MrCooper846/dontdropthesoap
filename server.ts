@@ -1,3 +1,4 @@
+import { startRetention } from "./server/persistence/retention";
 import { boundOutbound } from "./server/lifecycle/outbound";
 import { pruneBotLeases } from "./server/bots/identity";
 import { pruneHttpBudgets } from "./server/http";
@@ -329,6 +330,7 @@ async function main() {
         socket.disconnect(true);
     }
   });
+  const stopRetention = startRetention();
   const stopYard = startYard(game);
   const stopLeague = config.FEATURE_LEAGUE ? startLeague() : null;
   const stopVisual = config.FEATURE_VISUAL_BOTS ? startVisualRuntime() : null;
@@ -446,6 +448,7 @@ async function main() {
     clearInterval(ephemeralTimer);
     await Promise.all([
       stopOperators(),
+      stopRetention(),
       stopYard(),
       voice?.stop(),
       stopLeague?.(),

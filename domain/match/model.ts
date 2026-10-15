@@ -66,6 +66,7 @@ export type Match = {
   interruptions: number;
   abortReason?: "infrastructure";
   cancelReason?: "empty";
+  historyExpired?: boolean;
   createdAt: number;
 };
 export class RuleError extends Error {

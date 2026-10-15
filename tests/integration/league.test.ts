@@ -1,3 +1,4 @@
+import { retentionBatch } from "../../server/persistence/retention";
 import { applyOperator } from "../../server/operators/service";
 import { SERVICE_CONTROL_ID } from "../../server/operators/maintenance";
 import {
@@ -104,6 +105,9 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
       targetId: SERVICE_CONTROL_ID,
       reason: "Synthetic league pause",
     });
+  const attemptsBeforePause = Number(
+    (await pool.query("SELECT count(*) FROM league_attempts")).rows[0].count,
+  );
   await admission(false);
   try {
     await tickLeague();
@@ -113,9 +117,19 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
       ),
     ).toBe(true);
     expect(
-      (await pool.query("SELECT count(*)::int AS n FROM league_attempts"))
-        .rows[0].n,
+      (
+        await pool.query(
+          "SELECT count(*)::int AS n FROM league_attempts a JOIN league_fixtures f ON f.id=a.fixture_id WHERE f.batch_id=$1",
+          [batch.id],
+        )
+      ).rows[0].n,
     ).toBe(0);
+    expect(
+      Number(
+        (await pool.query("SELECT count(*) FROM league_attempts")).rows[0]
+          .count,
+      ),
+    ).toBe(attemptsBeforePause);
   } finally {
     await admission(true);
   }
@@ -228,6 +242,43 @@ it("freezes four owners, schedules six pairs, retries aborted hidden decisions a
       )
     ).rowCount,
   ).toBe(0);
+  const settledBefore = (
+    await pool.query(
+      "SELECT s.* FROM league_settlements s JOIN league_fixtures f ON f.id=s.fixture_id WHERE f.batch_id=$1 ORDER BY s.fixture_id",
+      [batch.id],
+    )
+  ).rows;
+  await pool.query(
+    "UPDATE matches SET terminal_at=now()-interval '91 days' WHERE id IN (SELECT a.match_id FROM league_attempts a JOIN league_fixtures f ON f.id=a.fixture_id WHERE f.batch_id=$1)",
+    [batch.id],
+  );
+  for (let i = 0; i < 100; i++) {
+    await retentionBatch();
+    if (
+      !(
+        await pool.query(
+          "SELECT 1 FROM matches m JOIN league_attempts a ON a.match_id=m.id JOIN league_fixtures f ON f.id=a.fixture_id WHERE f.batch_id=$1 AND m.history_expired_at IS NULL",
+          [batch.id],
+        )
+      ).rowCount
+    )
+      break;
+  }
+  const archived = await fixtureReplay(first.id);
+  expect(archived.match!.historyExpired).toBe(true);
+  expect(archived.results).toEqual([]);
+  expect(archived.seats).toEqual(replay.seats);
+  expect((await batchDetails(batch.id, 0)).standings).toEqual(
+    details.standings,
+  );
+  expect(
+    (
+      await pool.query(
+        "SELECT s.* FROM league_settlements s JOIN league_fixtures f ON f.id=s.fixture_id WHERE f.batch_id=$1 ORDER BY s.fixture_id",
+        [batch.id],
+      )
+    ).rows,
+  ).toEqual(settledBefore);
 });
 
 it("three timeouts pause later admission until a genuinely new external controller reconnects", async () => {
