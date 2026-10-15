@@ -1,3 +1,4 @@
+import { increment } from "../observability/metrics";
 import { accessSync, constants } from "node:fs";
 import { Worker } from "node:worker_threads";
 import { randomUUID } from "node:crypto";
@@ -281,6 +282,9 @@ export class VisualPool {
   }
   private lost(slot: Slot, error: Error) {
     if (slot.dead) return;
+    increment("worker.failed");
+    if (error instanceof ProgramError && error.code === "WORKER_TIMEOUT")
+      increment("worker.timeout");
     slot.dead = true;
     clearTimeout(slot.timer);
     this.slots.delete(slot);

@@ -285,6 +285,23 @@ async function run() {
   try {
     assert.equal(human.result, "connected");
     assert.equal(external.result, "connected");
+    const forbidden = await open({
+      Cookie: a.cookie,
+      Origin: "https://forbidden-resource.invalid",
+    });
+    try {
+      assert.notEqual(forbidden.result, "connected");
+    } finally {
+      forbidden.socket.close();
+    }
+    assert.equal(
+      (await human.socket.timeout(5000).emitWithAck("command", {})).ok,
+      false,
+    );
+    assert.equal(
+      (await human.socket.timeout(5000).emitWithAck("yard.enter", {})).ok,
+      false,
+    );
     assert.equal(
       (await request("/api/v1/session", undefined, { Cookie: a.cookie }))
         .status,
@@ -311,8 +328,29 @@ async function run() {
   assert.ok(!output.includes(a.cookie.split("=")[1]));
   assert.ok(!output.includes(token.secret));
   await stop();
+  const samples = output.split("\n").flatMap((line) => {
+    try {
+      const value = JSON.parse(line);
+      return value.event === "service.metrics" ? [value] : [];
+    } catch {
+      return [];
+    }
+  });
+  for (const counter of [
+    "http.rejected",
+    "socket.rejected",
+    "socket.auth.rejected",
+    "socket.transport.rejected",
+    "socket.connected",
+    "socket.disconnected",
+  ])
+    assert.ok(
+      samples.reduce((n, s) => n + s.counters[counter], 0) > 0,
+      "Real boundary counter: " + counter,
+    );
   console.log(
     JSON.stringify({
+      boundaryMetrics: "PASS",
       ownerIsolation: "PASS",
       browserAndBotShareBudget: "PASS",
       otherOwnerAvailable: "PASS",

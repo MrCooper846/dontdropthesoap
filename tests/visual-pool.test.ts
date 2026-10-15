@@ -1,3 +1,4 @@
+import { startMetrics } from "../server/observability/metrics";
 import { it, expect } from "vitest";
 import { VisualPool } from "../server/bots/visual-pool";
 import { validateProgram } from "../domain/bots/program";
@@ -53,6 +54,15 @@ it("terminates an actually hung worker without blocking the game loop, bounds ba
     await expect(expired).rejects.toMatchObject({ code: "DECISION_EXPIRED" });
     await expect(hung).rejects.toMatchObject({ code: "WORKER_TIMEOUT" });
     expect(ticks).toBeGreaterThan(3);
+    let metrics: any;
+    startMetrics(
+      () => ({}),
+      (v) => {
+        metrics = v;
+      },
+    )();
+    expect(metrics.counters["worker.failed"]).toBeGreaterThanOrEqual(1);
+    expect(metrics.counters["worker.timeout"]).toBe(1);
     await expect(
       pool.run({ program, observation, deadline: Date.now() - 1 }),
     ).rejects.toMatchObject({ code: "DECISION_EXPIRED" });

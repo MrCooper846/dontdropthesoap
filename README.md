@@ -169,3 +169,7 @@ Credential management shows at most 100 metadata records at a time with an Older
 ## Browser policy and diagnostic privacy
 
 Production pages use fresh script nonces and dynamic rendering. The editor's pinned media is served locally; external asset hosts and model services are not required. Run npm run test:security for real production HTTPS yard/editor/CSP checks and npm run test:startup-privacy for application/migration/fatal diagnostic redaction. See [policy scope](docs/operations.md#browser-content-policy-and-private-diagnostics). Remaining monitoring, sustained soak, real-device/human and hosting gates still apply.
+
+## Aggregate release diagnostics
+
+Service metric windows now expose failed request/lifecycle counts, confirmed committed decisions and timeouts, native worker/policy failures, active matches/seats and oldest unpublished-event age with explicit freshness. The real resource/load fixtures verify these against actual requests and durable rows. See [metric definitions and limits](docs/operations.md#aggregate-release-diagnostics). Hosted collection/alerts and the required sustained reconnect soak remain separate gates.

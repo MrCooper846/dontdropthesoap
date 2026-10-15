@@ -1,3 +1,4 @@
+import { countOnCommit } from "../persistence/db";
 import { assertCoordinatorFresh } from "../persistence/coordinator-lease";
 import { reconcileLeagueMatch } from "../league/settlement";
 import type { PoolClient } from "pg";
@@ -77,11 +78,16 @@ export async function saveMatch(
         "INSERT INTO pairings(id,match_id,round_number,a_seat_id,b_seat_id) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING",
         [p.id, m.id, m.round, p.a, p.b],
       );
-    for (const [seatId, d] of Object.entries(m.moves))
-      await db.query(
-        "INSERT INTO moves(match_id,round_number,seat_id,move,source,accepted_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING",
+    for (const [seatId, d] of Object.entries(m.moves)) {
+      const inserted = await db.query(
+        "INSERT INTO moves(match_id,round_number,seat_id,move,source,accepted_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING source",
         [m.id, m.round, seatId, d.move, d.source, new Date(d.acceptedAt)],
       );
+      if (inserted.rowCount) {
+        countOnCommit(db, "move.recorded");
+        if (d.source === "timeout") countOnCommit(db, "move.timeout");
+      }
+    }
   }
   for (const r of m.results)
     await db.query(

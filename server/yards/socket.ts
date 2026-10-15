@@ -1,3 +1,4 @@
+import { increment } from "../observability/metrics";
 import { ExpiringMap } from "../lifecycle/expiring";
 import { serviceWork } from "../lifecycle/work";
 import type { Namespace, Socket } from "socket.io";
@@ -58,6 +59,7 @@ export function attachYard(socket: Socket, game: Namespace) {
           ownerId,
         )
         .catch((e) => {
+          increment("socket.rejected");
           if (typeof ack === "function") ack(failure(e));
         });
     });
@@ -70,13 +72,17 @@ export function attachYard(socket: Socket, game: Namespace) {
       .parse(input);
     const p = await authenticate(socket.request);
     if (p.epoch !== controllerEpoch) throw new RuleError("CONTROLLER_STALE");
+    const returning =
+      yard.has(p.ownerId) && !yard.controls(p.ownerId, socket.id, p.epoch);
     yard.enter(p.ownerId, p.name, socket.id, p.epoch, Date.now());
     socket.data.yard = true;
     await socket.join("yard");
     try {
       await refreshWorld();
       await refreshBlocks();
-      return { snapshot: snapshot(), chat: await chatHistory(ownerId) };
+      const chat = await chatHistory(ownerId);
+      if (returning) increment("yard.reconnected");
+      return { snapshot: snapshot(), chat };
     } catch (error) {
       yard.leave(ownerId, socket.id);
       socket.data.yard = false;

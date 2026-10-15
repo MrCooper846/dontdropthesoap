@@ -1,3 +1,4 @@
+import { increment } from "./observability/metrics";
 import { ExpiringMap } from "./lifecycle/expiring";
 import { matchesOpen } from "./operators/maintenance";
 import { publicLeagueHttp, leagueHttp } from "./league/http";
@@ -29,6 +30,14 @@ import {
 } from "./commands/matches";
 import { RuleError } from "../domain/match/model";
 export function json(res: ServerResponse, status: number, data: unknown) {
+  const rejected =
+    status >= 400 ||
+    (data !== null &&
+      typeof data === "object" &&
+      "ok" in data &&
+      data.ok === false);
+  if (rejected && res.req?.url?.startsWith("/api/v1/"))
+    increment("http.rejected");
   res.writeHead(status, {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
