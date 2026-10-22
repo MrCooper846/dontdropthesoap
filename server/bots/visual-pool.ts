@@ -170,7 +170,9 @@ export class VisualPool {
             typeof message.error?.code === "string"
               ? message.error.code
               : "BOT_ERROR",
-            "Visual decision failed",
+            message.ok !== true && message.error?.code === "NUMERIC_LIMIT"
+              ? "Numeric overflow: a calculation produced a number too large to use. Reduce the numbers in your arithmetic or memory blocks."
+              : "Visual decision failed",
           ),
         );
         if (message.ok) {

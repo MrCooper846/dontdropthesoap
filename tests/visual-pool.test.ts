@@ -100,3 +100,33 @@ it("rejects malformed native worker output without crashing the parent loop", as
     await pool.close();
   }
 });
+
+it("explains arithmetic overflow and keeps the worker usable for the next decision", async () => {
+  const pool = new VisualPool({ size: 1 });
+  const overflow = validateProgram({
+    schemaVersion: 1,
+    memory: { counter: 1e308 },
+    decision: {
+      op: "set",
+      name: "counter",
+      value: {
+        op: "add",
+        left: { op: "memory", name: "counter" },
+        right: 1e308,
+      },
+      next: { op: "return", move: "C" },
+    },
+  });
+  try {
+    await expect(
+      pool.run({ program: overflow, observation }),
+    ).rejects.toMatchObject({
+      code: "NUMERIC_LIMIT",
+      message:
+        "Numeric overflow: a calculation produced a number too large to use. Reduce the numbers in your arithmetic or memory blocks.",
+    });
+    expect((await pool.run({ program, observation })).move).toBe("C");
+  } finally {
+    await pool.close();
+  }
+});
