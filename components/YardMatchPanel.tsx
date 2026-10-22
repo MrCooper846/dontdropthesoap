@@ -32,7 +32,10 @@ export default function YardMatchPanel({
       trace_json: string[];
     }[]
   >([]);
+  const [showAllFeedback, setShowAllFeedback] = useState(false);
   useEffect(() => {
+    setFeedback([]);
+    setShowAllFeedback(false);
     if (own?.kind !== "visual") {
       setFeedback([]);
       return;
@@ -204,7 +207,22 @@ export default function YardMatchPanel({
           <Link href={"/bots/build?bot=" + own.botId + "&match=" + match.id}>
             Edit for the next game
           </Link>
-          {feedback.slice(0, 5).map((d) => (
+          <p className="muted" role="status">
+            {showAllFeedback
+              ? `Showing all ${feedback.length} recorded decisions.`
+              : `Showing latest ${Math.min(5, feedback.length)} of ${feedback.length} recorded decisions.`}
+          </p>
+          {feedback.length > 5 && (
+            <button
+              className="button small"
+              onClick={() => setShowAllFeedback(!showAllFeedback)}
+            >
+              {showAllFeedback
+                ? "Show latest 5 decisions"
+                : "Show older decisions"}
+            </button>
+          )}
+          {(showAllFeedback ? feedback : feedback.slice(0, 5)).map((d) => (
             <details key={d.round_number}>
               <summary>
                 Round {d.round_number} ·{" "}

@@ -10,6 +10,11 @@ import { origin, evidenceRoot } from "./config";
 import { Store } from "./store";
 import { enter, walk, pane } from "../../tests/browser/yard/helpers";
 import { z } from "zod";
+export function labelledSelect(page: Page, label: string) {
+  // Restrict label matches to actual form selects; Blockly SVG text also has labels.
+  // Wrapped labels can include their option text, so accept the stable label prefix.
+  return page.getByRole("combobox").and(page.getByLabel(label));
+}
 const target = z
   .object({
     role: z.enum(["button", "link", "textbox", "combobox", "heading"]),
@@ -208,9 +213,9 @@ export class Player {
             .getByLabel(action.label, { exact: true })
             .fill(action.value);
         if (action.op === "select")
-          await this.page
-            .getByLabel(action.label, { exact: true })
-            .selectOption(action.value);
+          await labelledSelect(this.page, action.label).selectOption(
+            action.value,
+          );
         if (action.op === "press") await this.page.keyboard.press(action.key);
         if (action.op === "goto") await this.page.goto(action.path);
         if (action.op === "walk") await walk(this.page, action.x, action.y);

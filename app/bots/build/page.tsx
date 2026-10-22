@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BlocklyEditor from "../../../client/bots/BlocklyEditor";
 import { starter } from "../../../shared/bots/presets";
@@ -24,6 +24,15 @@ export default function Builder() {
       null,
     ),
     [preset, setPreset] = useState("cooperate");
+  const previewRead = useRef(0);
+  const practiceRoundError =
+    Number.isInteger(round) && round >= 1 && round <= 50
+      ? ""
+      : "Practice round must be a whole number from 1 to 50.";
+  useEffect(() => {
+    previewRead.current++;
+    setPreview(null);
+  }, [workspace, round, scenario]);
   let summary = "",
     validation = "";
   try {
@@ -289,34 +298,45 @@ export default function Builder() {
                   type="number"
                   min={1}
                   max={50}
+                  step={1}
+                  aria-invalid={!!practiceRoundError}
+                  aria-describedby={
+                    practiceRoundError ? "practice-round-error" : undefined
+                  }
                   value={round}
                   onChange={(e) => setRound(Number(e.target.value))}
                 />
               </label>
+              {practiceRoundError && (
+                <p id="practice-round-error" role="alert" className="danger">
+                  {practiceRoundError}
+                </p>
+              )}
               <button
                 className="button"
-                disabled={busy || !!validation}
-                onClick={() =>
-                  void run(async (epoch) =>
-                    setPreview(
-                      await api("/bots/preview", {
-                        controllerEpoch: epoch,
-                        workspace,
-                        observation: {
-                          round,
-                          ownScore: 0,
-                          opponentScore: 0,
-                          lastOpponentMove:
-                            scenario === "none" ? null : scenario,
-                          ownCooperations: 0,
-                          ownBetrayals: 0,
-                          opponentCooperations: scenario === "C" ? 1 : 0,
-                          opponentBetrayals: scenario === "D" ? 1 : 0,
-                        },
-                      }),
-                    ),
-                  )
-                }
+                disabled={busy || !!validation || !!practiceRoundError}
+                onClick={() => {
+                  if (practiceRoundError) return;
+                  setPreview(null);
+                  const read = ++previewRead.current;
+                  void run(async (epoch) => {
+                    const result = await api("/bots/preview", {
+                      controllerEpoch: epoch,
+                      workspace,
+                      observation: {
+                        round,
+                        ownScore: 0,
+                        opponentScore: 0,
+                        lastOpponentMove: scenario === "none" ? null : scenario,
+                        ownCooperations: 0,
+                        ownBetrayals: 0,
+                        opponentCooperations: scenario === "C" ? 1 : 0,
+                        opponentBetrayals: scenario === "D" ? 1 : 0,
+                      },
+                    });
+                    if (read === previewRead.current) setPreview(result);
+                  });
+                }}
               >
                 Test decision
               </button>
