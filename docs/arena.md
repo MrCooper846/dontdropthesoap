@@ -123,3 +123,6 @@ The database and overseer were stopped/restarted; existing game records, issue o
 Harness-development failures and the intentional ledger self-check remain recorded with dismissal notes. No confirmed game defect was found by the final passing scenarios. This is a starting regression set plus an agent control surface; broader exploratory sessions and additional adversarial game scenarios remain useful work.
 
 Harness validation utilities: `npx tsx scripts/arena/verify-agents.ts` runs a complete two-controller bot deployment; `npx tsx scripts/arena/verify.ts before` sets up the control/ledger checkpoint, and `after` verifies it following a deliberate arena-only database/overseer restart. Run these only when no other arena session is active. They preserve labelled validation history rather than deleting it.
+
+
+The first actual parallel-agent exploration is recorded in [the 22 October findings](arena-exploration-2026-10-22.md), including six open issues and an independent audit of three completed games.
