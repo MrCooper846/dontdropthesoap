@@ -48,7 +48,11 @@ async function main() {
       exact: true,
     });
     const preview = a.page.getByLabel("Practice result", { exact: true });
-    await test.click();
+    const practice = async () => {
+      await delay(600);
+      await test.click();
+    };
+    await practice();
     await expect(preview).toContainText("Cooperate");
     for (const invalid of ["0", "1.5", "51", ""]) {
       await a.page.getByLabel("Practice round", { exact: true }).fill(invalid);
@@ -62,13 +66,13 @@ async function main() {
       await expect(preview).toHaveCount(0);
     }
     await a.page.getByLabel("Practice round", { exact: true }).fill("1");
-    await test.click();
+    await practice();
     await expect(preview).toContainText("Cooperate");
     await labelledSelect(a.page, "Opponent last revealed move").selectOption(
       "D",
     );
     await expect(preview).toHaveCount(0);
-    await test.click();
+    await practice();
     await expect(preview).toContainText("Cooperate");
     await labelledSelect(a.page, "Starter strategy").selectOption("betray");
     await a.page
@@ -87,7 +91,7 @@ async function main() {
     const requested = a.page.waitForRequest((r) =>
       r.url().endsWith("/bots/preview"),
     );
-    await test.click();
+    await practice();
     await requested;
     await a.page.getByLabel("Practice round", { exact: true }).fill("2");
     const returned = a.page.waitForResponse((r) =>
@@ -98,7 +102,7 @@ async function main() {
     await expect(test).toBeEnabled();
     await expect(preview).toHaveCount(0);
     await a.page.unroute("**/api/v1/bots/preview");
-    await test.click();
+    await practice();
     await expect(preview).toContainText("Betray");
     // Published revision stays Cooperate; the draft practice edits are separate.
     const rival = await b.publish("betray", "History betrayer");
