@@ -14,6 +14,12 @@ import type {
 } from "../../shared/yard/types";
 import type { Snapshot } from "../../shared/protocol/commands";
 import { distance } from "../../shared/yard/map";
+import {
+  type OwnedMatch,
+  preferredOwnedMatch,
+  matchSettingsError,
+  isActiveMatch,
+} from "../../shared/yard/matches";
 type Bot = { id: string; name: string; online: boolean; kind: string };
 export default function YardPage() {
   type Pane =
@@ -100,6 +106,8 @@ export default function YardPage() {
     [busy, setBusy] = useState(false),
     [circleId, setCircleId] = useState(""),
     [match, setMatch] = useState<Snapshot | null>(null),
+    [ownedMatch, setOwnedMatch] = useState<Snapshot | null>(null),
+    [myMatches, setMyMatches] = useState<OwnedMatch[]>([]),
     [bots, setBots] = useState<Bot[]>([]),
     [botId, setBotId] = useState(""),
     [rounds, setRounds] = useState(10),
@@ -115,6 +123,9 @@ export default function YardPage() {
     sessionRef = useRef(session),
     enteredRef = useRef(false),
     matchRef = useRef(""),
+    ownedMatchRef = useRef(""),
+    myMatchesRead = useRef(0),
+    restoreOwnedView = useRef(false),
     enterWork = useRef(false),
     seenInvites = useRef(new Set<string>()),
     inviteMatch = useRef("");
@@ -222,15 +233,43 @@ export default function YardPage() {
         setCircleId(observed.circleId ?? "");
         await watch(requested);
       }
+      await refreshMyMatches(true);
     } finally {
       enterWork.current = false;
     }
   }
   function acceptMatch(next: Snapshot) {
+    if (next.id === ownedMatchRef.current)
+      setOwnedMatch((old) =>
+        old && old.id === next.id && old.version > next.version ? old : next,
+      );
     if (next.id !== matchRef.current) return;
     setMatch((old) =>
       old && old.id === next.id && old.version > next.version ? old : next,
     );
+  }
+  async function refreshMyMatches(restore = false) {
+    if (restore) restoreOwnedView.current = true;
+    const read = ++myMatchesRead.current;
+    const response = await api("/matches/mine");
+    if (read !== myMatchesRead.current) return;
+    const matches = response.matches as OwnedMatch[];
+    setMyMatches(matches);
+    const preferred = preferredOwnedMatch(matches, ownedMatchRef.current);
+    if (!preferred) {
+      ownedMatchRef.current = "";
+      restoreOwnedView.current = false;
+      setOwnedMatch(null);
+      return;
+    }
+    ownedMatchRef.current = preferred.id;
+    const next = await api("/matches/" + preferred.id + "/observation");
+    if (read !== myMatchesRead.current) return;
+    acceptMatch(next);
+    if (restoreOwnedView.current) {
+      restoreOwnedView.current = false;
+      if (!matchRef.current) await watch(preferred.id);
+    }
   }
   async function watch(id: string) {
     openPane("match");
@@ -245,10 +284,6 @@ export default function YardPage() {
     const selected = view?.circles.find((c) => c.id === id);
     if (selected?.mode === "human") setBotId("");
     if (selected?.matchId) await watch(selected.matchId);
-    else {
-      matchRef.current = "";
-      setMatch(null);
-    }
     openPane("circle");
   }
   useEffect(() => {
@@ -346,6 +381,7 @@ export default function YardPage() {
           acceptMatch(
             await api("/matches/" + matchRef.current + "/observation"),
           );
+        await refreshMyMatches();
       } catch (e) {
         if (!cancelled && online)
           setError(e instanceof Error ? e.message : String(e));
@@ -369,6 +405,7 @@ export default function YardPage() {
   }
   async function joinCircle() {
     const circle = view!.circles.find((c) => c.id === circleId)!;
+    if (!circle.matchId && settingsError) throw new Error(settingsError);
     const { key } = await api("/command-keys", {});
     const c = {
       key,
@@ -393,6 +430,7 @@ export default function YardPage() {
       });
       await watch(created.id);
     }
+    await refreshMyMatches();
   }
   async function command(type: string, payload: unknown) {
     if (!match) return;
@@ -443,18 +481,27 @@ export default function YardPage() {
       );
   }
   useEffect(() => {
-    const own = match?.seats.find((seat) => seat.id === match.ownSeatId);
-    const key = match?.id + ":" + match?.round + ":" + match?.phase;
+    const own = ownedMatch?.seats.find(
+      (seat) => seat.id === ownedMatch.ownSeatId,
+    );
+    const key =
+      ownedMatch?.id + ":" + ownedMatch?.round + ":" + ownedMatch?.phase;
     if (
       own?.kind === "human" &&
       !own.abandoned &&
-      match?.phase === "collecting" &&
+      ownedMatch?.phase === "collecting" &&
       announcedRound.current !== key
     ) {
       announcedRound.current = key;
-      setPane("match");
+      void run(() => watch(ownedMatch.id));
     }
-  }, [match?.id, match?.round, match?.phase, match?.ownSeatId]);
+  }, [
+    ownedMatch?.id,
+    ownedMatch?.round,
+    ownedMatch?.phase,
+    ownedMatch?.ownSeatId,
+  ]);
+  const settingsError = matchSettingsError(rounds, seconds, maxSeats);
   const me = view?.players.find((p) => p.ownerId === session?.ownerId),
     selected = view?.circles.find((c) => c.id === circleId),
     near = !!me && !!selected && distance(me, selected) <= selected.radius + 32;
@@ -724,6 +771,33 @@ export default function YardPage() {
                       </small>
                     </button>
                   ))}
+                  <h3>Your recent tables</h3>
+                  <p className="muted">
+                    Your active games and latest results stay here when you
+                    leave the yard or edit a bot.
+                  </p>
+                  {myMatches.length === 0 && <p>No tables yet.</p>}
+                  {myMatches.map((recent) => (
+                    <button
+                      className="button"
+                      key={recent.id}
+                      onClick={() => void run(() => watch(recent.id))}
+                    >
+                      Open {recent.name} ·{" "}
+                      {view.circles.find((c) => c.id === recent.circleId)
+                        ?.name ?? "Table"}{" "}
+                      ·{" "}
+                      {isActiveMatch(recent.phase)
+                        ? recent.phase
+                        : recent.phase === "finished"
+                          ? "results"
+                          : recent.phase}{" "}
+                      · {recent.score} noodles
+                      <small>
+                        {new Date(recent.createdAt).toLocaleString()}
+                      </small>
+                    </button>
+                  ))}
                 </section>
                 {selected && (
                   <section
@@ -746,7 +820,9 @@ export default function YardPage() {
                       {selected.settings.rounds} rounds ·{" "}
                       {selected.settings.decisionMs / 1000}s decisions
                     </p>
-                    {(!match || !match.ownSeatId) &&
+                    {(!match ||
+                      match.id !== selected.matchId ||
+                      !match.ownSeatId) &&
                       selected.phase !== "collecting" &&
                       selected.phase !== "revealing" &&
                       selected.phase !== "countdown" && (
@@ -783,6 +859,12 @@ export default function YardPage() {
                                   min={5}
                                   max={50}
                                   value={rounds}
+                                  aria-invalid={
+                                    !Number.isInteger(rounds) ||
+                                    rounds < 5 ||
+                                    rounds > 50
+                                  }
+                                  aria-describedby="yard-settings-error"
                                   onChange={(e) =>
                                     setRounds(Number(e.target.value))
                                   }
@@ -796,6 +878,12 @@ export default function YardPage() {
                                   min={5}
                                   max={60}
                                   value={seconds}
+                                  aria-invalid={
+                                    !Number.isInteger(seconds) ||
+                                    seconds < 5 ||
+                                    seconds > 60
+                                  }
+                                  aria-describedby="yard-settings-error"
                                   onChange={(e) =>
                                     setSeconds(Number(e.target.value))
                                   }
@@ -809,6 +897,12 @@ export default function YardPage() {
                                   min={2}
                                   max={8}
                                   value={maxSeats}
+                                  aria-invalid={
+                                    !Number.isInteger(maxSeats) ||
+                                    maxSeats < 2 ||
+                                    maxSeats > 8
+                                  }
+                                  aria-describedby="yard-settings-error"
                                   onChange={(e) =>
                                     setMaxSeats(Number(e.target.value))
                                   }
@@ -816,11 +910,21 @@ export default function YardPage() {
                               </label>
                             </details>
                           )}
+                          {!selected.matchId && settingsError && (
+                            <p
+                              id="yard-settings-error"
+                              role="status"
+                              className="danger"
+                            >
+                              {settingsError}
+                            </p>
+                          )}
                           <button
                             className="button primary"
                             disabled={
                               busy ||
                               !near ||
+                              (!selected.matchId && !!settingsError) ||
                               selected.seatCount >= selected.settings.maxSeats
                             }
                             onClick={() => void run(joinCircle)}
@@ -873,6 +977,8 @@ export default function YardPage() {
                             disabled={busy || !near || distance(me!, p) > 256}
                             onClick={() =>
                               void run(async () => {
+                                if (settingsError)
+                                  throw new Error(settingsError);
                                 await resource("/challenges", {
                                   ownerId: p.ownerId,
                                   ...(botId ? { botId } : {}),
@@ -1071,11 +1177,19 @@ export default function YardPage() {
                   )}
                 </button>
               ))}
-              {match && (
+              {(ownedMatch || match) && (
                 <TableDockButton
-                  match={match}
-                  open={pane === "match"}
-                  onToggle={() => openPane(pane === "match" ? null : "match")}
+                  match={(ownedMatch || match)!}
+                  open={
+                    pane === "match" && match?.id === (ownedMatch || match)!.id
+                  }
+                  onToggle={() => {
+                    const target = ownedMatch || match;
+                    if (!target) return;
+                    if (pane === "match" && match?.id === target.id)
+                      setPane(null);
+                    else void run(() => watch(target.id));
+                  }}
                 />
               )}
             </nav>
@@ -1113,6 +1227,7 @@ function TableDockButton({
   return (
     <button
       className="button small primary yard-table-button"
+      aria-label={match.ownSeatId ? "My table" : "Watching table"}
       aria-expanded={open}
       onClick={onToggle}
     >

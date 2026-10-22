@@ -13,6 +13,7 @@ export default function Builder() {
     [loadToken, setLoadToken] = useState(0),
     [name, setName] = useState("My first strategy"),
     [botId, setBotId] = useState(""),
+    [returnMatch, setReturnMatch] = useState(""),
     [revision, setRevision] = useState(0),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -45,6 +46,9 @@ export default function Builder() {
   }
   useEffect(() => {
     let stopped = false;
+    const requestedMatch = new URLSearchParams(location.search).get("match");
+    if (requestedMatch && /^[a-f0-9-]{36}$/i.test(requestedMatch))
+      setReturnMatch(requestedMatch);
     void (async () => {
       const response = await fetch("/api/v1/session");
       if (!response.ok) return;
@@ -128,7 +132,10 @@ export default function Builder() {
         <Link className="button" href="/bots">
           Your bots
         </Link>
-        <Link className="button" href="/yard">
+        <Link
+          className="button"
+          href={"/yard" + (returnMatch ? "?match=" + returnMatch : "")}
+        >
           Back to yard
         </Link>
       </header>
@@ -234,7 +241,9 @@ export default function Builder() {
                     history.replaceState(
                       null,
                       "",
-                      "/bots/build?bot=" + result.id,
+                      "/bots/build?bot=" +
+                        result.id +
+                        (returnMatch ? "&match=" + returnMatch : ""),
                     );
                   })
                 }
@@ -243,7 +252,14 @@ export default function Builder() {
               </button>
               {saved && <p role="status">{saved}</p>}
               {botId && (
-                <Link className="button" href={"/yard?bot=" + botId}>
+                <Link
+                  className="button"
+                  href={
+                    "/yard?bot=" +
+                    botId +
+                    (returnMatch ? "&match=" + returnMatch : "")
+                  }
+                >
                   Enter bot in the yard
                 </Link>
               )}

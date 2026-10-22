@@ -126,3 +126,12 @@ Harness validation utilities: `npx tsx scripts/arena/verify-agents.ts` runs a co
 
 
 The first actual parallel-agent exploration is recorded in [the 22 October findings](arena-exploration-2026-10-22.md), including six open issues and an independent audit of three completed games.
+
+
+## Six-finding regression check
+
+Run `npx tsx scripts/arena/verify-six-fixes.ts` against the running, otherwise idle arena to exercise the first exploration's fixes. It publishes and seats two bots with a human, checks independent-owner history visibility, preserves My table while inspecting an empty circle, round-trips through the editor/reload, reopens recent results, rejects invalid settings with field guidance, checks challenge rejection wording and active Clanker status, and deliberately times the human out to verify automatic-Cooperate feedback. It uses a fresh arena run and identities and preserves its game data/evidence. It does not clear other tests' records.
+
+The yard now keeps its owned-table dock independently of its currently watched/inspected table. Tables includes Your recent tables, supplied by an authenticated owner-filtered listing. The human entrant's active game takes dock priority if an owner is also fielding a bot. My table has a stable accessible label for agents. Result decision-source metadata is public only after resolution; a locked choice's own source remains private to its seat.
+
+On22October, run `989136ca-f7e4-4283-a128-3e005dd2fd04` passed all six reproduction checks and history ownership isolation. TypeScript, formatting and113 unit tests passed. Independent agent re-verification follows this checkpoint; original findings stay under investigation until that verification.

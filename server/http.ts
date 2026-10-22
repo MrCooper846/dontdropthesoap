@@ -1,5 +1,6 @@
 import { externalVersionsHttp } from "./bots/external-versions";
 import { resultsPage } from "./matches/results";
+import { ownedMatches } from "./matches/owned";
 import { beginRequest, httpFailure } from "./observability/diagnostics";
 import { increment } from "./observability/metrics";
 import { ExpiringMap } from "./lifecycle/expiring";
@@ -207,6 +208,10 @@ export async function api(
     }
     if (path === "/matches" && method === "POST") {
       json(res, 201, await newMatch(req, await body(req)));
+      return true;
+    }
+    if (path === "/matches/mine" && method === "GET") {
+      json(res, 200, await ownedMatches(principal.ownerId));
       return true;
     }
     if (path === "/matches" && method === "GET") {

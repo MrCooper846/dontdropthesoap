@@ -42,6 +42,8 @@ export type Result = {
   b: string;
   aMove: Move;
   bMove: Move;
+  aSource?: Decision["source"];
+  bSource?: Decision["source"];
   aNet: number;
   bNet: number;
   message: string;

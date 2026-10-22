@@ -144,8 +144,12 @@ export default function YardMatchPanel({
           .map((r) => (
             <div className="lockCard" key={r.pairId}>
               <strong>
-                {match.seats.find((s) => s.id === r.a)?.name}: {r.aMove} vs{" "}
-                {match.seats.find((s) => s.id === r.b)?.name}: {r.bMove}
+                {match.seats.find((s) => s.id === r.a)?.name}: {r.aMove}
+                {r.aSource === "timeout" &&
+                  " (automatic Cooperate — timed out)"}{" "}
+                vs {match.seats.find((s) => s.id === r.b)?.name}: {r.bMove}
+                {r.bSource === "timeout" &&
+                  " (automatic Cooperate — timed out)"}
               </strong>
               <p>{r.message}</p>
               <span>
@@ -172,9 +176,19 @@ export default function YardMatchPanel({
                   ? "left"
                   : s.botError
                     ? "bot error · timeout Cooperate if no decision"
-                    : s.ready
-                      ? "ready"
-                      : "not ready"}
+                    : s.kind === "system"
+                      ? terminal
+                        ? "system player · finished"
+                        : "system player · playing"
+                      : match.phase === "waiting"
+                        ? s.ready
+                          ? "ready"
+                          : "not ready"
+                        : terminal
+                          ? "finished"
+                          : "playing"}
+                {s.timeouts > 0 &&
+                  ` · ${s.timeouts} automatic Cooperate (${s.timeouts === 1 ? "missed deadline" : "missed deadlines"})`}
               </span>
             </li>
           ))}
@@ -187,7 +201,7 @@ export default function YardMatchPanel({
             Private feedback for your frozen match strategy. Editing publishes a
             version for later games.
           </p>
-          <Link href={"/bots/build?bot=" + own.botId}>
+          <Link href={"/bots/build?bot=" + own.botId + "&match=" + match.id}>
             Edit for the next game
           </Link>
           {feedback.slice(0, 5).map((d) => (
@@ -246,7 +260,16 @@ export default function YardMatchPanel({
           </button>
         </>
       )}
-      {terminal && <p>Return to the yard or arrange another game.</p>}
+      {own?.kind === "human" && own.timeouts > 0 && (
+        <p role="status">
+          You missed {own.timeouts} decision{" "}
+          {own.timeouts === 1 ? "deadline" : "deadlines"}. Those rounds used
+          automatic Cooperate.
+        </p>
+      )}
+      {terminal && (
+        <p>Reopen these results from Your recent tables in Tables.</p>
+      )}
     </section>
   );
 }

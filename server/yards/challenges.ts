@@ -85,7 +85,10 @@ export async function challengeHttp(
             )
           ).rowCount
         )
-          throw new RuleError("CAPACITY_FULL");
+          throw new RuleError(
+            "CAPACITY_FULL",
+            "This circle already has a game. Wait for it to finish or choose an empty circle before sending a challenge.",
+          );
         await seatCaps(db, p, data.botId);
         if (data.botId) await entrant(db, p, data.botId);
         const id = randomUUID(),
@@ -174,7 +177,10 @@ export async function challengeHttp(
             )
           ).rowCount
         )
-          throw new RuleError("CAPACITY_FULL");
+          throw new RuleError(
+            "CAPACITY_FULL",
+            "This circle now has a game. Choose an empty circle and send a new challenge.",
+          );
         await requireTableCapacity(db);
         const matchId = randomUUID(),
           m = createMatch(

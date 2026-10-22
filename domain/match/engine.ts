@@ -231,6 +231,8 @@ function resolve(m: Match, now: number) {
       b: p.b,
       aMove: am,
       bMove: bm,
+      aSource: m.moves[p.a].source,
+      bSource: m.moves[p.b].source,
       aNet: an,
       bNet: bn,
       message,
@@ -326,7 +328,15 @@ export function project(
     lockedCount: Object.keys(m.moves).length,
     ownSeatId: ownSeat?.id ?? null,
     ownMove: ownSeat ? (m.moves[ownSeat.id]?.move ?? null) : null,
-    results: m.results.map((r) => ({ ...r })),
+    ownMoveSource: ownSeat ? (m.moves[ownSeat.id]?.source ?? null) : null,
+    results: m.results.map((r) => ({
+      ...r,
+      // Older persisted games can recover the last round's source from moves.
+      aSource:
+        r.aSource ?? (r.round === m.round ? m.moves[r.a]?.source : undefined),
+      bSource:
+        r.bSource ?? (r.round === m.round ? m.moves[r.b]?.source : undefined),
+    })),
     ...(visible
       ? {
           revealedMoves: Object.fromEntries(
