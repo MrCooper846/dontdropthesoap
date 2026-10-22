@@ -140,3 +140,8 @@ On 22 October, run `989136ca-f7e4-4283-a128-3e005dd2fd04` passed all six reprodu
 ## Spectator shortcut verification
 
 Commit `14d8d5d` retains Watching separately from My table across in-yard panels and table switches. Three independent agents verified the fix, including background updates to completed results. They played three further games, including simultaneous human/bot tables, departure/rejoin and revised-bot rematches. The independent 35-round/70-move audit passed. One new open usability issue concerns Bot playing on an abandoned seat. See the [spectator verification report](arena-spectator-verification-2026-10-22.md) for evidence and limits.
+
+
+## Bot maker exploration
+
+Commit `1213bea` labels departed active seats Left table before showing Results at completion. The arena selector in `90d18d0` uses exact labels for editor controls. Three agents built distinct custom bots through the actual maker: round threshold, persistent counter and 25% random cooperation. Two games passed independent scoring and custom-decision audits (15 rounds, 40 moves); departure/reload/result labels passed, with no new confirmed finding. See the [bot maker report](arena-bot-maker-verification-2026-10-22.md) for evidence and coverage.

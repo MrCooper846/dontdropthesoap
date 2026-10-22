@@ -43,3 +43,8 @@ Cora also verified that Watching updated to Results while the owned table was op
 The local persistent ledger retains the resolved spectator issue and new open label issue. Screenshots, action history, browser traces, `independent-audit.json` and `report.json` are saved under `data/arena/34635606-a083-498a-bf5a-a81eebccdb12/`. Player contexts are closed; the arena, database and overseer remain running. The session outcome is failed to reflect the new open usability finding, despite passing spectator checks and scoring audits.
 
 This session covered desktop multiplayer and bot interactions, without microphone, touch or physical-device testing.
+
+
+## Follow-up
+
+The abandoned-bot label issue was fixed in `1213bea` and verified during a subsequent session using custom bots built through the editor. See the [bot maker report](arena-bot-maker-verification-2026-10-22.md). No new confirmed finding was identified in that pass.
