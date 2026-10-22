@@ -1238,9 +1238,11 @@ function TableDockButton({
       ? "Waiting"
       : match.phase === "finished"
         ? "Results"
-        : own?.kind === "visual" || own?.kind === "external"
-          ? "Bot playing"
-          : match.phase;
+        : own?.abandoned
+          ? "Left table"
+          : own?.kind === "visual" || own?.kind === "external"
+            ? "Bot playing"
+            : match.phase;
   return (
     <button
       className="button small primary yard-table-button"
