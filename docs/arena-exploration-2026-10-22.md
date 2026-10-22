@@ -65,3 +65,8 @@ Independent audit recomputes each pair's payoff, sums each seat's score, checks 
 All three games completed. The independent audit passed **20 rounds, 30 pair-results and 60 persisted moves**, with no score/pairing duplication found. Both autonomous visual-bot entrants had zero timeouts in every completed game. The mixed human entrant had six deadline defaults, including deliberate timeout checks and navigation/tool delays; these are not reported as bot or server failures.
 
 The session is marked `failed` to flag the six open product findings, not because a game crashed or the audit failed. All three player contexts have been closed and their traces saved; the arena/overseer remain running and all database history is preserved. The final JSON report includes the run, players, all383 events, issue occurrences, game image identity and independent audit. No game or harness source changes were made during exploration.
+
+
+## Follow-up
+
+All six findings were fixed and independently rechecked later on 22 October. See the [fix verification report](arena-fix-verification-2026-10-22.md) for results and the new spectator-navigation finding.

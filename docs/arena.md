@@ -125,7 +125,7 @@ Harness-development failures and the intentional ledger self-check remain record
 Harness validation utilities: `npx tsx scripts/arena/verify-agents.ts` runs a complete two-controller bot deployment; `npx tsx scripts/arena/verify.ts before` sets up the control/ledger checkpoint, and `after` verifies it following a deliberate arena-only database/overseer restart. Run these only when no other arena session is active. They preserve labelled validation history rather than deleting it.
 
 
-The first actual parallel-agent exploration is recorded in [the 22 October findings](arena-exploration-2026-10-22.md), including six open issues and an independent audit of three completed games.
+The first actual parallel-agent exploration is recorded in [the 22 October findings](arena-exploration-2026-10-22.md), including six issues subsequently fixed and an independent audit of three completed games.
 
 
 ## Six-finding regression check
@@ -134,4 +134,4 @@ Run `npx tsx scripts/arena/verify-six-fixes.ts` against the running, otherwise i
 
 The yard now keeps its owned-table dock independently of its currently watched/inspected table. Tables includes Your recent tables, supplied by an authenticated owner-filtered listing. The human entrant's active game takes dock priority if an owner is also fielding a bot. My table has a stable accessible label for agents. Result decision-source metadata is public only after resolution; a locked choice's own source remains private to its seat.
 
-On22October, run `989136ca-f7e4-4283-a128-3e005dd2fd04` passed all six reproduction checks and history ownership isolation. TypeScript, formatting and113 unit tests passed. Independent agent re-verification follows this checkpoint; original findings stay under investigation until that verification.
+On 22 October, run `989136ca-f7e4-4283-a128-3e005dd2fd04` passed all six reproduction checks and history ownership isolation. TypeScript, formatting and 113 unit tests passed. Three independent agents subsequently verified all six fixes and completed four further games. Original findings are resolved; one new spectator-navigation usability issue remains open. See the [fix verification report](arena-fix-verification-2026-10-22.md) for evidence and coverage limits.
