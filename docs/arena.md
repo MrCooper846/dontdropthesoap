@@ -150,3 +150,10 @@ Commit `1213bea` labels departed active seats Left table before showing Results 
 ## Complex bot stress exploration
 
 Three agents built 19–22-block nested, history/score-based, stochastic and two-memory strategies through the actual maker, then played two maximum-length 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; revisions stayed frozen and fresh-game memory reset passed. Two open usability findings concern the undisclosed five-decision feedback window and generic invalid-practice failure beside stale results. A selector limitation is separately recorded as harness needs-triage. See the [complex bot stress report](arena-complex-bot-stress-2026-10-22.md) for evidence, coverage and the controller fallback used.
+
+
+## Stress-finding fix verification
+
+Commit `a1d73c8` adds disclosed/expandable bot feedback, practice-round validation and stale-response protection, and stable labelled dropdown selection. Run `npx tsx scripts/arena/verify-stress-fixes.ts` against an otherwise idle arena to check all three fixes, including delayed preview responses and a real 12-round game. The driver respects the two-previews-per-second limit and preserves its records.
+
+The browser regression passed, followed by three independent agents building fresh complex bots and playing two 50-round games. All 400 moves and 300 visual decisions passed scoring and strategy replay with zero timeouts; history expansion/collapse/reset, practice guidance/clearing and short selectors passed. Original findings are resolved. One new open usability finding concerns generic arithmetic-overflow practice diagnostics. See the [stress fix verification report](arena-stress-fix-verification-2026-10-22.md).

@@ -72,3 +72,8 @@ The two game-interface findings remain open in the persistent overseer ledger, a
 All three synthetic players are closed, and browser traces are saved. The local arena, database and overseer remain running. Evidence is retained under `data/arena/9dde9bd3-808a-42a1-ab30-9e98b848b6f4/`: screenshots, action history, browser traces, `report.json`, `independent-audit.json`, `complex-bot-audit.json` and `bot-evidence.json`. Read-only audit helpers are retained locally alongside the arena evidence.
 
 No game source was changed during this exploratory pass. It covered substantially more complex authored programs and maximum-length games, but did not exhaust the editor's 512-node program limit, all possible block graphs, or physical-device/microphone/touch behaviour.
+
+
+## Follow-up
+
+Both UI findings and the harness selector issue were fixed and independently verified with another two 50-round complex-bot games. See the [stress fix verification report](arena-stress-fix-verification-2026-10-22.md) for the fixes, audits and newly discovered overflow diagnostic issue.
