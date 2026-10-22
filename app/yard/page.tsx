@@ -107,6 +107,7 @@ export default function YardPage() {
     [circleId, setCircleId] = useState(""),
     [match, setMatch] = useState<Snapshot | null>(null),
     [ownedMatch, setOwnedMatch] = useState<Snapshot | null>(null),
+    [spectatedMatch, setSpectatedMatch] = useState<Snapshot | null>(null),
     [myMatches, setMyMatches] = useState<OwnedMatch[]>([]),
     [bots, setBots] = useState<Bot[]>([]),
     [botId, setBotId] = useState(""),
@@ -124,6 +125,7 @@ export default function YardPage() {
     enteredRef = useRef(false),
     matchRef = useRef(""),
     ownedMatchRef = useRef(""),
+    spectatedMatchRef = useRef(""),
     myMatchesRead = useRef(0),
     restoreOwnedView = useRef(false),
     enterWork = useRef(false),
@@ -239,6 +241,15 @@ export default function YardPage() {
     }
   }
   function acceptMatch(next: Snapshot) {
+    if (!next.ownSeatId && next.id === matchRef.current)
+      spectatedMatchRef.current = next.id;
+    if (next.ownSeatId && next.id === spectatedMatchRef.current)
+      spectatedMatchRef.current = "";
+    setSpectatedMatch((old) => {
+      if (next.ownSeatId) return old?.id === next.id ? null : old;
+      if (next.id !== matchRef.current && old?.id !== next.id) return old;
+      return old?.id === next.id && old.version > next.version ? old : next;
+    });
     if (next.id === ownedMatchRef.current)
       setOwnedMatch((old) =>
         old && old.id === next.id && old.version > next.version ? old : next,
@@ -380,6 +391,13 @@ export default function YardPage() {
         if (matchRef.current)
           acceptMatch(
             await api("/matches/" + matchRef.current + "/observation"),
+          );
+        if (
+          spectatedMatchRef.current &&
+          spectatedMatchRef.current !== matchRef.current
+        )
+          acceptMatch(
+            await api("/matches/" + spectatedMatchRef.current + "/observation"),
           );
         await refreshMyMatches();
       } catch (e) {
@@ -1177,21 +1195,20 @@ export default function YardPage() {
                   )}
                 </button>
               ))}
-              {(ownedMatch || match) && (
-                <TableDockButton
-                  match={(ownedMatch || match)!}
-                  open={
-                    pane === "match" && match?.id === (ownedMatch || match)!.id
-                  }
-                  onToggle={() => {
-                    const target = ownedMatch || match;
-                    if (!target) return;
-                    if (pane === "match" && match?.id === target.id)
-                      setPane(null);
-                    else void run(() => watch(target.id));
-                  }}
-                />
-              )}
+              {[ownedMatch || (match?.ownSeatId ? match : null), spectatedMatch]
+                .filter((target): target is Snapshot => target !== null)
+                .map((target) => (
+                  <TableDockButton
+                    key={target.id}
+                    match={target}
+                    open={pane === "match" && match?.id === target.id}
+                    onToggle={() => {
+                      if (pane === "match" && match?.id === target.id)
+                        setPane(null);
+                      else void run(() => watch(target.id));
+                    }}
+                  />
+                ))}
             </nav>
           </>
         )
