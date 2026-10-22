@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width"
+  /><title>Soap arena overseer</title>
+  <style>
+    body {
+      font: 16px system-ui;
+      background: #101827;
+      color: #e6edf7;
+      margin: 24px;
+      max-width: 1400px;
+    }
+    a {
+      color: #8dc9ff;
+    }
+    section {
+      background: #1a2639;
+      padding: 18px;
+      border-radius: 10px;
+      margin: 16px 0;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    h1,
+    h2 {
+      margin: 0 0 12px;
+    }
+    article {
+      border-top: 1px solid #536279;
+      padding: 12px 0;
+    }
+    .failed,
+    .open {
+      color: #ffbd9c;
+    }
+    .passed {
+      color: #8de1b2;
+    }
+    small {
+      color: #b7c5d9;
+    }
+  </style>
+  <h1>Soap arena overseer</h1>
+  <p id="health">Connecting…</p>
+  <p>
+    Persistent local multiplayer testing.
+    <a href="https://127.0.0.1:3445/yard">Open arena game</a>. Run scenarios and
+    control players with the arena CLI.
+  </p>
+  <section>
+    <h2>Issues</h2>
+    <label
+      ><input type="checkbox" id="showClosed" /> Show resolved and
+      dismissed</label
+    >
+    <div id="issues"></div>
+  </section>
+  <section>
+    <h2>Runs</h2>
+    <div id="runs"></div>
+  </section>
+  <section>
+    <h2>Live players</h2>
+    <pre id="players"></pre>
+  </section>
+  <section>
+    <h2>Recent activity</h2>
+    <div id="events"></div>
+  </section>
+  <script>
+    const el = (id) => document.getElementById(id);
+    function block(parent, title, value, className) {
+      const a = document.createElement("article"),
+        h = document.createElement("strong"),
+        p = document.createElement("pre"),
+        details = document.createElement("details"),
+        summary = document.createElement("summary");
+      h.textContent = title;
+      h.className = className || "";
+      p.textContent = JSON.stringify(value, null, 2);
+      summary.textContent = "Details";
+      details.append(summary, p);
+      a.append(h, details);
+      parent.append(a);
+      return a;
+    }
+    async function refresh() {
+      try {
+        const r = await fetch("/api/state");
+        if (!r.ok) throw Error(r.status);
+        const s = await r.json();
+        el("health").textContent =
+          `Updated ${new Date().toLocaleTimeString()} · ${s.busy ? "Suite running" : "Ready"} · ${s.issues.filter((i) => i.status === "open" || i.status === "investigating").length} active issues`;
+        for (const id of ["issues", "runs", "events"]) el(id).replaceChildren();
+        const visibleIssues = s.issues.filter(
+          (i) =>
+            el("showClosed").checked ||
+            ["open", "investigating"].includes(i.status),
+        );
+        for (const i of visibleIssues)
+          block(
+            el("issues"),
+            `${i.status} · ${i.title} · ${i.occurrences} occurrence(s)`,
+            i,
+            i.status,
+          );
+        if (!visibleIssues.length)
+          el("issues").textContent =
+            "No active issues. Enable Show resolved and dismissed to review history.";
+        for (const r of s.runs) {
+          const a = block(
+            el("runs"),
+            `${r.status} · ${r.scenario}`,
+            r,
+            r.status,
+          );
+          if (r.ended_at && r.scenario === "multiplayer-and-deployed-bots") {
+            const link = document.createElement("a");
+            link.href = `/evidence/${r.id}/report.json`;
+            link.textContent = "Run report";
+            a.append(link);
+          }
+        }
+        el("players").textContent = JSON.stringify(s.livePlayers, null, 2);
+        for (const e of s.events.slice(0, 40))
+          block(el("events"), `${e.created_at} · ${e.kind}`, e.detail);
+      } catch (e) {
+        el("health").textContent = "Overseer unavailable: " + e;
+      }
+    }
+    el("showClosed").addEventListener("change", refresh);
+    refresh();
+    setInterval(refresh, 2500);
+  </script>
+</html>

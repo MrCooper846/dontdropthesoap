@@ -49,7 +49,16 @@
     "playtest:up": "docker compose --env-file .env.playtest -f deploy/laptop.compose.yml up -d --build --wait",
     "playtest:down": "docker compose --env-file .env.playtest -f deploy/laptop.compose.yml stop",
     "playtest:certificate": "tsx scripts/playtest-certificate.ts",
-    "test:playtest": "tsx scripts/smoke-laptop-playtest.ts"
+    "test:playtest": "tsx scripts/smoke-laptop-playtest.ts",
+    "arena:prepare": "tsx scripts/arena/main.ts prepare",
+    "arena:up": "docker compose --env-file .env.arena -f deploy/arena.compose.yml up -d --build --wait",
+    "arena:down": "docker compose --env-file .env.arena -f deploy/arena.compose.yml stop",
+    "arena:overseer": "tsx scripts/arena/main.ts serve",
+    "arena:run": "tsx scripts/arena/main.ts run",
+    "arena:status": "tsx scripts/arena/main.ts status",
+    "arena": "tsx scripts/arena/main.ts",
+    "arena:overseer:start": "tsx scripts/arena/service.ts start",
+    "arena:overseer:stop": "tsx scripts/arena/service.ts stop"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

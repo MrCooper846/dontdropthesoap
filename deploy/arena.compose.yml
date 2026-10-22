@@ -1,0 +1,58 @@
+name: soap-arena
+services:
+  db:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: soap
+      POSTGRES_DB: soap_arena
+      POSTGRES_PASSWORD: ${ARENA_DB_PASSWORD:?Run arena:prepare first}
+    ports: ["127.0.0.1:55435:5432"]
+    volumes: [arena-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soap -d soap_arena"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  game:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    init: true
+    stop_grace_period: 45s
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_ORIGIN: https://127.0.0.1:3445
+      DATABASE_URL: postgresql://soap:${ARENA_DB_PASSWORD}@db:5432/soap_arena
+      SESSION_SECRET_PEPPER: ${ARENA_SESSION_PEPPER}
+      COMMAND_KEY_SIGNING_SECRET: ${ARENA_COMMAND_SECRET}
+      FEATURE_YARD: "true"
+      FEATURE_VISUAL_BOTS: "true"
+      FEATURE_EXTERNAL_BOTS: "true"
+      FEATURE_LEAGUE: "true"
+      FEATURE_VOICE: "false"
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  web:
+    image: caddy:2.11.7-alpine
+    ports: ["127.0.0.1:3445:3445"]
+    volumes:
+      - ./arena.Caddyfile:/etc/caddy/Caddyfile:ro
+      - arena-caddy:/data
+    depends_on:
+      game: { condition: service_healthy }
+volumes:
+  arena-db:
+  arena-caddy:

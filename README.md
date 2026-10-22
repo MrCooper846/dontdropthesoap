@@ -38,6 +38,10 @@ Guest access depends on the HttpOnly session cookie. Losing that cookie loses ac
 
 Compose binds local PostgreSQL to 127.0.0.1:55432. Its sample credentials and development secrets are local-only. Production validates HTTPS and requires unique secrets. Hosting/media setup and public deployment remain separate gates.
 
+## Multiplayer arena
+
+The [local arena](docs/arena.md) gives Codex agents separate browser players, runs concurrent human and deployed-bot matches, and records issues and evidence in its own persistent local database. Start with `npm run arena:prepare`, `npm run arena:up`, `npm run arena:overseer:start`, then `npm run arena:run`. The overseer is at http://127.0.0.1:3146.
+
 ## Verification
 
 ```bash
@@ -95,21 +99,21 @@ legacy:archive leaves the source untouched and writes a versioned export, copied
 
 ## Code map
 
-| Path | Responsibility |
-| --- | --- |
-| server.ts, server/main.ts | Redacted startup boundary; authenticated HTTP/Socket.IO composition, singleton ownership, recovery and deadlines |
-| server/auth/ | Guest cookies, CSRF, session validation and controller fencing |
-| server/commands/ | Common command service, receipts, admission and match transitions |
-| server/persistence/ | PostgreSQL pool, migrations, transactions and writer lock |
-| server/matches/ | Durable state, normalized seats/moves/pairings/results and outbox |
-| domain/match/ | Deterministic rules, scoring, lifecycle and projections |
-| shared/protocol/ | Runtime-validated command contracts and snapshot types |
-| app/yard/, client/yard/ | Shared Phaser yard and accessible React social/match overlays |
-| server/yards/, domain/yard/, shared/yard/ | Presence, movement, circles, proximity recipients, challenges, block/report |
-| app/play/ | Standalone match regression screen when FEATURE_YARD=false |
-| app/lab/ | Renderer/editor lifecycle prototypes |
-| tests/ | Domain, PostgreSQL, browser and physical-recovery checks |
-| legacy-server.ts, lib/game.ts | Isolated original MVP |
+| Path                                      | Responsibility                                                                                                   |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| server.ts, server/main.ts                 | Redacted startup boundary; authenticated HTTP/Socket.IO composition, singleton ownership, recovery and deadlines |
+| server/auth/                              | Guest cookies, CSRF, session validation and controller fencing                                                   |
+| server/commands/                          | Common command service, receipts, admission and match transitions                                                |
+| server/persistence/                       | PostgreSQL pool, migrations, transactions and writer lock                                                        |
+| server/matches/                           | Durable state, normalized seats/moves/pairings/results and outbox                                                |
+| domain/match/                             | Deterministic rules, scoring, lifecycle and projections                                                          |
+| shared/protocol/                          | Runtime-validated command contracts and snapshot types                                                           |
+| app/yard/, client/yard/                   | Shared Phaser yard and accessible React social/match overlays                                                    |
+| server/yards/, domain/yard/, shared/yard/ | Presence, movement, circles, proximity recipients, challenges, block/report                                      |
+| app/play/                                 | Standalone match regression screen when FEATURE_YARD=false                                                       |
+| app/lab/                                  | Renderer/editor lifecycle prototypes                                                                             |
+| tests/                                    | Domain, PostgreSQL, browser and physical-recovery checks                                                         |
+| legacy-server.ts, lib/game.ts             | Isolated original MVP                                                                                            |
 
 Read the [game vision](docs/game-vision.md), [technical index](docs/README.md) and [execution brief](docs/goal-mode-plan.md) before extending the game. Guards, clans, payments, hosted AI inference and broader prison simulation remain outside v1.
 
@@ -155,14 +159,11 @@ The production mixed-bot workload is reproducible with npm run test:load; -- --t
 
 Per-owner work/socket budgets, absolute receive/header deadlines and global/peer TCP ceilings protect the service. npm run test:resources proves real denial and recovery on local fixtures. test:voice now automatically builds and uses an ephemeral loopback HTTPS fixture with the production backend; OpenSSL is required. See [limits and verification](docs/operations.md#owner-isolation-receive-deadlines-and-connection-limits). Deserted non-league waiting rooms now expire after fifteen minutes without connected participants; their absence timer survives restart and returning players see the reason. The subsequent privacy/CSP and sustained-soak evidence is recorded below.
 
-
 Idle limiter/controller state is bounded and pruned; expired external bot controllers explicitly reacquire. Volatile position frames avoid stale-frame queues, and reliable output has packet/byte ceilings with normal reconnect/snapshot recovery. See [ephemeral and output bounds](docs/operations.md#bounded-ephemeral-state-and-socket-output). Subsequent bounded-read, privacy/CSP and full reconnect-soak evidence is recorded below.
-
 
 ## Persistent history retention
 
 Terminal round details expire after ninety days while final scores and league standings remain. Match panels and recorded replay explain the archived state. The singleton also removes old receipts, expired keys/sessions/credentials, reports and invitations in bounded batches; retries and score uniqueness remain protected. See [retention rules and producer scope](docs/data.md#implemented-persistent-retention). Deployment backup expiry and actual-device/human gates remain pending; subsequent privacy, bounded-read and soak evidence is recorded below.
-
 
 ## Bounded metadata and social admission
 
@@ -180,8 +181,6 @@ Service metric windows now expose failed request/lifecycle counts, confirmed com
 
 After a production build and test database setup, npm run test:soak runs the real nominal mixed-bot batch followed by a full hour of 32-player movement/chat and join/leave/reconnect churn. npm run test:soak:smoke checks only sixty seconds and cannot pass the hour/memory gate. Fixed memory criteria and evidence limits are in [the sustained test contract](docs/testing.md#sustained-presencereconnect-soak). The test uses only local soap_load and stores private ignored progress/failure reports; run it sequentially with other workload/build/recovery commands.
 
-
 The full local presence/reconnect soak passed on clean source 244e809: one measured hour, 32 presences, 1,669 churn cycles and ten complete memory windows within the predeclared limits. This follows the initial mixed-bot games; it does not establish continuous game or media load. See the latest execution checkpoint for exact evidence and remaining release gates; earlier pending-soak notes describe preceding checkpoints.
-
 
 For a fresh current-source production package, commit the candidate and run npm run prepare:release in Ubuntu. In its printed private /tmp/soap-release-* directory run npm run test:production. This performs an actual production-only boot against a new empty local fixture database and removes its own fixture afterward. The package records its exact source revision; public hosting, media reachability and device/human acceptance are separate gates.
