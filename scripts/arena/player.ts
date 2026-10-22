@@ -208,7 +208,9 @@ export class Player {
             .getByLabel(action.label, { exact: true })
             .fill(action.value);
         if (action.op === "select")
-          await this.page.getByLabel(action.label).selectOption(action.value);
+          await this.page
+            .getByLabel(action.label, { exact: true })
+            .selectOption(action.value);
         if (action.op === "press") await this.page.keyboard.press(action.key);
         if (action.op === "goto") await this.page.goto(action.path);
         if (action.op === "walk") await walk(this.page, action.x, action.y);
