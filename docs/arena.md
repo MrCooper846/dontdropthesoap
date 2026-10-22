@@ -26,7 +26,7 @@ npm run arena:run -- 3
 npm run arena:status
 ```
 
-Cycles are bounded to 1–20. One suite runs at a time, with four separate browser identities sharing one Chromium process. Different tables run concurrently. A failed scenario ends the run with a nonzero CLI exit status, captures evidence and attempts to release its seats. A cleanup failure is explicitly logged. It does not truncate the database or erase old games/issues. An interrupted active game may need to reach its normal deadlines before its table becomes available again.
+Cycles are bounded to 1â€“20. One suite runs at a time, with four separate browser identities sharing one Chromium process. Different tables run concurrently. A failed scenario ends the run with a nonzero CLI exit status, captures evidence and attempts to release its seats. A cleanup failure is explicitly logged. It does not truncate the database or erase old games/issues. An interrupted active game may need to reach its normal deadlines before its table becomes available again.
 
 Stop without deleting data:
 
@@ -114,7 +114,7 @@ Traces and session files contain synthetic test credentials. Keep them local. Th
 The database is never automatically reset between runs. This catches accumulated state problems, but histories and traces grow; review disk usage before sustained testing. No cleanup task silently deletes evidence. The initial scenarios are deterministic regression probes, not proof of exhaustive exploratory coverage, external-bot clients or all league behaviour. Agents can explore those flows using the provided UI controls, and new scenarios can be added to `scripts/arena/scenarios.ts` as bugs become reproducible.
 
 
-## Verified checkpoint — 22 October 2026
+## Verified checkpoint â€” 22 October 2026
 
 The arena and overseer are running locally. Final repeated run `21f1ced9-904a-4c42-9de2-ef2deb8cb640` passed two cycles: six scenario executions, eight completed five-round matches (six bot-versus-bot and two human-versus-human), and two last-seat races. All player-view, expected-score, revision-pinning and database result assertions passed. The separate agent-interface run `d15c4fcf-48e0-4c0d-aa34-4bb382003925` used two independent controllers to publish and deploy visual bots through the same local action API available to agents, then verified completion and scores. These were automated controller checks, not a claim that autonomous Codex agents explored the whole game.
 
@@ -149,7 +149,7 @@ Commit `1213bea` labels departed active seats Left table before showing Results 
 
 ## Complex bot stress exploration
 
-Three agents built 19–22-block nested, history/score-based, stochastic and two-memory strategies through the actual maker, then played two maximum-length 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; revisions stayed frozen and fresh-game memory reset passed. Two open usability findings concern the undisclosed five-decision feedback window and generic invalid-practice failure beside stale results. A selector limitation is separately recorded as harness needs-triage. See the [complex bot stress report](arena-complex-bot-stress-2026-10-22.md) for evidence, coverage and the controller fallback used.
+Three agents built 19â€“22-block nested, history/score-based, stochastic and two-memory strategies through the actual maker, then played two maximum-length 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; revisions stayed frozen and fresh-game memory reset passed. Two open usability findings concern the undisclosed five-decision feedback window and generic invalid-practice failure beside stale results. A selector limitation is separately recorded as harness needs-triage. See the [complex bot stress report](arena-complex-bot-stress-2026-10-22.md) for evidence, coverage and the controller fallback used.
 
 
 ## Stress-finding fix verification
@@ -157,3 +157,8 @@ Three agents built 19–22-block nested, history/score-based, stochastic and two
 Commit `a1d73c8` adds disclosed/expandable bot feedback, practice-round validation and stale-response protection, and stable labelled dropdown selection. Run `npx tsx scripts/arena/verify-stress-fixes.ts` against an otherwise idle arena to check all three fixes, including delayed preview responses and a real 12-round game. The driver respects the two-previews-per-second limit and preserves its records.
 
 The browser regression passed, followed by three independent agents building fresh complex bots and playing two 50-round games. All 400 moves and 300 visual decisions passed scoring and strategy replay with zero timeouts; history expansion/collapse/reset, practice guidance/clearing and short selectors passed. Original findings are resolved. One new open usability finding concerns generic arithmetic-overflow practice diagnostics. See the [stress fix verification report](arena-stress-fix-verification-2026-10-22.md).
+
+
+## Overflow diagnostic verification
+
+Commit `6ba1a89` gives arithmetic overflow actionable numeric/memory guidance. A real-worker overflow/recovery regression and all 114 tests passed. Three agents independently verified the fix, built fresh 18–21-block policies and completed two 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay with zero timeouts/errors. One new open usability issue concerns nonfinite literal `1e309` reporting only Invalid JSON value. See the [overflow verification report](arena-overflow-fix-verification-2026-10-22.md) for evidence and live branch-coverage limits.

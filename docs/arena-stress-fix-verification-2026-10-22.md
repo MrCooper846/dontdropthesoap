@@ -1,4 +1,4 @@
-# Stress-finding fixes and independent re-verification — 22 October 2026
+# Stress-finding fixes and independent re-verification â€” 22 October 2026
 
 Commit `a1d73c8` addresses the two UI findings and harness selector problem from the [complex-bot stress session](arena-complex-bot-stress-2026-10-22.md). Test-driver pacing is committed as `28ab4d2`. The corrected game build is deployed in the isolated local arena, and the overseer was restarted before independent play to load the selector correction. The separate phone-playtest stack was not rebuilt.
 
@@ -31,7 +31,7 @@ Bert independently verified both short **Enter as** despite dynamic option text 
 
 - Ada authored a 21-block score/history policy, bot `e91a429f-fd95-43d5-b595-2d3134301fd1`: when behind on score, retaliate only after this opponent betrayed; otherwise betray after at least two opponent betrayals or from round 15 onward, cooperating otherwise.
 - Bert authored an 18-block two-memory pulse policy, bot `97f16d7f-30b0-4762-aef0-c6dc50f84fc9`: increment `clock` by 2, toggle boolean `flip`, then betray when `clock > 6 AND flip`, otherwise cooperate.
-- Cora authored a 19-block nested probability policy, bot `15210bb1-023f-4873-8895-f082b6e7befb`: after this opponent betrayed, cooperate when random <0.2; otherwise cooperate when random <(0.6 − own score), betraying on false branches.
+- Cora authored a 19-block nested probability policy, bot `15210bb1-023f-4873-8895-f082b6e7befb`: after this opponent betrayed, cooperate when random <0.2; otherwise cooperate when random <(0.6 âˆ’ own score), betraying on false branches.
 
 Practice, invalid-input recovery, publication and reload were exercised through real controls. Cora's score-derived threshold can deliberately leave [0,1], producing deterministic decisions in those contexts rather than a validation fault.
 
@@ -45,13 +45,13 @@ The prior successful preview was cleared, confirming the stale-result fix also h
 
 ## First 50-round game
 
-Match `14163a38-522c-4c7f-b1a0-0366c56f3a13` completed all 50 rounds with revision-1 bots and Clanker. Scores: Ada 9, Bert −46, Cora 15, Clanker −2. All seats had zero timeouts.
+Match `14163a38-522c-4c7f-b1a0-0366c56f3a13` completed all 50 rounds with revision-1 bots and Clanker. Scores: Ada 9, Bert âˆ’46, Cora 15, Clanker âˆ’2. All seats had zero timeouts.
 
 Canonical payoffs, scores, pair coverage, durable results and all 200 moves passed. Independent strategy replay matched all 150 visual decisions, memory and random state. Every authored if/else took both paths. Bert finished with `clock = 100, flip = false`, matching the two-memory policy.
 
 All three agents expanded and opened round-1 feedback at the end, confirming access to all 50 recorded decisions. Final evidence includes Cora `06199521-7be5-4caf-b47d-9fef1380b8b3`, Ada `fb6f845f-a031-42d2-9bc1-36e3cc28c4a0`, and Bert `095943b2-f375-43e6-9fb7-03540106e349`.
 
-While that game ran, each agent published revision 2: Ada's round threshold 15→30, Bert's clock gate 6→2, and Cora's post-betrayal cooperation threshold 0.2→0.8. The first game's pinned original programs continued correctly through completion.
+While that game ran, each agent published revision 2: Ada's round threshold 15â†’30, Bert's clock gate 6â†’2, and Cora's post-betrayal cooperation threshold 0.2â†’0.8. The first game's pinned original programs continued correctly through completion.
 
 ## Rematch history reset
 
@@ -61,7 +61,7 @@ Several Windows controller requests returned transient fetch failures. Agents re
 
 ## Completed rematch and final checks
 
-The revised rematch completed all 50 rounds. Scores: Ada 31, Bert 20, Cora −22, Clanker −1. All seats again had zero timeouts. Independent replay matched all choices, observations, memory and random-state evolution for the new versions; every authored if/else took both paths in each game.
+The revised rematch completed all 50 rounds. Scores: Ada 31, Bert 20, Cora âˆ’22, Clanker âˆ’1. All seats again had zero timeouts. Independent replay matched all choices, observations, memory and random-state evolution for the new versions; every authored if/else took both paths in each game.
 
 Bert independently opened early and final traces: fresh round 1 had `clock = 2, flip = true`, round 3 chose D under gate 2 (where the original gate 6 chose C), and round 50 finished at `clock = 100, flip = false`. Ada and Cora likewise opened all 50 final decisions and early-round traces. All three independently passed the requested history, practice and short-selector checks.
 
@@ -82,3 +82,6 @@ All three synthetic player contexts are closed and traces are saved. The isolate
 Final screenshot examples include Bert `7b5ed81f-9a4b-4c88-bad6-5490423271a7`, Ada `ceab79cc-ecfc-4a55-aadc-146d808653f4`, and Cora `cad54da8-fdfd-4d1f-a0f3-e6eef369144b`.
 
 This pass tested desktop editor and multiplayer workflows, not microphone, touch or physical devices, and is not exhaustive coverage of every possible block graph.
+
+
+Follow-up: the arithmetic-overflow diagnostic is resolved in `6ba1a89`; see the [overflow fix and subsequent long-game verification](arena-overflow-fix-verification-2026-10-22.md).
