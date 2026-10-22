@@ -45,3 +45,8 @@ A separate harness limitation appeared in Blockly practice: a nonexact label sel
 Evidence is retained locally under `data/arena/5c871fa4-c2b3-4a34-8310-083f25e1b2d9/`, including screenshots, action events, browser traces, `independent-audit.json` and `report.json`. The session outcome is failed because it found the new open usability issue; all six fix checks and the scoring audit passed. The local database and overseer remain available, with persistent history preserved.
 
 This was desktop multiplayer and bot exploration. Microphone, touch, physical devices, exhaustive league coverage and prolonged soak testing were outside this session.
+
+
+## Follow-up
+
+The spectator-navigation issue was fixed in `14d8d5d` and independently verified by three agents. See the [spectator verification report](arena-spectator-verification-2026-10-22.md) for further exploration and its new finding.
