@@ -145,3 +145,8 @@ Commit `14d8d5d` retains Watching separately from My table across in-yard panels
 ## Bot maker exploration
 
 Commit `1213bea` labels departed active seats Left table before showing Results at completion. The arena selector in `90d18d0` uses exact labels for editor controls. Three agents built distinct custom bots through the actual maker: round threshold, persistent counter and 25% random cooperation. Two games passed independent scoring and custom-decision audits (15 rounds, 40 moves); departure/reload/result labels passed, with no new confirmed finding. See the [bot maker report](arena-bot-maker-verification-2026-10-22.md) for evidence and coverage.
+
+
+## Complex bot stress exploration
+
+Three agents built 19–22-block nested, history/score-based, stochastic and two-memory strategies through the actual maker, then played two maximum-length 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; revisions stayed frozen and fresh-game memory reset passed. Two open usability findings concern the undisclosed five-decision feedback window and generic invalid-practice failure beside stale results. A selector limitation is separately recorded as harness needs-triage. See the [complex bot stress report](arena-complex-bot-stress-2026-10-22.md) for evidence, coverage and the controller fallback used.

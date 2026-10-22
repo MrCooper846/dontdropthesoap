@@ -45,3 +45,8 @@ No new confirmed game or editor defect was found in this pass. Observed temporar
 All three synthetic players are closed, and the session is marked passed. The isolated arena, persistent database and overseer remain running. Evidence is retained locally under `data/arena/83b14ddb-b57b-45dd-a573-5c388bff0fe4/`: screenshots, action events, browser traces, `report.json`, `independent-audit.json`, `custom-bot-audit.json` and `bot-evidence.json`. Local read-only audit helpers are preserved alongside the arena evidence.
 
 This was focused desktop bot-maker and multiplayer exploration, without microphone, touch or physical-device tests. It is not exhaustive coverage of every possible block graph or strategy.
+
+
+## Further stress exploration
+
+A subsequent session tested larger nested programs and two 50-round games, finding two game-interface usability problems and a separate harness limitation. See the [complex bot stress report](arena-complex-bot-stress-2026-10-22.md).
