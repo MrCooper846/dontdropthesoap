@@ -167,3 +167,8 @@ Commit `6ba1a89` gives arithmetic overflow actionable numeric/memory guidance. A
 ## Approved UI implementation
 
 The approved prisoner-yard and tabbed bot-workshop design is implemented in `751a4cf` with polish through `b92f0df`. The original Phaser characters and scenery remain. Desktop and 390×844 browser regressions passed before and after polish. Three agents built new custom bots, completed a 30-round bot game and a five-round human/bot game, and passed independent audits of 140 moves and 100 visual decisions with zero timeouts or execution errors. The session is closed and evidence preserved. See the [UI implementation and verification report](ui-implementation-verification-2026-10-23.md).
+
+
+## Redesigned UI complex-bot marathon
+
+Three agents authored fresh 26–29-block bots through the redesigned maker and completed two maximum-length 50-round games with revisions between them. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; every conditional branch took both paths in both games, with zero execution errors or timeouts. Keyboard navigation and viewport bounds passed at five desktop/portrait/landscape sizes. One new responsive usability finding remains open: Blockly retains its initially chosen toolbox orientation after the viewport changes. No application fix or deployment occurred during the session. See the [UI complex-bot marathon report](ui-complex-marathon-2026-10-23.md) for evidence and the unconfirmed feedback-transition observation.
