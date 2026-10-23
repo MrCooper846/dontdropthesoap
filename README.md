@@ -190,3 +190,7 @@ For a fresh current-source production package, commit the candidate and run npm 
 The [restaurant plan](docs/restaurant-game-plan.md) describes the first playable cooperative shift. Open `/restaurant` (or Restaurant from the yard), assemble four to eight players covering all four roles, and start service. Restaurant wallets and shifts persist in PostgreSQL; these funds are separate from the existing trust-game score.
 
 With the local arena running, `npm run arena:restaurant` plays a real four-browser shift through the visible controls and saves evidence to the arena database. It checks production, deposits, theft, supported searches, false accusations, reload recovery and conserved payouts. No microphone or touch testing is included.
+
+## Unity 3D feel prototype
+
+A separate [Unity restaurant prototype](prototypes/unity-restaurant/README.md) explores walking, tray pickup/drop physics, a preparation station and customer delivery. It is single-player and uses temporary practice earnings. On this laptop, launch the **Soap - 3D Restaurant** desktop shortcut. The existing browser game and persistent wallets are separate.
