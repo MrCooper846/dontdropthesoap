@@ -59,7 +59,15 @@
     "arena:status": "tsx scripts/arena/main.ts status",
     "arena": "tsx scripts/arena/main.ts",
     "arena:overseer:start": "tsx scripts/arena/service.ts start",
-    "arena:overseer:stop": "tsx scripts/arena/service.ts stop"
+    "arena:overseer:stop": "tsx scripts/arena/service.ts stop",
+    "unity:prepare": "tsx scripts/unity-server.ts prepare",
+    "unity:db:up": "docker compose --env-file .env.unity -f deploy/unity.compose.yml up -d --wait",
+    "unity:server:start": "tsx scripts/unity-server.ts start",
+    "unity:server:stop": "tsx scripts/unity-server.ts stop",
+    "unity:server:status": "tsx scripts/unity-server.ts status",
+    "unity:test:http": "tsx scripts/unity-test-http.ts",
+    "unity:test:bridge": "vitest run --config scripts/unity-arena/vitest.config.mts",
+    "unity:arena:bundle": "esbuild scripts/unity-arena/main.ts --bundle --platform=node --format=cjs --packages=external --outfile=data/unity-arena/control.cjs"
   },
   "dependencies": {
     "@types/qrcode.react": "^1.0.5",

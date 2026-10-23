@@ -194,3 +194,7 @@ With the local arena running, `npm run arena:restaurant` plays a real four-brows
 ## Unity 3D feel prototype
 
 A separate [Unity restaurant prototype](prototypes/unity-restaurant/README.md) explores walking, tray pickup/drop physics, a preparation station and customer delivery. It is single-player and uses temporary practice earnings. On this laptop, launch the **Soap - 3D Restaurant** desktop shortcut. The existing browser game and persistent wallets are separate.
+
+## Unity multiplayer restaurant
+
+The [native multiplayer restaurant](prototypes/unity-multiplayer-restaurant/README.md) implements four to eight players, physical movement and tray delivery, timed role tasks, theft/searches and persistent payouts. On this laptop launch **Soap - Multiplayer Restaurant**. Its authoritative server, PostgreSQL database and native-agent issue ledger are isolated from the browser game. See the [native acceptance report](docs/unity-multiplayer-restaurant-2026-10-23.md) and [agent harness](scripts/unity-arena/README.md).

@@ -85,6 +85,7 @@ export type RestaurantView = {
   revenue: number;
   spent: number;
   cleanPlates: number;
+  emergencyRestockAvailable: boolean;
   dirtyPlates: number;
   stock: number;
   served: number;

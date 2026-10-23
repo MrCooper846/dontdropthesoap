@@ -367,6 +367,16 @@ export function advance(state: RestaurantState, now: number): RestaurantState {
   if (JSON.stringify(s) !== before) s.version++;
   return s;
 }
+export function emergencyRestockAvailable(s: RestaurantState): boolean {
+  return (
+    s.phase === "active" &&
+    s.stock === 0 &&
+    s.vault < 2 &&
+    s.crew.every((c) => c.pouch === 0) &&
+    s.drops.length === 0 &&
+    !s.orders.some((o) => o.status === "open" && o.foodReady && o.drinkReady)
+  );
+}
 const taskRoles: Record<Kind, RestaurantRole> = {
   cook: "chef",
   drink: "barman",
@@ -518,7 +528,7 @@ export function applyAction(
         if (action.kind === "wash") need(s.dirtyPlates > 0, "NO_DIRTY_PLATES");
         if (action.kind === "restock") {
           need(s.stock <= 8, "STOCK_FULL");
-          need(s.vault >= 2, "VAULT_EMPTY");
+          need(s.vault >= 2 || emergencyRestockAvailable(s), "VAULT_EMPTY");
         }
       }
       c.task = {
@@ -585,9 +595,12 @@ export function applyAction(
       }
       if (task.kind === "restock") {
         need(s.stock <= 8, "STOCK_FULL");
-        need(s.vault >= 2, "VAULT_EMPTY");
-        s.vault -= 2;
-        s.spent += 2;
+        const emergency = emergencyRestockAvailable(s);
+        need(emergency || s.vault >= 2, "VAULT_EMPTY");
+        if (!emergency) {
+          s.vault -= 2;
+          s.spent += 2;
+        }
         s.stock += 8;
         c.contribution++;
       }
@@ -748,6 +761,7 @@ export function restaurantView(
     dirtyPlates: s.dirtyPlates,
     stock: s.stock,
     served: s.served,
+    emergencyRestockAvailable: emergencyRestockAvailable(s),
     crew: s.crew.map(visible),
     orders: s.orders,
     events: s.events,

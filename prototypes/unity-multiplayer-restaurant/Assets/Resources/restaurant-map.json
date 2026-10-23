@@ -1,0 +1,366 @@
+{
+  "version": 2,
+  "bounds": {
+    "xMin": -12.6,
+    "xMax": 12.6,
+    "zMin": -10.6,
+    "zMax": 12.6
+  },
+  "radius": 0.32,
+  "speed": 3.7,
+  "obstacles": [
+    {
+      "x": 0,
+      "z": 12.8,
+      "w": 26,
+      "d": 0.4,
+      "kind": "wall"
+    },
+    {
+      "x": -12.8,
+      "z": 1,
+      "w": 0.4,
+      "d": 24,
+      "kind": "wall"
+    },
+    {
+      "x": 12.8,
+      "z": 1,
+      "w": 0.4,
+      "d": 24,
+      "kind": "wall"
+    },
+    {
+      "x": 0,
+      "z": -10.8,
+      "w": 26,
+      "d": 0.4,
+      "kind": "wall"
+    },
+    {
+      "x": -10,
+      "z": 5,
+      "w": 5.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -3.5,
+      "z": 5,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -2,
+      "z": 2.5,
+      "w": 0.3,
+      "d": 5,
+      "kind": "wall"
+    },
+    {
+      "x": -2,
+      "z": -4,
+      "w": 0.3,
+      "d": 2,
+      "kind": "wall"
+    },
+    {
+      "x": -10,
+      "z": -5,
+      "w": 5.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -3.5,
+      "z": -5,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -3,
+      "z": 9,
+      "w": 0.3,
+      "d": 5.8,
+      "kind": "wall"
+    },
+    {
+      "x": 5,
+      "z": 9,
+      "w": 0.3,
+      "d": 5.8,
+      "kind": "wall"
+    },
+    {
+      "x": -11.5,
+      "z": 7,
+      "w": 2.4,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -7.5,
+      "z": 7,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -1.5,
+      "z": 7,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": 3.5,
+      "z": 7,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": 6.5,
+      "z": 7,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": 11.5,
+      "z": 7,
+      "w": 2.5,
+      "d": 0.3,
+      "kind": "wall"
+    },
+    {
+      "x": -9,
+      "z": 1,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 7,
+      "z": -8.8,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": -10,
+      "z": 11,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 9,
+      "z": 11,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 3.5,
+      "z": 11,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": -6,
+      "z": -5,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 6,
+      "z": -1,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 10,
+      "z": -1,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 6,
+      "z": -5,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    },
+    {
+      "x": 10,
+      "z": -5,
+      "w": 2,
+      "d": 1,
+      "kind": "counter"
+    }
+  ],
+  "zones": [
+    {
+      "zone": "kitchen",
+      "xMin": -12.6,
+      "xMax": -2.15,
+      "zMin": -4.85,
+      "zMax": 4.85
+    },
+    {
+      "zone": "washup",
+      "xMin": -12.6,
+      "xMax": -3.15,
+      "zMin": 7.15,
+      "zMax": 12.6
+    },
+    {
+      "zone": "office",
+      "xMin": -2.85,
+      "xMax": 4.85,
+      "zMin": 7.15,
+      "zMax": 12.6
+    },
+    {
+      "zone": "stockroom",
+      "xMin": 5.15,
+      "xMax": 12.6,
+      "zMin": 7.15,
+      "zMax": 12.6
+    },
+    {
+      "zone": "bar",
+      "xMin": 3,
+      "xMax": 12.6,
+      "zMin": -10.6,
+      "zMax": -6.5
+    }
+  ],
+  "stations": [
+    {
+      "id": "prep",
+      "kind": "cook",
+      "x": -9,
+      "z": 1,
+      "radius": 2.3,
+      "zone": "kitchen"
+    },
+    {
+      "id": "bar",
+      "kind": "drink",
+      "x": 7,
+      "z": -8.8,
+      "radius": 2.3,
+      "zone": "bar"
+    },
+    {
+      "id": "sink",
+      "kind": "wash",
+      "x": -10,
+      "z": 11,
+      "radius": 2.3,
+      "zone": "washup"
+    },
+    {
+      "id": "supplies",
+      "kind": "restock",
+      "x": 9,
+      "z": 11,
+      "radius": 2.3,
+      "zone": "stockroom"
+    },
+    {
+      "id": "vault",
+      "kind": "office",
+      "x": 3.5,
+      "z": 11,
+      "radius": 2.3,
+      "zone": "office"
+    },
+    {
+      "id": "hatch",
+      "kind": "pickup",
+      "x": -6,
+      "z": -5,
+      "radius": 2.3,
+      "zone": "dining"
+    },
+    {
+      "id": "table1",
+      "kind": "serve",
+      "table": 1,
+      "x": 6,
+      "z": -1,
+      "radius": 2.3,
+      "zone": "dining"
+    },
+    {
+      "id": "table2",
+      "kind": "serve",
+      "table": 2,
+      "x": 10,
+      "z": -1,
+      "radius": 2.3,
+      "zone": "dining"
+    },
+    {
+      "id": "table3",
+      "kind": "serve",
+      "table": 3,
+      "x": 6,
+      "z": -5,
+      "radius": 2.3,
+      "zone": "dining"
+    },
+    {
+      "id": "table4",
+      "kind": "serve",
+      "table": 4,
+      "x": 10,
+      "z": -5,
+      "radius": 2.3,
+      "zone": "dining"
+    }
+  ],
+  "spawns": [
+    {
+      "x": 0,
+      "z": -3
+    },
+    {
+      "x": 1.3,
+      "z": -3
+    },
+    {
+      "x": 2.6,
+      "z": -3
+    },
+    {
+      "x": 3.9,
+      "z": -3
+    },
+    {
+      "x": 0,
+      "z": 1
+    },
+    {
+      "x": 1.3,
+      "z": 1
+    },
+    {
+      "x": 2.6,
+      "z": 1
+    },
+    {
+      "x": 3.9,
+      "z": 1
+    }
+  ]
+}

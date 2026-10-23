@@ -547,4 +547,77 @@ describe("restaurant shift domain", () => {
     expect(g.s.vault).toBe(96);
     expect(wealth(g.s)).toBe(96);
   });
+
+  it("recovers exhausted-stock bootstrap without creating money or allowing repeated free purchases", () => {
+    const g = game();
+    g.s.stock = 0;
+    g.act("d", { type: "move", zone: "stockroom" });
+    expect(restaurantView(g.s, "d", g.now).emergencyRestockAvailable).toBe(
+      true,
+    );
+    perform(g, "d", "restock");
+    expect(g.s.stock).toBe(8);
+    expect(g.s.vault).toBe(0);
+    expect(g.s.spent).toBe(0);
+    expect(g.s.revenue).toBe(0);
+    expect(restaurantView(g.s, "d", g.now).emergencyRestockAvailable).toBe(
+      false,
+    );
+    expect(() => g.act("d", { type: "begin", kind: "restock" })).toThrow();
+    expect(sumReceipts(g.finish())).toBe(0);
+  });
+  it("denies emergency supplies while honest pouches, recoverable takings or ready meals could fund service", () => {
+    for (const situation of ["pouch", "drop", "stolendrop", "ready"]) {
+      const g = game();
+      g.s.stock = 0;
+      g.act("d", { type: "move", zone: "stockroom" });
+      if (situation === "pouch") {
+        g.s.revenue = 1;
+        g.s.crew[1].pouch = 1;
+      }
+      if (situation === "drop" || situation === "stolendrop") {
+        g.s.revenue = 1;
+        g.s.drops.push({
+          id: "cash",
+          zone: "dining",
+          source: situation === "stolendrop" ? "stolen" : "pouch",
+          amount: 1,
+          expiresAt: 10000,
+        });
+      }
+      if (situation === "ready")
+        g.s.orders[0].foodReady = g.s.orders[0].drinkReady = true;
+      expect(restaurantView(g.s, "d", g.now).emergencyRestockAvailable).toBe(
+        false,
+      );
+      expect(() => g.act("d", { type: "begin", kind: "restock" })).toThrow();
+    }
+  });
+  it("rechecks emergency eligibility at completion and charges normal cost when deposits arrive", () => {
+    for (const funded of [false, true]) {
+      const g = game();
+      g.s.stock = 0;
+      g.act("d", { type: "move", zone: "stockroom" });
+      g.act("d", { type: "begin", kind: "restock" });
+      g.act("d", { type: "step", value: "collect" }, 500);
+      g.act("d", { type: "step", value: "carry" }, 500);
+      if (funded) g.money(2);
+      else {
+        g.s.revenue = 1;
+        g.s.crew[1].pouch = 1;
+      }
+      if (funded) {
+        g.act("d", { type: "step", value: "shelve" }, 500);
+        expect(g.s.stock).toBe(8);
+        expect(g.s.spent).toBe(2);
+        expect(g.s.vault).toBe(0);
+      } else {
+        expect(() =>
+          g.act("d", { type: "step", value: "shelve" }, 500),
+        ).toThrow();
+        expect(g.s.stock).toBe(0);
+        expect(g.s.spent).toBe(0);
+      }
+    }
+  });
 });

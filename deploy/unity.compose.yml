@@ -1,0 +1,17 @@
+name: soap-unity-restaurant
+services:
+  db:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: soap
+      POSTGRES_DB: soap_unity_restaurant
+      POSTGRES_PASSWORD: ${UNITY_DB_PASSWORD:?Prepare .env.unity first}
+    ports: ["127.0.0.1:55436:5432"]
+    volumes: [unity-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soap -d soap_unity_restaurant"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  unity-db:
