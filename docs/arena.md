@@ -162,3 +162,8 @@ The browser regression passed, followed by three independent agents building fre
 ## Overflow diagnostic verification
 
 Commit `6ba1a89` gives arithmetic overflow actionable numeric/memory guidance. A real-worker overflow/recovery regression and all 114 tests passed. Three agents independently verified the fix, built fresh 18–21-block policies and completed two 50-round games. All 400 moves and 300 visual decisions passed independent scoring and strategy replay with zero timeouts/errors. One new open usability issue concerns nonfinite literal `1e309` reporting only Invalid JSON value. See the [overflow verification report](arena-overflow-fix-verification-2026-10-22.md) for evidence and live branch-coverage limits.
+
+
+## Approved UI implementation
+
+The approved prisoner-yard and tabbed bot-workshop design is implemented in `751a4cf` with polish through `b92f0df`. The original Phaser characters and scenery remain. Desktop and 390×844 browser regressions passed before and after polish. Three agents built new custom bots, completed a 30-round bot game and a five-round human/bot game, and passed independent audits of 140 moves and 100 visual decisions with zero timeouts or execution errors. The session is closed and evidence preserved. See the [UI implementation and verification report](ui-implementation-verification-2026-10-23.md).
