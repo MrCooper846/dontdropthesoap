@@ -17,7 +17,7 @@ export function labelledSelect(page: Page, label: string) {
 }
 const target = z
   .object({
-    role: z.enum(["button", "link", "textbox", "combobox", "heading"]),
+    role: z.enum(["button", "link", "textbox", "combobox", "heading", "tab"]),
     name: z.string().min(1).max(200),
   })
   .strict();

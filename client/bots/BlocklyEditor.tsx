@@ -124,7 +124,7 @@ export default function BlocklyEditor({
     setInspector({
       blocks: all.map((b, i) => ({
         id: b.id,
-        label: i + 1 + " · " + (labels[b.type] ?? "Block"),
+        label: i + 1 + " Â· " + (labels[b.type] ?? "Block"),
       })),
       fields,
       inputs,
@@ -155,15 +155,16 @@ export default function BlocklyEditor({
             name: "soapBot",
             base: B.Themes.Classic,
             componentStyles: {
-              workspaceBackgroundColour: "#f4f5ee",
+              workspaceBackgroundColour: "#18221d",
               toolboxBackgroundColour: "#25352b",
               toolboxForegroundColour: "#f6f1e8",
-              flyoutBackgroundColour: "#e6eee3",
-              flyoutForegroundColour: "#18271d",
+              flyoutBackgroundColour: "#24372a",
+              flyoutForegroundColour: "#f6f1e8",
               scrollbarColour: "#667561",
               scrollbarOpacity: 0.65,
             },
           }),
+          grid: { spacing: 20, length: 1, colour: "#4c6350", snap: false },
           trashcan: true,
           scrollbars: true,
           move: { scrollbars: true, drag: true, wheel: true },
@@ -286,7 +287,7 @@ export default function BlocklyEditor({
         <p className="muted">
           Drag blocks from the toolbox, or connect them with these controls.
         </p>
-        {!ready && <p role="status">Loading blocks…</p>}
+        {!ready && <p role="status">Loading blocksâ€¦</p>}
         <label className="label">
           Block to edit
           <select
@@ -366,7 +367,7 @@ export default function BlocklyEditor({
             {inspector.inputs.map((i) => (
               <option key={i.name} value={i.name} disabled={i.occupied}>
                 {i.label}
-                {i.occupied ? " · occupied" : ""}
+                {i.occupied ? " Â· occupied" : ""}
               </option>
             ))}
           </select>

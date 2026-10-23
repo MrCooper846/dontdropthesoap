@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMatchCountdown } from "../client/useMatchCountdown";
 import Link from "next/link";
 import type { Snapshot } from "../shared/protocol/commands";
@@ -17,6 +17,22 @@ export default function YardMatchPanel({
   onCommand: (type: string, payload: unknown) => void;
   onClose: () => void;
 }) {
+  const scoresRef = useRef<HTMLDetailsElement>(null);
+  const historyRef = useRef<HTMLElement>(null);
+  const payoffRef = useRef<HTMLDetailsElement>(null);
+  const [infoSection, setInfoSection] = useState("scores");
+  function openInfo(section: "scores" | "history" | "payoffs") {
+    setInfoSection(section);
+    const target =
+      section === "scores"
+        ? scoresRef.current
+        : section === "history"
+          ? historyRef.current
+          : payoffRef.current;
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    target?.focus({ preventScroll: true });
+  }
   const seconds = useMatchCountdown(match.deadline, match.serverTime);
   const own = match.seats.find((s) => s.id === match.ownSeatId),
     pair = match.pairs.find((p) => p.a === own?.id || p.b === own?.id),
@@ -59,22 +75,30 @@ export default function YardMatchPanel({
   }, [match.id, own?.id, own?.kind]);
   return (
     <section className="panel stack yard-match" aria-label="Match panel">
-      <div className="row">
-        <h2>
-          {terminal
-            ? "Final results"
-            : "Round " + match.round + "/" + match.settings.rounds}
-        </h2>
+      <div className="row match-overview">
+        <div>
+          <span className="yard-eyebrow">
+            {match.ownSeatId ? "YOUR TABLE" : "WATCHING"}
+          </span>
+          <h2>
+            {terminal
+              ? "Final results"
+              : "Round " + match.round + "/" + match.settings.rounds}
+          </h2>
+        </div>
         <button className="button small" onClick={onClose}>
           Close match view
         </button>
       </div>
-      <p className="pill">
+      <p className={"pill match-phase phase-" + match.phase}>
         {match.phase} · {seconds === null ? "" : seconds + "s"}
       </p>
       {match.phase === "waiting" && (
         <>
-          <p>Seats or settings changing clears readiness.</p>
+          <p className="match-status-copy">
+            Ready when everyone is here. Seats or settings changing clears
+            readiness.
+          </p>
           {own && !own.abandoned && (
             <button
               className="button primary"
@@ -100,7 +124,7 @@ export default function YardMatchPanel({
         </>
       )}
       {match.phase === "collecting" && (
-        <>
+        <div className="match-action-card">
           <h3>
             {own?.kind === "human"
               ? "You face " + opponent?.name
@@ -133,13 +157,19 @@ export default function YardMatchPanel({
                 </button>
               </div>
             ))}
+          {own?.kind === "visual" && !own.abandoned && (
+            <p className="match-status-copy">
+              Your bot is choosing for you. You can explore the yard while it
+              plays.
+            </p>
+          )}
           {own?.kind === "external" && (
             <p>
               Your bot {own.name} controls its own choices. You can keep
               walking.
             </p>
           )}
-        </>
+        </div>
       )}
       {(match.phase === "revealing" || terminal) &&
         match.results
@@ -162,7 +192,35 @@ export default function YardMatchPanel({
               </span>
             </div>
           ))}
-      <details open={match.phase === "waiting"} className="match-roster">
+      <nav className="match-info-nav" aria-label="Match information">
+        <button
+          className="button small"
+          aria-pressed={infoSection === "scores"}
+          onClick={() => openInfo("scores")}
+        >
+          Scores
+        </button>
+        <button
+          className="button small"
+          aria-pressed={infoSection === "history"}
+          onClick={() => openInfo("history")}
+        >
+          History
+        </button>
+        <button
+          className="button small"
+          aria-pressed={infoSection === "payoffs"}
+          onClick={() => openInfo("payoffs")}
+        >
+          Payoffs
+        </button>
+      </nav>
+      <details
+        ref={scoresRef}
+        tabIndex={-1}
+        open={match.phase === "waiting" || terminal}
+        className="match-roster"
+      >
         <summary>Players & scores</summary>
         <ul className="list">
           {match.seats.map((s) => (
@@ -197,51 +255,131 @@ export default function YardMatchPanel({
           ))}
         </ul>
       </details>
-      {own?.kind === "visual" && (
-        <section aria-label="Your bot decisions" className="stack">
-          <h3>Your bot decisions</h3>
-          <p className="muted">
-            Private feedback for your frozen match strategy. Editing publishes a
-            version for later games.
-          </p>
-          <Link href={"/bots/build?bot=" + own.botId + "&match=" + match.id}>
-            Edit for the next game
-          </Link>
-          <p className="muted" role="status">
-            {showAllFeedback
-              ? `Showing all ${feedback.length} recorded decisions.`
-              : `Showing latest ${Math.min(5, feedback.length)} of ${feedback.length} recorded decisions.`}
-          </p>
-          {feedback.length > 5 && (
-            <button
-              className="button small"
-              onClick={() => setShowAllFeedback(!showAllFeedback)}
-            >
+      <section
+        ref={historyRef}
+        tabIndex={-1}
+        className="stack match-history"
+        aria-label="Match history"
+      >
+        {own?.kind === "visual" && (
+          <section
+            aria-label="Your bot decisions"
+            className="stack match-bot-feedback"
+          >
+            <h3>Your bot decisions</h3>
+            <p className="muted">
+              Private feedback for your frozen match strategy. Editing publishes
+              a version for later games.
+            </p>
+            <Link href={"/bots/build?bot=" + own.botId + "&match=" + match.id}>
+              Edit for the next game
+            </Link>
+            <p className="muted" role="status">
               {showAllFeedback
-                ? "Show latest 5 decisions"
-                : "Show older decisions"}
-            </button>
+                ? `Showing all ${feedback.length} recorded decisions.`
+                : `Showing latest ${Math.min(5, feedback.length)} of ${feedback.length} recorded decisions.`}
+            </p>
+            {feedback.length > 5 && (
+              <button
+                className="button small"
+                onClick={() => setShowAllFeedback(!showAllFeedback)}
+              >
+                {showAllFeedback
+                  ? "Show latest 5 decisions"
+                  : "Show older decisions"}
+              </button>
+            )}
+            {(showAllFeedback ? feedback : feedback.slice(0, 5)).map((d) => (
+              <details key={d.round_number}>
+                <summary>
+                  Round {d.round_number} ·{" "}
+                  {d.status === "error" ? "bot error" : "decision locked"}
+                </summary>
+                {d.error_code && (
+                  <p className="danger">
+                    {d.error_code} · missing decisions become timeout Cooperate.
+                  </p>
+                )}
+                <ol>
+                  {d.trace_json.map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ol>
+              </details>
+            ))}
+          </section>
+        )}
+        <details className="match-round-history">
+          <summary>Round history</summary>
+          {match.results.length === 0 ? (
+            <p className="muted">
+              Revealed rounds will appear here. Choices stay private until the
+              reveal.
+            </p>
+          ) : (
+            [...new Set(match.results.map((result) => result.round))]
+              .sort((a, b) => b - a)
+              .map((round) => (
+                <details key={round}>
+                  <summary>Round {round} results</summary>
+                  {match.results
+                    .filter((result) => result.round === round)
+                    .map((result) => (
+                      <div className="lockCard" key={result.pairId}>
+                        <strong>
+                          {
+                            match.seats.find((seat) => seat.id === result.a)
+                              ?.name
+                          }
+                          : {result.aMove}
+                          {result.aSource === "timeout" &&
+                            " (automatic Cooperate — timed out)"}{" "}
+                          vs{" "}
+                          {
+                            match.seats.find((seat) => seat.id === result.b)
+                              ?.name
+                          }
+                          : {result.bMove}
+                          {result.bSource === "timeout" &&
+                            " (automatic Cooperate — timed out)"}
+                        </strong>
+                        <p>{result.message}</p>
+                        <span>
+                          {result.aNet >= 0 ? "+" : ""}
+                          {result.aNet} / {result.bNet >= 0 ? "+" : ""}
+                          {result.bNet} noodles
+                        </span>
+                      </div>
+                    ))}
+                </details>
+              ))
           )}
-          {(showAllFeedback ? feedback : feedback.slice(0, 5)).map((d) => (
-            <details key={d.round_number}>
-              <summary>
-                Round {d.round_number} ·{" "}
-                {d.status === "error" ? "bot error" : "decision locked"}
-              </summary>
-              {d.error_code && (
-                <p className="danger">
-                  {d.error_code} · missing decisions become timeout Cooperate.
-                </p>
-              )}
-              <ol>
-                {d.trace_json.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ol>
-            </details>
-          ))}
-        </section>
-      )}
+        </details>
+      </section>
+      <details ref={payoffRef} tabIndex={-1} className="match-payoffs">
+        <summary>How the noodles add up</summary>
+        <p className="muted">
+          Net noodles for you and your opponent, after the round cost.
+        </p>
+        <div className="match-payoff-grid">
+          <div className="match-payoff-cell">
+            <strong>Both cooperate</strong>
+            <span>+1 each</span>
+          </div>
+          <div className="match-payoff-cell">
+            <strong>You betray, they cooperate</strong>
+            <span>You +3 · them −2</span>
+          </div>
+          <div className="match-payoff-cell">
+            <strong>You cooperate, they betray</strong>
+            <span>You −2 · them +3</span>
+          </div>
+          <div className="match-payoff-cell">
+            <strong>Both betray</strong>
+            <span>−1 each</span>
+          </div>
+        </div>
+      </details>
       {match.historyExpired && (
         <p role="status">
           Round details expired after 90 days. Final scores are retained.

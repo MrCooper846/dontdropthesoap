@@ -536,9 +536,44 @@ export default function YardPage() {
       )}
       {entered ? (
         <header className="yard-status-bar">
-          <strong>The yard</strong>
-          <span role="status">
-            {session?.name} · {online ? "Connected" : "Reconnecting…"}
+          <Link
+            className="yard-brand"
+            href="/yard"
+            aria-label="Don't Drop the Soap home"
+          >
+            <span className="yard-brand-mark" aria-hidden="true">
+              S
+            </span>
+            <span className="yard-brand-name">
+              DON’T DROP
+              <br />
+              THE SOAP
+            </span>
+          </Link>
+          <nav className="yard-primary-nav" aria-label="Game navigation">
+            <button
+              className="button small"
+              aria-current="page"
+              onClick={() => setPane(null)}
+            >
+              The yard
+            </button>
+            <Link
+              className="button small"
+              href={
+                "/bots/build" + (ownedMatch ? "?match=" + ownedMatch.id : "")
+              }
+            >
+              Bot workshop
+            </Link>
+          </nav>
+          <span className="yard-identity" role="status">
+            <span
+              className={"yard-online-dot" + (online ? " is-online" : "")}
+              aria-hidden="true"
+            />
+            {session?.name}
+            <small>{online ? "Connected" : "Reconnecting…"}</small>
           </span>
           <button
             className="button small"
@@ -638,6 +673,16 @@ export default function YardPage() {
               }
             >
               <div className="yard-main">
+                <div className="yard-map-heading" aria-hidden="true">
+                  <div>
+                    <span className="yard-eyebrow">REC TIME</span>
+                    <h1>The yard</h1>
+                  </div>
+                  <span className="yard-map-count">
+                    {view.players.filter((player) => player.connected).length}{" "}
+                    in the yard
+                  </span>
+                </div>
                 <YardCanvas
                   view={view}
                   ownerId={session.ownerId}
@@ -669,6 +714,41 @@ export default function YardPage() {
                 aria-label="Yard controls"
                 hidden={!pane || pane === "voice"}
               >
+                <nav className="yard-panel-tabs" aria-label="Table navigation">
+                  {(ownedMatch || match?.ownSeatId) && (
+                    <button
+                      className="yard-panel-tab"
+                      aria-label="Open my table"
+                      aria-pressed={pane === "match" && !!match?.ownSeatId}
+                      onClick={() =>
+                        void run(() => watch((ownedMatch || match)!.id))
+                      }
+                    >
+                      My table
+                    </button>
+                  )}
+                  <button
+                    className="yard-panel-tab"
+                    aria-pressed={pane === "tables" || pane === "circle"}
+                    onClick={() => openPane("tables")}
+                  >
+                    Find a table
+                  </button>
+                  {spectatedMatch && (
+                    <button
+                      className="yard-panel-tab"
+                      aria-label="Open watched table"
+                      aria-pressed={
+                        pane === "match" &&
+                        match?.id === spectatedMatch.id &&
+                        !match?.ownSeatId
+                      }
+                      onClick={() => void run(() => watch(spectatedMatch.id))}
+                    >
+                      Watching
+                    </button>
+                  )}
+                </nav>
                 <div className="yard-pane-heading" hidden={pane === "match"}>
                   <strong>
                     {pane === "match"
@@ -1171,7 +1251,21 @@ export default function YardPage() {
               </aside>
             </div>
             <nav className="yard-dock" aria-label="Yard actions">
-              {(["chat", "tables", "people"] as const).map((item) => (
+              {[ownedMatch || (match?.ownSeatId ? match : null), spectatedMatch]
+                .filter((target): target is Snapshot => target !== null)
+                .map((target) => (
+                  <TableDockButton
+                    key={target.id}
+                    match={target}
+                    open={pane === "match" && match?.id === target.id}
+                    onToggle={() => {
+                      if (pane === "match" && match?.id === target.id)
+                        setPane(null);
+                      else void run(() => watch(target.id));
+                    }}
+                  />
+                ))}
+              {(["tables", "chat", "people"] as const).map((item) => (
                 <button
                   key={item}
                   className="button small"
@@ -1195,20 +1289,6 @@ export default function YardPage() {
                   )}
                 </button>
               ))}
-              {[ownedMatch || (match?.ownSeatId ? match : null), spectatedMatch]
-                .filter((target): target is Snapshot => target !== null)
-                .map((target) => (
-                  <TableDockButton
-                    key={target.id}
-                    match={target}
-                    open={pane === "match" && match?.id === target.id}
-                    onToggle={() => {
-                      if (pane === "match" && match?.id === target.id)
-                        setPane(null);
-                      else void run(() => watch(target.id));
-                    }}
-                  />
-                ))}
             </nav>
           </>
         )
