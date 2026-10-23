@@ -958,3 +958,8 @@ select {
 .yard-active .yard-status-bar .yard-online-dot{flex:none;min-width:6px;max-width:6px}
 .yard-active .yard-dock .button.primary{color:#eeeae0;background:#304031;border-color:#53664c}
 @media(max-width:760px){.yard-active .yard-status-bar .yard-identity small{display:none}}
+
+.yard-active .yard-panel-tab{font:inherit;font-size:12px;font-weight:500;min-height:44px;padding:9px 12px;border:1px solid transparent;border-radius:6px;cursor:pointer}
+.yard-active .yard-panel-tab[aria-pressed=true]{border-color:#53664c;background:#344234;color:var(--text)}
+.yard-active .yard-panel-tab:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.yard-active .match-info-nav .button[aria-pressed=true]{background:#344234;border-color:#637556}
