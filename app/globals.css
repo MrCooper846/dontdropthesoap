@@ -945,9 +945,16 @@ select {
 @media(max-width:760px){.workshop-brand>span:last-child{display:none}.workshop-navigation{margin-left:auto;gap:4px}.workshop-identity{display:none}.workshop-title{flex-basis:100%}.workshop-publish{width:100%;max-width:none}.workshop-mark{width:28px;height:28px;font-size:19px}.workshop-notices{padding:0 16px}}
 
 
-.yard-map-heading{position:absolute;left:20px;right:20px;top:18px;display:flex;justify-content:space-between;gap:12px;align-items:start;pointer-events:none;z-index:2;text-shadow:0 2px 4px #13221b}
+.yard-map-heading{position:absolute;left:20px;right:20px;top:18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;pointer-events:none;z-index:2;text-shadow:0 2px 4px #13221b}
 .yard-map-heading h1{font-size:27px;line-height:1.2;letter-spacing:-.6px;margin:4px 0;font-weight:600}
 .yard-map-heading .yard-eyebrow{font-size:11px;color:#d5ddc7;letter-spacing:1.6px}
 .yard-map-count{font-size:11px;color:#dae4ce;background:#1a291fe6;padding:5px 9px;border-radius:20px}
 .workshop-page-title{margin:0;font-size:11px;font-weight:600}
 @media(max-width:760px){.yard-map-heading{top:10px;left:14px;right:14px}.yard-map-heading h1{font-size:22px}.yard-map-count{font-size:11px}.yard-active .yard-nearby-prompt{top:70px}}
+
+.yard-active .yard-primary-nav{flex-wrap:nowrap}
+.yard-active .yard-primary-nav>.button{width:auto;flex:none;margin:0}
+.yard-active .yard-status-bar .yard-identity small{margin-left:8px;font-size:11px;color:#b7c8b3}
+.yard-active .yard-status-bar .yard-online-dot{flex:none;min-width:6px;max-width:6px}
+.yard-active .yard-dock .button.primary{color:#eeeae0;background:#304031;border-color:#53664c}
+@media(max-width:760px){.yard-active .yard-status-bar .yard-identity small{display:none}}

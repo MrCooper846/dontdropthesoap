@@ -124,7 +124,7 @@ export default function BlocklyEditor({
     setInspector({
       blocks: all.map((b, i) => ({
         id: b.id,
-        label: i + 1 + " Â· " + (labels[b.type] ?? "Block"),
+        label: i + 1 + " · " + (labels[b.type] ?? "Block"),
       })),
       fields,
       inputs,
@@ -287,7 +287,7 @@ export default function BlocklyEditor({
         <p className="muted">
           Drag blocks from the toolbox, or connect them with these controls.
         </p>
-        {!ready && <p role="status">Loading blocksâ€¦</p>}
+        {!ready && <p role="status">Loading blocks…</p>}
         <label className="label">
           Block to edit
           <select
@@ -367,7 +367,7 @@ export default function BlocklyEditor({
             {inspector.inputs.map((i) => (
               <option key={i.name} value={i.name} disabled={i.occupied}>
                 {i.label}
-                {i.occupied ? " Â· occupied" : ""}
+                {i.occupied ? " · occupied" : ""}
               </option>
             ))}
           </select>
