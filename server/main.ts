@@ -1,3 +1,4 @@
+import { tickRestaurants } from "./restaurant/http";
 import { commandFailure } from "./observability/diagnostics";
 import { startOutbox } from "./matches/outbox";
 import { DurableMetrics } from "./observability/durable";
@@ -407,6 +408,7 @@ export async function main() {
       }
       await measured("game.deadlines", tickMatches);
       if (performance.now() - lastWaitingCheck >= 5000) {
+        await measured("game.restaurant", tickRestaurants);
         await measured("game.waiting", () =>
           sweepWaitingRooms((match) =>
             match.seats.some(

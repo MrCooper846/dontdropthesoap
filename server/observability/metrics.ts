@@ -50,6 +50,7 @@ const durations = {
   "game.coordinator": new DurationHistogram(),
   "game.deadlines": new DurationHistogram(),
   "game.waiting": new DurationHistogram(),
+  "game.restaurant": new DurationHistogram(),
   "game.deadline.lock": new DurationHistogram(),
   "game.deadline.lag": new DurationHistogram(),
   "voice.policy.refresh": new DurationHistogram(),

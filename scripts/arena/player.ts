@@ -71,7 +71,7 @@ export const actionSchema = z.discriminatedUnion("op", [
       path: z
         .string()
         .regex(
-          /^\/(yard|bots(?:\/build)?|play|leagues)(?:\?[a-zA-Z0-9=&_-]*)?$/,
+          /^\/(yard|restaurant|bots(?:\/build)?|play|leagues)(?:\?[a-zA-Z0-9=&_-]*)?$/,
         ),
     })
     .strict(),

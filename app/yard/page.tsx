@@ -566,6 +566,9 @@ export default function YardPage() {
             >
               Bot workshop
             </Link>
+            <Link className="button small" href="/restaurant">
+              Restaurant
+            </Link>
           </nav>
           <span className="yard-identity" role="status">
             <span

@@ -1,3 +1,4 @@
+import { restaurantHttp } from "./restaurant/http";
 import { externalVersionsHttp } from "./bots/external-versions";
 import { resultsPage } from "./matches/results";
 import { ownedMatches } from "./matches/owned";
@@ -153,6 +154,7 @@ export async function api(
       method === "GET" ? 30 : 10,
     );
     if (method !== "GET") assertCsrf(req, principal);
+    if (await restaurantHttp(req, res, path, method)) return true;
     if (await leagueHttp(req, res, path, method)) return true;
     if (await externalVersionsHttp(req, res, path, method)) return true;
     if (await visualHttp(req, res, path, method)) return true;
