@@ -184,3 +184,9 @@ After a production build and test database setup, npm run test:soak runs the rea
 The full local presence/reconnect soak passed on clean source 244e809: one measured hour, 32 presences, 1,669 churn cycles and ten complete memory windows within the predeclared limits. This follows the initial mixed-bot games; it does not establish continuous game or media load. See the latest execution checkpoint for exact evidence and remaining release gates; earlier pending-soak notes describe preceding checkpoints.
 
 For a fresh current-source production package, commit the candidate and run npm run prepare:release in Ubuntu. In its printed private /tmp/soap-release-* directory run npm run test:production. This performs an actual production-only boot against a new empty local fixture database and removes its own fixture afterward. The package records its exact source revision; public hosting, media reachability and device/human acceptance are separate gates.
+
+## Restaurant prototype
+
+The [restaurant plan](docs/restaurant-game-plan.md) describes the first playable cooperative shift. Open `/restaurant` (or Restaurant from the yard), assemble four to eight players covering all four roles, and start service. Restaurant wallets and shifts persist in PostgreSQL; these funds are separate from the existing trust-game score.
+
+With the local arena running, `npm run arena:restaurant` plays a real four-browser shift through the visible controls and saves evidence to the arena database. It checks production, deposits, theft, supported searches, false accusations, reload recovery and conserved payouts. No microphone or touch testing is included.

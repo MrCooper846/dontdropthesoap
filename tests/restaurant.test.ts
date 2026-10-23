@@ -518,4 +518,33 @@ describe("restaurant shift domain", () => {
     expect(g.s.crew[0].task).not.toBeNull();
     expect(wealth(g.s)).toBe(20);
   });
+
+  it("caps restocking at sixteen units so repeated purchases cannot drain the vault", () => {
+    const g = game();
+    g.money(100);
+    g.act("d", { type: "move", zone: "stockroom" });
+    perform(g, "d", "restock");
+    expect(g.s.stock).toBe(16);
+    expect(g.s.vault).toBe(98);
+    expect(g.s.spent).toBe(2);
+    for (let i = 0; i < 10; i++)
+      expect(() => g.act("d", { type: "begin", kind: "restock" })).toThrow();
+    expect(g.s.vault).toBe(98);
+    expect(g.s.stock).toBe(16);
+    // Completion rechecks the cap rather than trusting a stale task reservation.
+    g.s.stock = 8;
+    g.act("d", { type: "begin", kind: "restock" });
+    g.act("d", { type: "step", value: "collect" }, 500);
+    g.act("d", { type: "step", value: "carry" }, 500);
+    g.s.stock = 9;
+    expect(() => g.act("d", { type: "step", value: "shelve" }, 500)).toThrow();
+    expect(g.s.vault).toBe(98);
+    expect(g.s.spent).toBe(2);
+    g.act("d", { type: "cancel" });
+    g.s.stock = 6;
+    perform(g, "d", "restock");
+    expect(g.s.stock).toBe(14);
+    expect(g.s.vault).toBe(96);
+    expect(wealth(g.s)).toBe(96);
+  });
 });

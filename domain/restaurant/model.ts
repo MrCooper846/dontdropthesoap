@@ -516,7 +516,10 @@ export function applyAction(
           "TASK_RESERVED",
         );
         if (action.kind === "wash") need(s.dirtyPlates > 0, "NO_DIRTY_PLATES");
-        if (action.kind === "restock") need(s.vault >= 2, "VAULT_EMPTY");
+        if (action.kind === "restock") {
+          need(s.stock <= 8, "STOCK_FULL");
+          need(s.vault >= 2, "VAULT_EMPTY");
+        }
       }
       c.task = {
         kind: action.kind,
@@ -581,6 +584,7 @@ export function applyAction(
         c.contribution++;
       }
       if (task.kind === "restock") {
+        need(s.stock <= 8, "STOCK_FULL");
         need(s.vault >= 2, "VAULT_EMPTY");
         s.vault -= 2;
         s.spent += 2;

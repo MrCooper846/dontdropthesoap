@@ -91,6 +91,7 @@ const messages: Record<string, string> = {
   TASK_RESERVED: "Someone is already working on that job.",
   NO_PLATES: "No clean plates remain. Ask the runner to wash some.",
   NO_DIRTY_PLATES: "There are no dirty plates to wash yet.",
+  STOCK_FULL: "Enough supplies remain. Restock when stock is eight or lower.",
   NO_STOCK: "Supplies are empty. Ask the runner to restock.",
   VAULT_EMPTY: "The vault does not contain enough noodles for that action.",
   THEFT_CLOSED:

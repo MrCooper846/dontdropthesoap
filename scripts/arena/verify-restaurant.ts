@@ -110,6 +110,11 @@ async function main() {
       await button(p, "Ready up").click();
       await until(async () => (await view(p)).shift.me.ready);
     }
+    await until(
+      async () =>
+        (await view(chef)).shift.crew.filter((c) => c.active).length === 4 &&
+        (await view(chef)).shift.crew.every((c) => c.ready),
+    );
     await button(chef, "Start shift").click();
     await until(async () => (await view(chef)).shift.phase === "active");
     const opening = await Promise.all(players.map(view));
@@ -143,6 +148,14 @@ async function main() {
     const deposited = (await view(waiter)).shift;
     assert.equal(deposited.me.pouch, 0);
     assert.equal(deposited.vault, beforeDeposit.vault + beforeDeposit.me.pouch);
+    await move(runner, "stockroom");
+    const beforeRestock = (await view(runner)).shift;
+    await task(runner, "Restock supplies");
+    const restocked = (await view(runner)).shift;
+    assert.equal(restocked.stock, beforeRestock.stock + 8);
+    assert.equal(restocked.vault, beforeRestock.vault - 2);
+    assert.equal(restocked.spent, beforeRestock.spent + 2);
+    await expect(button(runner, "Restock supplies")).toBeDisabled();
     await Promise.all([move(chef, "office"), move(barman, "office")]);
     await chef.page.getByLabel("Amount", { exact: true }).fill("1");
     await button(chef, "Prepare theft").click();
@@ -218,6 +231,7 @@ async function main() {
       falseAccusation: true,
       reload: true,
       payoutConservation: true,
+      restockCostAndCap: true,
       receipts: receipts.map(({ ownerId, total }) => ({ ownerId, total })),
     });
     passed = true;

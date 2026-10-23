@@ -372,6 +372,13 @@ export default function Restaurant() {
                       </p>
                     </div>
                     <button
+                      aria-label={
+                        (l.mine ? "Open shift" : "View lobby") +
+                        " for " +
+                        l.hostName +
+                        " · " +
+                        l.id
+                      }
                       disabled={disabled || (!l.mine && l.phase !== "waiting")}
                       onClick={() => open(l.id)}
                     >
@@ -565,12 +572,24 @@ export default function Restaurant() {
                               { type: "begin", kind: "wash" },
                               shift.dirtyPlates === 0,
                             )}
-                          {me.role === "runner" &&
-                            me.zone === "stockroom" &&
-                            actionButton("Restock supplies", {
-                              type: "begin",
-                              kind: "restock",
-                            })}
+                          {me.role === "runner" && me.zone === "stockroom" && (
+                            <>
+                              {actionButton(
+                                "Restock supplies",
+                                {
+                                  type: "begin",
+                                  kind: "restock",
+                                },
+                                shift.stock > 8,
+                              )}
+                              {shift.stock > 8 && (
+                                <p>
+                                  Supplies are sufficient. Restock when stock
+                                  falls to 8 or fewer.
+                                </p>
+                              )}
+                            </>
+                          )}
                           {(me.zone === "kitchen" ||
                             me.zone === "bar" ||
                             me.zone === "dining") && (
