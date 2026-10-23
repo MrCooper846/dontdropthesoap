@@ -172,3 +172,8 @@ The approved prisoner-yard and tabbed bot-workshop design is implemented in `751
 ## Redesigned UI complex-bot marathon
 
 Three agents authored fresh 26–29-block bots through the redesigned maker and completed two maximum-length 50-round games with revisions between them. All 400 moves and 300 visual decisions passed independent scoring and strategy replay; every conditional branch took both paths in both games, with zero execution errors or timeouts. Keyboard navigation and viewport bounds passed at five desktop/portrait/landscape sizes. One new responsive usability finding remains open: Blockly retains its initially chosen toolbox orientation after the viewport changes. No application fix or deployment occurred during the session. See the [UI complex-bot marathon report](ui-complex-marathon-2026-10-23.md) for evidence and the unconfirmed feedback-transition observation.
+
+
+## Restaurant first playable
+
+`npm run arena:restaurant` runs four real browser players through a timed cooperative shift, theft, supported searches and durable payouts. Three independent agents also completed a five-minute shared shift with exact payout conservation. See the [restaurant implementation and verification report](restaurant-first-playable-2026-10-23.md) for scope, evidence, fixed exploits and the remaining task-panel usability finding.

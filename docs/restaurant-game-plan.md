@@ -1,6 +1,6 @@
 # Prison restaurant game plan
 
-Status: design plan agreed for a first playable implementation. Balance values are provisional. The setting is a restaurant staffed entirely by prisoners; this is an original game design, not a simulation of a particular real restaurant.
+Status: first playable implemented locally on 23 October 2026; see the [implementation and verification report](restaurant-first-playable-2026-10-23.md). Balance values are provisional. The setting is a restaurant staffed entirely by prisoners; this is an original game design, not a simulation of a particular real restaurant.
 
 ## Purpose and core loop
 
