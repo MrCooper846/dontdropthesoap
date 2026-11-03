@@ -1,5 +1,7 @@
 # Unity multiplayer restaurant
 
+Experimental 3D prototype, separate from the main browser game. Functional test results below do not mean the Unity game is finished or that the project has migrated engines.
+
 This is a separate native Windows client for the cooperative restaurant, backed by the laptop-only authoritative server and its own persistent PostgreSQL database. It does not connect to the browser arena's wallets or production data.
 
 ## Play on this laptop

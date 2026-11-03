@@ -1,25 +1,25 @@
 # Architecture
 
-Status: proposed implementation baseline, 14 October 2026. These choices are recommendations for the next version, not deployed capabilities. The [vision](game-vision.md) governs product intent; [implementation](implementation.md) gives the build order.
+Status: architecture baseline established on 14 October 2026. The browser stack and authority model below are now implemented locally; this document also retains original design rationale and future-facing choices. See the [project overview](../README.md) for delivered scope and the [release audit](release-audit.md) for evidence and remaining gates. Unity is a [separate experiment](unity-experiments.md).
 
 ## Stack and boundaries
 
-| Concern | Proposed choice | Reason |
-| --- | --- | --- |
-| Web UI | Existing Next.js + React + TypeScript | Retain forms, navigation and match UI |
-| Yard renderer | Phaser, loaded only in the browser | 2D scenes, camera, input and animation |
-| Realtime control | Existing Socket.IO, versioned application protocol | Retain transport while replacing unsafe handlers |
-| Game service | One authoritative Node/TypeScript process initially | One owner of match and yard state |
-| Durable data | PostgreSQL with SQL migrations and node-postgres | Transactions, uniqueness and recoverable matches |
-| Visual editor | Blockly producing a validated JSON program | Accessible programming without arbitrary hosted code |
-| Voice | Narrow server-authorized media adapter; mediasoup candidate after failed LiveKit permission spike | Keep media outside the game loop and enforce consumer eligibility |
-| Verification | Vitest, real PostgreSQL integration tests, Playwright, scripted socket clients | Cover rules, persistence, UI and hostile clients |
+| Concern          | Browser implementation                                                                    | Reason                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Web UI           | Existing Next.js + React + TypeScript                                                     | Retain forms, navigation and match UI                             |
+| Yard renderer    | Phaser, loaded only in the browser                                                        | 2D scenes, camera, input and animation                            |
+| Realtime control | Existing Socket.IO, versioned application protocol                                        | Retain transport while replacing unsafe handlers                  |
+| Game service     | One authoritative Node/TypeScript process initially                                       | One owner of match and yard state                                 |
+| Durable data     | PostgreSQL with SQL migrations and node-postgres                                          | Transactions, uniqueness and recoverable matches                  |
+| Visual editor    | Blockly producing a validated JSON program                                                | Accessible programming without arbitrary hosted code              |
+| Voice            | Server-authorized mediasoup adapter; earlier LiveKit permission spike retained as history | Keep media outside the game loop and enforce consumer eligibility |
+| Verification     | Vitest, real PostgreSQL integration tests, Playwright, scripted socket clients            | Cover rules, persistence, UI and hostile clients                  |
 
 Foundation decision, 14 October 2026: tested Node 24.18.0, Next 15.5.27, Socket.IO 4.8.3, Phaser 4.2.1, Blockly 13.4.0, pg 8.23.1, Zod 4.6.7, Vitest 5.0.4 and Playwright 1.64.1. New direct packages are pinned. Compatible existing dependency patches were applied because npm audit reported concrete advisories; postcss 8.5.30 and esbuild 0.28.2 overrides remove remaining vulnerable transitive copies. The unused broken Next lint setup was replaced by explicit formatting and TypeScript checks. npm audit reports no advisories at this checkpoint.
 
 Do not automatically upgrade existing dependencies as part of this plan. Select supported compatible releases and pin them when each component is introduced. No Redis, microservices, Kafka, Kubernetes or multiple game writers for the first alpha.
 
-## Proposed source layout
+## Source layout
 
 - `app/`, `components/`: React pages, accessible overlays and forms.
 - `client/yard/`: Phaser scene, input, prediction and interpolation.
@@ -72,6 +72,7 @@ On startup load unfinished matches before accepting commands. Follow recovery ru
 ## References
 
 Reviewed 14 October 2026:
+
 - [Socket.IO delivery guarantees](https://socket.io/docs/v4/delivery-guarantees/): application acknowledgments and retries remain necessary.
 - [Socket.IO disconnections](https://socket.io/docs/v4/tutorial/handling-disconnections/): clients need resynchronisation.
 - [Phaser framework templates](https://docs.phaser.io/phaser/getting-started/project-templates): reference for the React/renderer boundary.

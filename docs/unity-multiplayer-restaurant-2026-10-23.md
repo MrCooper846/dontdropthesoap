@@ -1,5 +1,7 @@
 # Native Unity multiplayer restaurant — 23 October 2026
 
+Experimental 3D prototype, separate from the main browser game. Functional test results below do not mean the Unity game is finished or that the project has migrated engines.
+
 ## Delivered scope
 
 A separate Windows Unity client implements the restaurant as a physical multiplayer activity: prisoners walk between the kitchen, dining room, bar, wash-up, office and stockroom. The shared map follows the supplied restaurant sketch, including the kitchen serving hatch. The browser game and original single-player physics experiment remain separate.

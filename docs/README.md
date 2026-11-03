@@ -1,43 +1,50 @@
-# Technical plan
+# Project documentation
 
-Status: v1 specifications and implementation references, 14 October 2026. The authenticated match core, external bots, visual bot builder and playable yard are implemented. Voice is integrated behind a feature flag with device/playtest validation still pending; the league has a verified mixed-bot batch, public results and physical recovery flow. Use the root README and [execution record](goal-mode-plan.md) for current implementation evidence; specifications alone do not establish completion.
+The main project is the playable browser game: the social yard, cooperate/betray matches, visual and external bots, leagues and a browser restaurant prototype. Start with the [project overview](../README.md) for a portfolio introduction and local quickstart. The Unity restaurant is a [separate experiment](unity-experiments.md), not the main game or a completed engine migration.
+
+Design specifications and dated execution reports serve different purposes. A proposed mechanic is not evidence that it ships; a successful local test is not public deployment or comprehensive device acceptance. Detailed test/setup notes from the earlier README are preserved in the [development guide](development-guide.md).
 
 ## Read in this order
 
-| Document | Responsibility |
-| --- | --- |
-| [Game vision](game-vision.md) | Product goals and boundaries |
-| [Architecture](architecture.md) | Components, stack, authority and sessions |
-| [Gameplay](gameplay.md) | Proposed alpha rules, lifecycle and league format |
-| [Data](data.md) | Entities, invariants, transactions and recovery |
-| [Protocol](protocol.md) | Commands, HTTP/socket contracts, visibility and retries |
-| [Bots](bots.md) | External clients, visual builder and bounded execution |
-| [Yard and voice](yard-and-voice.md) | Rendering, movement, social UI and media routing |
-| [Testing](testing.md) | Correctness, hostile clients, playtests and performance gates |
-| [Operations](operations.md) | Deployment, credentials, observability and recovery |
-| [Private laptop playtest](laptop-playtest.md) | Local-network HTTPS/media setup for real phones |
-| [Physical-device and human acceptance](playtest.md) | Procedure and result form for the remaining real-device/playtest gates |
-| [Alpha candidate notes](release-notes.md) | Implemented scope, runnable package and explicit remaining release dependencies |
-| [Candidate acceptance audit](release-audit.md) | Requirement-by-requirement evidence, scope limits and unpassed gates |
-| [Implementation](implementation.md) | Milestones and migration from current code |
-| [Goal Mode execution](goal-mode-plan.md) | Paste-ready goal, stage gates, checkpoint record and resume instructions |
+| Document                                                      | Responsibility                                                                  |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Development guide](development-guide.md)                     | Detailed setup, commands and recorded engineering checkpoints                   |
+| [Browser restaurant](restaurant-first-playable-2026-10-23.md) | Implemented activity, scope limits and acceptance evidence                      |
+| [Restaurant design](restaurant-game-plan.md)                  | Broader cooperative activity and economy plan                                   |
+| [Agent arena](arena.md)                                       | Isolated browser playtests, issue tracking and evidence                         |
+| [Unity experiments](unity-experiments.md)                     | Separate 3D prototypes and local human/agent testing                            |
+| [Game vision](game-vision.md)                                 | Product goals and boundaries                                                    |
+| [Architecture](architecture.md)                               | Components, stack, authority and sessions                                       |
+| [Gameplay](gameplay.md)                                       | Proposed alpha rules, lifecycle and league format                               |
+| [Data](data.md)                                               | Entities, invariants, transactions and recovery                                 |
+| [Protocol](protocol.md)                                       | Commands, HTTP/socket contracts, visibility and retries                         |
+| [Bots](bots.md)                                               | External clients, visual builder and bounded execution                          |
+| [Yard and voice](yard-and-voice.md)                           | Rendering, movement, social UI and media routing                                |
+| [Testing](testing.md)                                         | Correctness, hostile clients, playtests and performance gates                   |
+| [Operations](operations.md)                                   | Deployment, credentials, observability and recovery                             |
+| [Private laptop playtest](laptop-playtest.md)                 | Local-network HTTPS/media setup for real phones                                 |
+| [Physical-device and human acceptance](playtest.md)           | Procedure and result form for the remaining real-device/playtest gates          |
+| [Alpha candidate notes](release-notes.md)                     | Implemented scope, runnable package and explicit remaining release dependencies |
+| [Candidate acceptance audit](release-audit.md)                | Requirement-by-requirement evidence, scope limits and unpassed gates            |
+| [Implementation](implementation.md)                           | Milestones and migration from current code                                      |
+| [Goal Mode execution](goal-mode-plan.md)                      | Paste-ready goal, stage gates, checkpoint record and resume instructions        |
 
-## Decision register
+## Original design decision register
 
-| Decision | Baseline | Status |
-| --- | --- | --- |
-| Game authority | One Node game writer | Recommended |
-| Realtime | Keep Socket.IO; new application protocol | Recommended |
-| Data | PostgreSQL transactions; movement in memory | Recommended |
-| Rendering | Phaser with React overlays | Recommended; mobile spike |
-| Editor | Blockly → restricted JSON interpreter | Integrated; native workers and emulated-touch flow verified |
-| Voice | mediasoup native worker with server-owned consumers | Integrated; device/playtest validation pending |
-| Identity | Server-issued guest session; scoped bot tokens | Recommended; recovery/account upgrade deferred |
-| Economy | Per-match net score, separate casual totals and league rankings | Proposed gameplay default |
-| League | Small round-robin batches; open external compute | Proposed gameplay default |
-| Capacity | 32 humans/four tables | Test target, not benchmark |
-| Hosting | Single game replica, DB, separate media | Provider/cost choice pending |
-| Guards/clans | Later possibilities | Not dependencies |
+| Decision       | Baseline                                                        | Status                                                          |
+| -------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| Game authority | One Node game writer                                            | Implemented                                                     |
+| Realtime       | Socket.IO with versioned application protocol                   | Implemented                                                     |
+| Data           | PostgreSQL transactions; movement in memory                     | Implemented                                                     |
+| Rendering      | Phaser with React overlays                                      | Implemented; physical-device usability remains limited evidence |
+| Editor         | Blockly → restricted JSON interpreter                           | Integrated; native workers and emulated-touch flow verified     |
+| Voice          | mediasoup native worker with server-owned consumers             | Integrated; device/playtest validation pending                  |
+| Identity       | Server-issued guest session; scoped bot tokens                  | Implemented; recovery/account upgrade deferred                  |
+| Economy        | Per-match net score, separate casual totals and league rankings | Implemented; restaurant wallet remains separate                 |
+| League         | Small round-robin batches; open external compute                | Implemented preview                                             |
+| Capacity       | 32 humans/four tables                                           | Test target, not benchmark                                      |
+| Hosting        | Single game replica, DB, separate media                         | Provider/cost choice pending                                    |
+| Guards/clans   | Later possibilities                                             | Not dependencies                                                |
 
 “Recommended” means implementation can start from this plan; it is not an assertion of user approval of every numeric parameter. Balance values are tunable and versioned. Provider selection and voice enforcement must pass their explicit gates.
 
